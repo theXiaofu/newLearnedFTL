@@ -2,6 +2,7 @@
 #ifndef _L_FEMU_FTL_H
 #define _L_FEMU_FTL_H
 #include "../nvme.h"
+#include"string.h"
 
 
 #define INVALID_PPA     (~(0ULL))

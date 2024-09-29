@@ -53,17 +53,19 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp);
 //bit_map包含上层和new_seg的位图。
 static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,bool *bit_map,struct Senode *node)
 {
+    if(start_seg==NULL)
+    {
+        if(new_seg)
+        node->l++;//建立一个新层级
+        return new_seg;
+    }
     struct Seg*nextl_start_seg = start_seg->next_level;//the starting segment of the next level
     struct Seg *pre_seg = NULL;
     struct Seg *tmp_seg = start_seg;
     struct Seg*next_seg =NULL;
     struct Seg* nextl_newseg=NULL;
     uint64_t x1,x2;
-    if(start_seg==NULL)
-    {
-        node->l++;//建立一个新层级
-        return new_seg;
-    }
+    
    while(tmp_seg)
     {
         x1 = tmp_seg->x1;
@@ -185,6 +187,8 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
     node->seg_count++;
     bool *bitmap = g_malloc0(sizeof(bool) * ((ssd->sp).ents_per_pg) );
     memset(bitmap,0,sizeof(bitmap));
+    for(int i = slpn;i<=elpn;++i)
+    bitmap[i]=true;
     node->head = insert_seg2level(new_seg,node->head,bitmap,node);
     return node->seg_count - old_count;
 }
