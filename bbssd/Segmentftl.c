@@ -48,6 +48,147 @@ static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *w
 static void insert_wp_lines(struct write_pointer *wpp);
 static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp);
 
+//将新段插入到这一层中同时对这层旧段进行修改和从上到下的压缩，如果new_seg为NULL，那么只进行压缩。
+//如果返回值表示这一层的起始段。
+//bit_map包含上层和new_seg的位图。
+static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,bool *bit_map,struct Senode *node)
+{
+    struct Seg*nextl_start_seg = start_seg->next_level;//the starting segment of the next level
+    struct Seg *pre_seg = NULL;
+    struct Seg *tmp_seg = start_seg;
+    struct Seg*next_seg =NULL;
+    struct Seg* nextl_newseg=NULL;
+    uint64_t x1,x2;
+    if(start_seg==NULL)
+    {
+        node->l++;//建立一个新层级
+        return new_seg;
+    }
+   while(tmp_seg)
+    {
+        x1 = tmp_seg->x1;
+        x2 = tmp_seg->x2;
+        next_seg = tmp_seg->next;
+        //去除重复的部分因为这部分有最新的lpn-ppn的映射值去除即可。
+        while(x1<=x2&&bit_map[x1])
+        {
+            x1++;
+        }
+        while(x2>=x1&&bit_map[x2])
+        {
+            x2--;
+        }
+
+        if(x1>x2)
+        {//删除这个段  修改Senode 参数
+            if(start_seg == tmp_seg)
+            {
+                if(next_seg)
+                next_seg->next_level = start_seg->next_level;//连接到下一层
+                start_seg = next_seg;//更改头
+            }
+            else
+            {
+                pre_seg ->next = next_seg;
+            }
+            node->seg_count--;
+            g_free(tmp_seg);
+        }
+        else
+        {
+            tmp_seg->sppn += x1-tmp_seg->x1;
+            tmp_seg->x1=x1;
+            tmp_seg->x2 = x2;
+            if(new_seg)
+            {
+                if(x1 < new_seg->x1 && x2 > new_seg->x2)
+                {//如果new_seg被全包含直接把这个段加入到下一层中
+                    nextl_newseg = tmp_seg;
+                    new_seg->next = tmp_seg->next;
+                    if(tmp_seg == start_seg)
+                    {
+                        new_seg->next_level = start_seg->next_level;
+                        tmp_seg->next = tmp_seg->next_level = NULL;
+                        start_seg = new_seg;
+
+                    }
+                    else
+                    {
+                        pre_seg->next = new_seg;
+                    }
+                    new_seg = NULL;
+                }
+                else
+                {
+                    if(x1>new_seg->x2)
+                    {
+                        new_seg->next = tmp_seg;
+                        if(tmp_seg == start_seg)
+                        {
+                            new_seg->next_level = start_seg->next_level;
+                            tmp_seg->next_level = NULL;
+                            start_seg = new_seg;
+
+                        }
+                        else
+                        {
+                            pre_seg->next = new_seg;
+                        }
+                        new_seg = NULL;
+                    }
+                }
+            }
+                
+            while(x1<=x2)
+            {
+                bit_map[x1]=true;
+                x1++;
+            }
+            pre_seg = tmp_seg;
+        }
+        tmp_seg = next_seg;
+    }
+    if(pre_seg)
+    {
+        if(new_seg)
+        {
+            if(pre_seg->x2<new_seg->x1)
+            {
+                pre_seg->next = new_seg;
+            }
+            else
+            {
+                printf("segment erro!!!!!!!!!!!!!!!!!");
+            }
+        }
+        start_seg->next_level = insert_seg2level(nextl_newseg,nextl_start_seg,bit_map,node);
+        return start_seg;
+    }
+    else
+    {
+        node->l--;
+        return insert_seg2level(new_seg,nextl_start_seg,bit_map,node);
+    }
+    return NULL;
+}
+//通过slpn elpn插入到日志段中，其中slpn和elpn是组内的偏移
+static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint64_t next_avail_time, uint64_t sppn, uint64_t tvpn)
+{
+    struct Seg *new_seg = g_malloc0(sizeof(struct Seg));
+    new_seg->x1=slpn;
+    new_seg->x2=elpn;
+    new_seg->next_avail_time = next_avail_time;
+    new_seg->sppn = sppn;
+    new_seg->next = new_seg->next_level = NULL;
+    struct Senode *node = &(ssd->senodes[tvpn]);
+    int old_count = node->seg_count;
+    node->seg_count++;
+    bool *bitmap = g_malloc0(sizeof(bool) * ((ssd->sp).ents_per_pg) );
+    memset(bitmap,0,sizeof(bitmap));
+    node->head = insert_seg2level(new_seg,node->head,bitmap,node);
+    return node->seg_count - old_count;
+}
+
 static int func(int *c) {
     printf("test\n");
     return *c;

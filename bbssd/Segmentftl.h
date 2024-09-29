@@ -108,10 +108,9 @@ typedef struct Seg {
     uint64_t x1;//x1表示slpn也就是这个段的起始lpn
     uint64_t x2;//x2表示elpn也就是这个段的结束lpn
     uint64_t sppn;//start ppn  PPN occupies 14 bits, of which the first 2 bits represent the position in the block group and the last 12 bits represent the offset in the block group.
-    QTAILQ_ENTRY(Seg) entry;
     uint64_t next_avail_time;
-    struct Seg *next1;//next1表示同层内的链表
-    struct Seg *next2; //next2表示指向下一层的链表
+    struct Seg *next ;  //next表示同层内的链表
+    struct Seg *next_level ;   //next_level表示指向下一层的链表
 } Seg;
 
 typedef struct Senode {
