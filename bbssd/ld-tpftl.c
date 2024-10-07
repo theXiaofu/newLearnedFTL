@@ -1741,10 +1741,10 @@ static struct nand_lun *process_translation_page_write(struct ssd *ssd, NvmeRequ
         ppa = get_maptbl_ent(ssd, lpn);
 
         if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
-            insert_entry_to_cmt(ssd, lpn, UNMAPPED_PPA, HEAD, false, 0);
+            insert_entry_to_cmt(ssd, lpn, UNMAPPED_PPA, HEAD, false, next_avail_time);
         } else {
             ppn = ppa2pgidx(ssd, &ppa);
-            insert_entry_to_cmt(ssd, lpn, ppn, HEAD, false, 0);
+            insert_entry_to_cmt(ssd, lpn, ppn, HEAD, false, next_avail_time);
         }
         /* when tpnode has not been evicted, execute request-level prefetching, 
         end_lpn is the end of translation page or end of request, when evict
@@ -1895,7 +1895,7 @@ static uint64_t gc_write_page_through_line_wp(struct ssd *ssd, uint64_t lpn, str
 
     ftl_assert(valid_lpn(ssd, lpn));
 
-    if (wpp->curline->rest < 32768)
+    if (wpp->curline->rest < (ssd->sp).pgs_per_line)
         advance_line_write_pointer(ssd, wpp);
 
     // new_ppa = get_new_page(ssd);
@@ -1910,12 +1910,12 @@ static uint64_t gc_write_page_through_line_wp(struct ssd *ssd, uint64_t lpn, str
     /* need to advance the write pointer here */
     // ssd_advance_write_pointer(ssd);
     // advance_line_write_pointer(ssd, wpp);
-    struct cmt_entry *cmt_entry = cmt_hit(ssd, lpn);
+
     if (ssd->sp.enable_gc_delay) {
         struct nand_cmd gcw;
         gcw.type = GC_IO;
         gcw.cmd = NAND_WRITE;
-        gcw.stime = cmt_entry->next_avail_time;
+        gcw.stime = 0;
         ssd_advance_status(ssd, new_ppa, &gcw);
     }
 
@@ -1926,7 +1926,6 @@ static uint64_t gc_write_page_through_line_wp(struct ssd *ssd, uint64_t lpn, str
 #endif
 
     new_lun = get_lun(ssd, new_ppa);
-    cmt_entry->next_avail_time = new_lun->next_lun_avail_time;
     new_lun->gc_endtime = new_lun->next_lun_avail_time;
 
     return 0;
@@ -2237,13 +2236,12 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
 
 static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int start_gtd) {
     // struct timespec time1, time2;
-    //printf("Model Training...\n");
+    printf("Model Training...\n");
     ssd->stat.model_training_nums++;
     const int trans_ent = ssd->sp.ents_per_pg;
     const int parallel = ssd->sp.tt_luns;
     uint64_t train_lpns[parallel][trans_ent];
     uint64_t train_vppns[parallel][trans_ent];
-    struct cmt_mgmt *cm = &ssd->cm;
     int success = 0;
     int total = 0;
     // gc_line_num++;
@@ -2262,34 +2260,8 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         // * second write them back, collect the ppa
         for (int pgi = 0; pgi < group_gtd_index[i]; pgi++) {
             struct ppa tmp_ppa;
-            uint64_t lpn = group_gtd_lpns[i][pgi];
-
-            struct cmt_entry *cmt_entry = cmt_hit(ssd, lpn);
-            tmp_ppa = get_maptbl_ent(ssd, lpn);
-             struct nand_lun *old_lun;
-             old_lun = get_lun(ssd, &tmp_ppa);
-            uint64_t next_avail_time = old_lun->next_lun_avail_time;
-            uint64_t ppn=ppa2pgidx(ssd,&tmp_ppa);
-            if (!cmt_entry) {
-                if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-                    evict_entry_from_cmt(ssd);
-                }
-                //read latency因为在model_training之前已经进行过readallPage操作已经对他们进行了读操作记录了读延迟，所以这里不用再次记录
-                //translation_read_page(ssd, req, &tppa);
-                
-                insert_entry_to_cmt(ssd, lpn, ppn, HEAD, false, next_avail_time);
-            } 
-            cmt_entry = cmt_hit(ssd,lpn);
-            if(cmt_entry->next_avail_time<next_avail_time)
-            cmt_entry->next_avail_time=next_avail_time;
             gc_write_page_through_line_wp(ssd, group_gtd_lpns[i][pgi], &tmp_ppa, wpp);
             train_vppns[i][pgi] = ppa2vppn(ssd, &tmp_ppa);
-            ppn =train_vppns[i][pgi];
-            cmt_entry->dirty = DIRTY;
-            cmt_entry->ppn = ppn;
-             // 1.1. first look up in the cmt
-            
-            
         }
 
         // * update the gtd ppa
@@ -2607,7 +2579,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
         } 
 
         if (ssd->bitmaps[lpn] == 1) {
-            ssd->stat.model_hit_num++;
+            
             int gtd_index = lpn/spp->ents_per_pg;
             if (ssd->lr_nodes[gtd_index].u == 1) {
                 
@@ -2616,6 +2588,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                     bool f = model_predict(ssd, lpn, &ppa);
 
                     if (f) {
+                        ssd->stat.model_hit_num++;
                         goto ssd_read_latency;
                     }
                 }

@@ -109,7 +109,7 @@ typedef struct Seg {
     uint64_t x1;//x1表示slpn也就是这个段的起始lpn
     uint64_t x2;//x2表示elpn也就是这个段的结束lpn
     uint64_t sppn;//start ppn  PPN occupies 14 bits, of which the first 2 bits represent the position in the block group and the last 12 bits represent the offset in the block group.
-    uint64_t next_avail_time;
+    //uint64_t next_avail_time;
     struct Seg *next ;  //next表示同层内的链表
     struct Seg *next_level ;   //next_level表示指向下一层的链表
 } Seg;
@@ -124,7 +124,9 @@ typedef struct Senode {
 
 typedef struct Cmt_Senode{
     uint64_t tvpn;
+    int dirty;
     QTAILQ_ENTRY(Cmt_Senode) entry;/*LRU*/
+    uint64_t next_avail_time;
     struct Cmt_Senode *next;   /* for hash */
 }Cmt_Senode;
 
@@ -135,7 +137,7 @@ typedef struct hash_table {
 struct cmt_mgmt {
     
     //QTAIQ_HEAD 为热度最高的
-    QTAILQ_HEAD(Senode_list, Senode) Senode_list;
+    QTAILQ_HEAD(Cmt_Senode_list, Cmt_Senode) Cmt_Senode_list;
     int tt_Senodes;
     int tt_entries;
     struct hash_table ht;
@@ -153,7 +155,7 @@ struct ppa {
             uint64_t ch  : CH_BITS;
             uint64_t rsv : 1;
         } g;
-
+        uint64_t next_avail_time;
         uint64_t ppa;
     };
 };
@@ -386,6 +388,7 @@ struct ssd {
     struct ppa *maptbl; /* page level mapping table */
     uint64_t *rmap;     /* reverse mapptbl, assume it's stored in OOB */
     uint8_t *bitmaps;
+    bool*seg_bitmaps;
 
     struct line_mgmt lm;
 
