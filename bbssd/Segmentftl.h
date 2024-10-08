@@ -2,7 +2,7 @@
 #ifndef _L_FEMU_FTL_H
 #define _L_FEMU_FTL_H
 #include "../nvme.h"
-#include"string.h"
+
 
 
 #define INVALID_PPA     (~(0ULL))
@@ -85,7 +85,7 @@ enum {
 #define MAX_INTERVALS 8         // ! 模型参数：一个模型中包含几个段
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
-#define Gc_threshold = 5;   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
+#define Gc_threshold  5   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
 
 typedef struct lr_breakpoint {
     float w;
@@ -155,7 +155,7 @@ struct ppa {
             uint64_t ch  : CH_BITS;
             uint64_t rsv : 1;
         } g;
-        uint64_t next_avail_time;
+        //uint64_t next_avail_time;
         uint64_t ppa;
     };
 };
@@ -266,8 +266,8 @@ struct ssdparams {
     int chn_per_pg;
     int chn_per_blk;
 
-    bool enable_request_prefetch;
-    bool enable_select_prefetch;
+    //bool enable_request_prefetch;
+    //bool enable_select_prefetch;
 
 };
 

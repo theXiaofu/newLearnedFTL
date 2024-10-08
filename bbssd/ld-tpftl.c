@@ -883,7 +883,7 @@ static void ssd_init_maptbl(struct ssd *ssd)
     }
 
     // init the gtd
-    ssd->lr_nodes = g_malloc0(sizeof(struct lr_node) * spp->tt_trans_pgs);
+    //ssd->lr_nodes = g_malloc0(sizeof(struct lr_node) * spp->tt_trans_pgs);
     ssd->gtd = g_malloc0(sizeof(struct ppa) * spp->tt_trans_pgs);
     ssd->lr_nodes = g_malloc0(sizeof(struct lr_node) * spp->tt_trans_pgs);
     ssd->gtd_usage = g_malloc0(sizeof(uint64_t) * spp->tt_trans_pgs);
@@ -2232,7 +2232,6 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
         }
     }
 }
-
 
 static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int start_gtd) {
     // struct timespec time1, time2;
