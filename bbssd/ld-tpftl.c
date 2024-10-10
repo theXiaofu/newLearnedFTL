@@ -442,9 +442,9 @@ static void insert_wp_lines(struct write_pointer *wpp) {
 static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
     struct line_mgmt *lm = &ssd->lm;
     //printf("GC happens?\n");
-    if (ssd->lm.free_line_cnt < 4) {
-        printf("what's wrong?\n");
-    }
+    // if (ssd->lm.free_line_cnt < 4) {
+    //     printf("what's wrong?\n");
+    // }
     
     if (wpp && wpp->vic_cnt >= gc_threshold) {
         // if (wpp->id != 256) {
@@ -508,15 +508,15 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                 printf("???\n");
             }
 
-            if (&ssd->trans_wp == wpp) {
-                printf("trans wp is doing gc\n");
-            }
+            // if (&ssd->trans_wp == wpp) {
+            //     printf("trans wp is doing gc\n");
+            // }
             
             if (vl) { 
                 
-                if (write_back_wp->curline && write_back_wp->curline->rest == vl->vpc) {
-                    printf("some pages are not successfully invalidated! \n");
-                }
+                // if (write_back_wp->curline && write_back_wp->curline->rest == vl->vpc) {
+                //     printf("some pages are not successfully invalidated! \n");
+                // }
                 if (write_back_wp->curline && write_back_wp->curline->rest >= vl->vpc) {
                     if (vl->type == GTD) {
                         
@@ -806,7 +806,7 @@ static void ssd_init_params(struct ssdparams *spp)
     printf("total pages: %d\n", spp->tt_line_wps);
 
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = spp->tt_blks/4;/*原文为一半*/
+    spp->tt_cmt_size = spp->tt_blks/2;/*原文为一半这里应该/4*/
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
 
@@ -2235,7 +2235,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
 
 static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int start_gtd) {
     // struct timespec time1, time2;
-    printf("Model Training...\n");
+    //printf("Model Training...\n");
     ssd->stat.model_training_nums++;
     const int trans_ent = ssd->sp.ents_per_pg;
     const int parallel = ssd->sp.tt_luns;

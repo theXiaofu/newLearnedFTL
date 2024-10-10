@@ -18,7 +18,7 @@
 
 #include "Segmentftl.h"
 #include "util.h"
-
+#include"string.h"
 // static int hit_num = 0;
 // static int gc_num = 0;
 // static int gc_line_num = 0;
@@ -179,6 +179,27 @@ static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,b
     }
     return NULL;
 }
+
+// static void print_senode(struct Seg* head)
+// {
+//     //struct Seg* tmp;
+//     if(head)
+//     {
+//         struct Seg*next = head->next_level;
+//         printf("slpn:\telpn:\tsppn:\t\n");
+//         while(head)
+//         {
+            
+//             printf("%lld\t%lld\t%lld\t\n",(long long)head->x1,(long long)head->x2,(long long)head->sppn);
+//             //tmp = head;
+//             head=head->next;
+//         }
+//         printf("\n");
+//         print_senode(next);
+        
+//     }
+// }
+
 //通过slpn elpn插入到日志段中，其中slpn和elpn是组内的偏移
 static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint64_t sppn, uint64_t tvpn)
 {
@@ -196,14 +217,19 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
     int old_count = node->seg_count;
     node->seg_count++;
     bool *bitmap = ssd->seg_bitmaps;
-    for(int i = 0;i<ssd->sp.ents_per_pg;++i)
-    {
-        bitmap[i]=0;
-    }
-    //memset(bitmap,0,sizeof(bool)*(ssd->sp.ents_per_pg));
+    // for(int i = 0;i<ssd->sp.ents_per_pg;++i)
+    // {
+    //     bitmap[i]=0;
+    // }
+    memset(bitmap,0,sizeof(bool)*(ssd->sp.ents_per_pg));
     for(int i = slpn;i<=elpn;++i)
     bitmap[i]=true;
     node->head = insert_seg2level(new_seg,node->head,bitmap,node);
+    // if(node->l > 1)
+    // {
+    //     printf("cnt:%d\tlevel:%d\n",node->seg_count,node->l);
+    //     //print_senode(node->head);
+    // }
     return node->seg_count - old_count;
 }
 
@@ -586,6 +612,7 @@ static void init_line_write_pointer(struct ssd *ssd, struct write_pointer *wpp, 
 
     curline = QTAILQ_FIRST(&lm->free_line_list);
     if (!curline) {
+        printf("No free lines left in [%s]31232131231321 !!!!\n", ssd->ssdname);
         ftl_err("No free lines left in [%s]31232131231321 !!!!\n", ssd->ssdname);
         return;
     }
@@ -708,9 +735,9 @@ static void insert_wp_lines(struct write_pointer *wpp) {
 static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
     struct line_mgmt *lm = &ssd->lm;
     //printf("GC happens?\n");
-    if (ssd->lm.free_line_cnt < 4) {
-        printf("what's wrong?\n");
-    }
+    // if (ssd->lm.free_line_cnt < 4) {
+    //     printf("what's wrong?\n");
+    // }
     
     if (wpp && wpp->vic_cnt >= gc_threshold) {
         // if (wpp->id != 256) {
@@ -774,15 +801,15 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                 printf("???\n");
             }
 
-            if (&ssd->trans_wp == wpp) {
-                printf("trans wp is doing gc\n");
-            }
+            // if (&ssd->trans_wp == wpp) {
+            //     printf("trans wp is doing gc\n");
+            // }
             
             if (vl) { 
                 
-                if (write_back_wp->curline && write_back_wp->curline->rest == vl->vpc) {
-                    printf("some pages are not successfully invalidated! \n");
-                }
+                // if (write_back_wp->curline && write_back_wp->curline->rest == vl->vpc) {
+                //     printf("some pages are not successfully invalidated! \n");
+                // }
                 if (write_back_wp->curline && write_back_wp->curline->rest >= vl->vpc) {
                     if (vl->type == GTD) {
                         
@@ -1763,10 +1790,12 @@ static  void evict_CMT_Senode_from_cmt(struct ssd *ssd)
             mark_page_invalid(ssd, &gtd_ppa);
             set_rmap_ent(ssd, INVALID_LPN, &gtd_ppa);
         }
-        
+        //printf("write page 000\n");
         translation_write_page(ssd, tvpn);
+        //printf("write page 111\n");
         }
 
+        cm->tt_entries += ((ssd->senodes)[cmt_senode->tvpn]).seg_count;
         QTAILQ_REMOVE(&cm->Cmt_Senode_list, cmt_senode, entry);
         delete_cmt_senode_hashnode(ht,cmt_senode);
         cm->tt_Senodes--;
@@ -1774,7 +1803,8 @@ static  void evict_CMT_Senode_from_cmt(struct ssd *ssd)
         {
             printf("error:%d: tt_Senode < 0!!!\n",__LINE__);
         }
-        cm->tt_entries += ((ssd->senodes)[cmt_senode->tvpn]).seg_count;
+        
+
         g_free(cmt_senode);
         cmt_senode = NULL;
     }
@@ -2018,11 +2048,14 @@ static struct nand_lun *process_translation_page_write(struct ssd *ssd, NvmeRequ
         //ppn = ppa2pgidx(ssd, &ppa);
         insert_cmt_senode_to_cmt(ssd,tvpn,next_avail_time);
         //insert_entry_to_cmt(ssd, tvpn, next_avail_time);
-
+        //printf("0000000\n");
          if (cm->tt_entries<0) {
             //terminate_flag = evict_CMT_Senode_from_cmt(ssd);
+            //printf("11**111\n");
             evict_CMT_Senode_from_cmt(ssd);
+            //printf("22**222\n");
         }
+        //printf("00001\n");
     }
         //read latency
         // translation_read_page(ssd, req, &ppa);
@@ -2532,7 +2565,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
 
 static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int start_gtd) {
     // struct timespec time1, time2;
-    printf("Segmentftl Model Training...\n");
+    //printf("Segmentftl Model Training...\n");
     ssd->stat.model_training_nums++;
     const int trans_ent = ssd->sp.ents_per_pg;
     const int parallel = ssd->sp.tt_luns;
@@ -2544,6 +2577,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
     int total = 0;
     struct Cmt_Senode* cmt_senode;
     // gc_line_num++;
+   
     for (int i = 0; i < parallel; i++) {
         total += group_gtd_index[i];
 
@@ -2566,6 +2600,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         tvpn = start_gtd + i;
         //int old_node_count = ssd->senodes[tvpn].seg_count;
         cmt_senode = find_hash_cmt_senode(ht,tvpn);
+        //printf("11111\n");
         if(cmt_senode)
         {
             //如果在cmt中那么需要更新CMT这里先去掉
@@ -2577,6 +2612,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         {
             if(group_gtd_lpns[i][en]!=group_gtd_lpns[i][en-1]+1||train_vppns[i][en]!=train_vppns[i][en-1]+1)
             {
+                //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
                 lpn = group_gtd_lpns[i][st]%trans_ent;
                 insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
                 st = en;
@@ -2584,6 +2620,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         }
         if(group_gtd_index[i]>0)
         {
+            //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
             lpn = group_gtd_lpns[i][st]%trans_ent;
             insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
         }
@@ -2591,9 +2628,13 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         if(cmt_senode)
         {//再加回来
             cm->tt_entries -=ssd->senodes[tvpn].seg_count;
-            if(cm->tt_entries<0)
-            evict_CMT_Senode_from_cmt(ssd);
+            //这里<0不用管不然会出现前边调用evict_CMT_Senode_from_cmt函数时这里又调用那就会报错，
+            //因为前边要删除的CMT_Senode这里已经把它删除了CMT_Senode就会变为无效指针就会出错。
+            //同时如果这里的cm->tt_entires<0当再次插入的时候会把它给evict了
+            // if(cm->tt_entries<0)
+            // evict_CMT_Senode_from_cmt(ssd);
         }
+        //printf("122222\n");
         // * update the gtd ppa
         // int gtd_index = start_gtd + i;
         // struct ppa old_gtd_ppa = ssd->gtd[gtd_index];
@@ -3052,7 +3093,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
     }
-
+    elpn = start_lpn;
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
         curlat = 0;
         // clock_gettime(CLOCK_MONOTONIC, &time1);
@@ -3073,7 +3114,9 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         } else {
             //last_lpn = (lpn / spp->ents_per_pg + 1) * spp->ents_per_pg - 1;
             //last_lpn = (last_lpn < end_lpn) ? last_lpn : end_lpn;
+            //printf("1111111\n");
             process_translation_page_write(ssd, req,gtd_index);
+            //printf("12222\n");
             //cmt_senode= cmt_hit(ssd,gtd_index);
             ppa = get_maptbl_ent(ssd, lpn);
         }
@@ -3105,6 +3148,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         mark_page_valid(ssd, &ppa);
 
         elpn = lpn;
+        
         if(lpn==start_lpn)
         {
             sequence_cnt = 1;
@@ -3119,11 +3163,14 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             ppn = ppa2vppn(ssd,&ppa);
             if(ppn!=svpn+sequence_cnt||sgtd!=gtd_index)
             {
-                slpn = slpn-sgtd*spp->ents_per_pg;
+                //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)slpn,(long long)sequence_cnt);
                 if(slpn + sequence_cnt !=elpn)
                 {
-                    printf("write page sequence_cnt and elpn are inconsistent!!!\n");
+                    printf("write page sequence_cnt = %d and elpn=%lld,slpn=%lld are inconsistent!!!\n",sequence_cnt,(long long)elpn,(long long)slpn);
                 }
+                slpn = slpn-sgtd*spp->ents_per_pg;
+                
+                
                 insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
                 dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
                 dir_cmsenode->dirty = DIRTY;
@@ -3154,10 +3201,17 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         maxlat = (curlat > maxlat) ? curlat : maxlat;
         // clock_gettime(CLOCK_MONOTONIC, &time2);
     }
+    //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)slpn,(long long)sequence_cnt);
+    if(slpn + sequence_cnt !=lpn)
+    {
+        printf("write page sequence_cnt = %d and elpn=%lld,slpn=%lld are inconsistent!!!\n",sequence_cnt,(long long)lpn,(long long)slpn);
+    }
     slpn = slpn-sgtd*spp->ents_per_pg;
+    
     insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
     dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
     dir_cmsenode->dirty = DIRTY;
+    
     //再加回来
     cm->tt_entries-=ssd->senodes[sgtd].seg_count;
     if(cm->tt_entries<0)
