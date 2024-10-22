@@ -22,7 +22,7 @@
 // static int hit_num = 0;
 // static int gc_num = 0;
 // static int gc_line_num = 0;
-static int gc_threshold = 5;   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC
+static int gc_threshold = 4;   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC
 static int free_line_threshold = 3;    // ! gc参数：当还剩多少未使用的free_line时开始GC
 // static int train_num = 0;
 
@@ -2159,6 +2159,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
     ppa.g.blk = tppa->g.blk;
     uint64_t lat = 0;
     uint64_t use_lat = 0;
+    //printf("1111111\n");
     for (ch = 0; ch < spp->nchs; ch++) {
         for (lun = 0; lun < spp->luns_per_ch; lun++) {
             ppa.g.ch = ch;
@@ -2176,8 +2177,9 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
                 pg_iter = get_pg(ssd, &ppa);
                 /* there shouldn't be any free page in victim blocks */
                 ftl_assert(pg_iter->status != PG_FREE);
+                //printf("page_valid....\n");
                 if (pg_iter->status == PG_VALID) {
-
+                    //printf("page_valid....\n");
                     // find which gtd a valid page belongs to
                     tmp_lpn = get_rmap_ent(ssd, &ppa);
                     int gtd_index = tmp_lpn/spp->ents_per_pg;
@@ -2231,6 +2233,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
             // lunp->gc_endtime = lunp->next_lun_avail_time;
         }
     }
+    //printf("22222\n");
 }
 
 static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int start_gtd) {
@@ -2248,7 +2251,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         total += group_gtd_index[i];
 
         // * first sort the lpns
-        
+        //printf("model :group_gtd_index:%d\n",group_gtd_index[i]);
 
         // clock_gettime(CLOCK_MONOTONIC, &time1);
         quick_sort(group_gtd_lpns[i], 0, group_gtd_index[i]-1);
@@ -2270,9 +2273,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         // set_rmap_ent(ssd, INVALID_LPN, &old_gtd_ppa);
         // gc_translation_page_write(ssd, &old_gtd_ppa);
 
-
         if (group_gtd_index[i] > TRAIN_THRESHOLD) {
-
 
             // * prepare the training arrays
             uint64_t start_train_lpn = group_gtd_lpns[i][0];
@@ -2366,6 +2367,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             ssd->lr_nodes[start_gtd+i].u = 1;
             ssd->lr_nodes[start_gtd+i].less = 0;
             ln->success_ratio = lr_success*1.0/lr_total;
+            //printf("lr_success:%d,lr_total:%d,lr_success_ratio:%f\n",lr_success,lr_total,ln->success_ratio);
         }
     }
 }
@@ -2705,7 +2707,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         cmt_entry->ppn = ppa2pgidx(ssd, &ppa);
         cmt_entry->dirty = DIRTY;
         set_rmap_ent(ssd, lpn, &ppa);
-
+        //printf("mark_page_valid\n");
         mark_page_valid(ssd, &ppa);
 
         struct nand_cmd swr;

@@ -201,13 +201,79 @@ static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,b
 // }
 
 //通过slpn elpn插入到日志段中，其中slpn和elpn是组内的偏移
-static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint64_t sppn, uint64_t tvpn)
+static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint64_t sppn, uint64_t tvpn,bool model_modify)
 {
     struct Seg *new_seg = g_malloc0(sizeof(struct Seg));
     if(slpn>ssd->sp.ents_per_pg||elpn>ssd->sp.ents_per_pg)
     {
         printf("slpn||elpn>ents_per_pg\n");
     }
+    
+    if(model_modify)
+    {
+        int interval_size = ssd->sp.interval_size;
+        int s =slpn;
+        int sslpn = tvpn*ssd->sp.ents_per_pg;
+        int k = s/interval_size;
+        int nextend = (k + 1)*interval_size;
+        while(s<=elpn)
+        {
+            int num = 0;
+            
+            if(nextend>elpn)
+                nextend = elpn+1;
+            //for  test-------------------------------------------------    
+            // int test_num = 0;
+            // for(int i = k*interval_size;i<(k+1)*interval_size;++i)
+            // {
+            //     if(ssd->bitmaps[sslpn+i])
+            //     {
+            //         ++test_num;
+            //     }
+            // }
+            // if(test_num!=ssd->lr_nodes[tvpn].brks[k].valid_cnt)
+            // {
+            //     printf("error:    test_num:%d\tvalidcnt:%d\n",test_num,ssd->lr_nodes[tvpn].brks[k].valid_cnt);
+            // }
+            //test over-----------------------------------------------
+            if(ssd->lr_nodes[tvpn].brks[k].valid_cnt+s>nextend)
+            {
+                for(int i =s;i<nextend;i++)
+                {
+                    if(ssd->bitmaps[sslpn+i])
+                    {
+                        ssd->bitmaps[sslpn+i]=0;
+                        ++num;
+                    }
+                }
+            }
+                
+            
+            if(ssd->lr_nodes[tvpn].brks[k].valid_cnt+s<nextend+num)//实际应该是左边-num右边-s加法比较快所以用加法
+            {
+                ssd->lr_nodes[tvpn].brks[k].valid_cnt = nextend-s;
+                ssd->lr_nodes[tvpn].brks[k].w = 1.0;
+                ssd->lr_nodes[tvpn].brks[k].b = sppn-s;
+                int z = k*interval_size;
+                for(int i = z;i < z+interval_size;i++)
+                {
+                    if(i>=s&&i<nextend)
+                    ssd->bitmaps[sslpn+i]=1;
+                    else
+                    ssd->bitmaps[sslpn+i]=0;
+                }
+            }
+            else
+            {
+                ssd->lr_nodes[tvpn].brks[k].valid_cnt -= num;
+            }
+            s = nextend;
+            k++;
+            nextend += interval_size;
+        }
+    }
+    
+    
     new_seg->x1=slpn;
     new_seg->x2=elpn;
     //new_seg->next_avail_time = next_avail_time;
@@ -1094,6 +1160,7 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->tt_line_wps = spp->tt_trans_pgs/spp->trans_per_line;
     printf("total pages: %d\n", spp->tt_line_wps);
 
+    spp->interval_size = spp->ents_per_pg%MAX_INTERVALS ? spp->ents_per_pg/MAX_INTERVALS+1 : spp->ents_per_pg/MAX_INTERVALS ;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
     /* because a segment using  4Byte and model using half CMT,tt_blks should / 2*/
     spp->tt_cmt_size = spp->tt_blks/2;/*原文为一半*/
@@ -1249,7 +1316,7 @@ static void ssd_init_bitmap(struct ssd *ssd) {
 // * 将所有的模型都初始化为y=x
 static void ssd_init_all_models(struct ssd *ssd) {
     struct ssdparams* sp = &ssd->sp;
-    int avg_valid_cnt = sp->ents_per_pg / MAX_INTERVALS;
+    //int avg_valid_cnt = sp->ents_per_pg / MAX_INTERVALS;
 
     for (int i = 0; i < sp->tt_gtd_size; i++) {
 
@@ -1258,10 +1325,8 @@ static void ssd_init_all_models(struct ssd *ssd) {
             lr_breakpoint* brk = &ssd->lr_nodes[i].brks[j];
             brk->w = 1;
             brk->b = 0;
-
             // * all models' valid cnt is zero, to facilitate the model sequential initilization
             brk->valid_cnt = 0;
-            brk->key = j * avg_valid_cnt;
         }
     }
 }
@@ -2571,13 +2636,14 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
     const int parallel = ssd->sp.tt_luns;
     struct cmt_mgmt *cm = &ssd->cm;
     struct hash_table *ht = &cm->ht;
-    uint64_t train_lpns[parallel][trans_ent];
+    //uint64_t train_lpns[parallel][trans_ent];
     uint64_t train_vppns[parallel][trans_ent];
     int success = 0;
     int total = 0;
     struct Cmt_Senode* cmt_senode;
     // gc_line_num++;
-   
+   const int interval_size = ssd->sp.interval_size;
+    const int segment_max_train_num = interval_size;
     for (int i = 0; i < parallel; i++) {
         total += group_gtd_index[i];
 
@@ -2596,8 +2662,9 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             train_vppns[i][pgi] = ppa2vppn(ssd, &tmp_ppa);
         }
         uint64_t st = 0, en;
-        uint64_t lpn,tvpn;
+        uint64_t lpn,tvpn,slpn;
         tvpn = start_gtd + i;
+        slpn = tvpn * trans_ent;
         //int old_node_count = ssd->senodes[tvpn].seg_count;
         cmt_senode = find_hash_cmt_senode(ht,tvpn);
         //printf("11111\n");
@@ -2613,16 +2680,16 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             if(group_gtd_lpns[i][en]!=group_gtd_lpns[i][en-1]+1||train_vppns[i][en]!=train_vppns[i][en-1]+1)
             {
                 //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
-                lpn = group_gtd_lpns[i][st]%trans_ent;
-                insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
+                lpn = group_gtd_lpns[i][st]-slpn;
+                insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn,false);
                 st = en;
             }
         }
         if(group_gtd_index[i]>0)
         {
             //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
-            lpn = group_gtd_lpns[i][st]%trans_ent;
-            insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
+            lpn = group_gtd_lpns[i][st]-slpn;
+            insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn,false);
         }
         
         if(cmt_senode)
@@ -2644,100 +2711,132 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
 
 
         if (group_gtd_index[i] > TRAIN_THRESHOLD) {
-
+            
 
             // * prepare the training arrays
-            uint64_t start_train_lpn = group_gtd_lpns[i][0];
-            uint64_t start_train_ppa = train_vppns[i][0];
-            ssd->lr_nodes[start_gtd+i].start_lpn = start_train_lpn;
-            ssd->lr_nodes[start_gtd+i].start_ppa = start_train_ppa;
-            for (int pgi = 0; pgi < group_gtd_index[i]; pgi++) {
-                train_lpns[i][pgi] = group_gtd_lpns[i][pgi] - start_train_lpn;
-                train_vppns[i][pgi] = train_vppns[i][pgi] - start_train_ppa;
-            }
+            //uint64_t start_train_lpn = group_gtd_lpns[i][0];
+            //uint64_t start_train_ppa = train_vppns[i][0];
+            //ssd->lr_nodes[start_gtd+i].start_lpn = start_train_lpn;
+            //ssd->lr_nodes[start_gtd+i].start_ppa = start_train_ppa;
+            // for (int pgi = 0; pgi < group_gtd_index[i]; pgi++) {
+            //     train_lpns[i][pgi] = group_gtd_lpns[i][pgi] - start_train_lpn;
+            //     train_vppns[i][pgi] = train_vppns[i][pgi] - start_train_ppa;
+            // }
 
-            const int interval_num = group_gtd_index[i] / MAX_INTERVALS;
-            uint64_t max_inter_idx[MAX_INTERVALS];
+            // int interval_num = group_gtd_index[i] / MAX_INTERVALS;
+            // uint64_t max_inter_idx[MAX_INTERVALS];
 
             
-            /* 2. find k-biggest intervals */
-            for (int j = 0; j < MAX_INTERVALS; j++) {
-                if ((j+1)*interval_num < group_gtd_index[i]) {
-                    max_inter_idx[j] = (j+1)*interval_num;
-                } else {
-                    max_inter_idx[j] = group_gtd_index[i]-1;
-                }
-            }
+            // /* 2. find k-biggest intervals */
+            // for (int j = 0; j < MAX_INTERVALS; j++) {
+            //     if ((j+1)*interval_num < group_gtd_index[i]) {
+            //         max_inter_idx[j] = (j+1)*interval_num;
+            //     } else {
+            //         max_inter_idx[j] = group_gtd_index[i]-1;
+            //     }
+            // }
 
 
             int lr_success = 0;
             int lr_total = 0;
+            int end_indx = 0;
+            int pos = 0;
+            
             for (int j = 0; j < MAX_INTERVALS; j++) {
-                const int segment_train_num = interval_num;
-                
-                uint64_t segment_train_lpns[segment_train_num];
-                uint64_t segment_train_ppas[segment_train_num];
-                int start = j == 0 ? 0 : max_inter_idx[j-1];
-                int end = max_inter_idx[j];
-                int num_p = 0;
-                for (int k = start; k < end; k++) {
-                    segment_train_lpns[num_p] = train_lpns[i][k];
-                    segment_train_ppas[num_p++] = train_vppns[i][k];
+                //int count = 0;
+                int k0 = end_indx;
+                end_indx += interval_size;
+                if(end_indx>trans_ent)
+                {
+                    end_indx = trans_ent;
                 }
-
+                uint64_t segment_train_lpns[segment_max_train_num];
+                uint64_t segment_train_ppas[segment_max_train_num];
+                //int start = j == 0 ? 0 : max_inter_idx[j-1];
+                //int end = max_inter_idx[j];
+                int num_p = 0;
+                uint64_t x0 = group_gtd_lpns[i][pos];
+                uint64_t b0 = train_vppns[i][pos];
+                while(pos<group_gtd_index[i]&&group_gtd_lpns[i][pos]-slpn<end_indx) {
+                    segment_train_lpns[num_p] = group_gtd_lpns[i][pos]-x0;
+                    segment_train_ppas[num_p++] = train_vppns[i][pos++]-b0;
+                }
+                if(num_p ==0)
+                {
+                    continue;
+                }
+                for(;k0<end_indx;++k0)
+                {
+                    ssd->bitmaps[slpn+k0]=0;
+                }
+                if(num_p==1)
+                {
+                    ssd->lr_nodes[tvpn].brks[j].w = 1.0;
+                    ssd->lr_nodes[tvpn].brks[j].b = b0-x0+slpn;
+                    ssd->lr_nodes[tvpn].brks[j].valid_cnt = 1;
+                    ssd->bitmaps[x0]=1;
+                    continue;
+                }
                 
 
                 // * 3.1 set the brk key of each segment
-                ssd->lr_nodes[start_gtd+i].brks[j].key = segment_train_lpns[num_p-1];
+                //ssd->lr_nodes[tvpn].brks[j].key = segment_train_lpns[num_p-1];
 
                 // * 3.2 set the brk w and b of each segment
                 float w_u = 0, b_u = 0;
 
                 // clock_gettime(CLOCK_MONOTONIC, &time1);
-                LeastSquareNew(segment_train_lpns, segment_train_ppas, num_p-1, &w_u, &b_u);
+                LeastSquareNew(segment_train_lpns, segment_train_ppas, num_p, &w_u, &b_u);
                 // clock_gettime(CLOCK_MONOTONIC, &time2);
                 // ssd->stat.calculate_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
-
+                
                 // int already_one = 0;
                 int predict_right = 0;
-                ssd->lr_nodes[start_gtd+i].brks[j].w = w_u;
-                ssd->lr_nodes[start_gtd+i].brks[j].b = b_u;
+                ssd->lr_nodes[tvpn].brks[j].w = w_u;
+                ssd->lr_nodes[tvpn].brks[j].b = b_u+b0-w_u*(x0-slpn);
+                //printf("segment_train_lpn0:%lld\tsegment_train_ppas:%lld\n",(long long)segment_train_lpns[0],(long long)segment_train_ppas[0]+b0);
+                //printf("floata:%f\tfloatb:%f\n",w_u,b_u);
+
                 int su = 0;
                 float pred_loc;
                 
                 for (int ii = 0; ii < num_p; ii++) {
-                    pred_loc = predict(segment_train_lpns[ii], &ssd->lr_nodes[start_gtd+i].brks[j].w, \
-                                         &ssd->lr_nodes[start_gtd+i].brks[j].b);
+                    pred_loc = predict(segment_train_lpns[ii]+x0-slpn, &ssd->lr_nodes[tvpn].brks[j].w, \
+                                         &ssd->lr_nodes[tvpn].brks[j].b);
+                    
                     uint64_t tmp_loc = (uint64_t)pred_loc;
                     if (pred_loc - tmp_loc >= 0.5) {
                         tmp_loc++;
                     }
-                    if (tmp_loc < trans_ent) {
-                        if (tmp_loc == segment_train_ppas[ii]) {
-                            su++;
-                            predict_right++;
-                            // if (ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] == 1) {
-                            //     already_one++;
-                            // }
-                            ssd->bitmaps[start_train_lpn + segment_train_lpns[ii]] = 1;
-                            // ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] = 1;
+
+                    if (tmp_loc == segment_train_ppas[ii]+b0) {
+                        su++;
+                        predict_right++;
+                        // if (ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] == 1) {
+                        //     already_one++;
+                        // }
+                        ssd->bitmaps[x0 + segment_train_lpns[ii]] = 1;
+                        // ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] = 1;
                             
-                        } else {
-                            // ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] = 0;
-                            ssd->bitmaps[start_train_lpn + segment_train_lpns[ii]] = 0;
-                        }
+                    } else {
+                         // ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] = 0;
+                        ssd->bitmaps[x0 + segment_train_lpns[ii]] = 0;
                     }
+
                 }
-                ssd->lr_nodes[start_gtd+i].brks[j].valid_cnt = su;
+                ssd->lr_nodes[tvpn].brks[j].valid_cnt = su;
                 lr_success += su;
                 success += su;
                 lr_total += num_p;
+                
             }
-
+            
             lr_node *ln = &ssd->lr_nodes[start_gtd+i];
             ssd->lr_nodes[start_gtd+i].u = 1;
             ssd->lr_nodes[start_gtd+i].less = 0;
             ln->success_ratio = lr_success*1.0/lr_total;
+            //printf("lr_success:%d\tlr_total:%d\tsuccess_ratio:%f\n",lr_success,lr_total,ln->success_ratio);
+            getchar();
         }
     }
 }
@@ -2832,20 +2931,16 @@ static bool model_predict(struct ssd *ssd, uint64_t lpn, struct ppa *ppa) {
 
     ssd->stat.model_use_num++;
     // * 1.2.1. do the model prediction
-    uint64_t pred_lpn = lpn - ssd->lr_nodes[gtd_index].start_lpn;
+    uint64_t pred_lpn = lpn - gtd_index * spp->ents_per_pg;
     
 
     // * 1.2.2 traverse the brks and find where the lpn belongs to
     int piece_wise_no = -1;
     lr_node *t = &ssd->lr_nodes[gtd_index];
-
     // * find which piece the lpn belongs to
-    for (int i = 0; i < MAX_INTERVALS; i++) {
-        if (pred_lpn <= t->brks[i].key) {
-            piece_wise_no = i;
-            break;
-        }
-    }
+    piece_wise_no = pred_lpn/MAX_INTERVALS;
+    
+    
 
     // * start predict
     if (piece_wise_no != -1) {
@@ -2870,7 +2965,7 @@ static bool model_predict(struct ssd *ssd, uint64_t lpn, struct ppa *ppa) {
         // * 按理说这时就应返回true，但有一些浮点数计算精度的问题，可能有的算不准，所以需要再验证一下
         *ppa = get_maptbl_ent(ssd, lpn);
         uint64_t actual_ppa = ppa2vppn(ssd, ppa);
-        uint64_t read_pred_ppa = pred_ppa + ssd->lr_nodes[gtd_index].start_ppa;
+        uint64_t read_pred_ppa = pred_ppa ;
         if (read_pred_ppa == actual_ppa) {
             *ppa = get_maptbl_ent(ssd, lpn);
                 
@@ -2878,6 +2973,7 @@ static bool model_predict(struct ssd *ssd, uint64_t lpn, struct ppa *ppa) {
         } else {
             // * 用来排查bitmap[]=1但是测的不准的情况，这里是
             struct ppa real_ppa = vppn2ppa(ssd, read_pred_ppa);
+            printf("error:lpn:%lld\tvppn:%lld\tactual_vppn:%lld\n",(long long)lpn,(long long)pred_ppa,(long long)actual_ppa);
             if (get_rmap_ent(ssd, &real_ppa) == INVALID_LPN) {
                 ssd->stat.model_out_range++;
             }
@@ -3171,7 +3267,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
                 slpn = slpn-sgtd*spp->ents_per_pg;
                 
                 
-                insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
+                insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd,ssd->model_used);
                 dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
                 dir_cmsenode->dirty = DIRTY;
                 //再加回来
@@ -3208,7 +3304,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     }
     slpn = slpn-sgtd*spp->ents_per_pg;
     
-    insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
+    insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd,ssd->model_used);
     dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
     dir_cmsenode->dirty = DIRTY;
     
@@ -3218,80 +3314,80 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     evict_CMT_Senode_from_cmt(ssd);
     // * simulate the model sequential initalization
     // TODO: 如果顺序写长度大于学习模型中该范围的分段函数的有效长度，那么就取代它
-    if (ssd->model_used) {
-        // for(lpn=start_lpn;lpn<=end_lpn;lpn++)
-        // {
-        //     last_lpn = (lpn / spp->ents_per_pg + 1) * spp->ents_per_pg - 1;
-        //     last_lpn = (last_lpn < end_lpn) ? last_lpn : end_lpn;
-        //     sequence_cnt = last_lpn - lpn;
-        //     int gtd_index = lpn/spp->ents_per_pg;
-        //     lr_node lrn = ssd->lr_nodes[gtd_index];
-        //     if (lrn.u) {
-        //         // * this model has been trained, try to find if this sequential write is longer than any segments
-        //         for (int j = 0; j < MAX_INTERVALS; j++) {
-        //             if (lrn.brks[j].key >= lpn && lrn.brks[j].valid_cnt - sequence_cnt < sequence_cnt) {
+    // if (ssd->model_used) {
+    //     // for(lpn=start_lpn;lpn<=end_lpn;lpn++)
+    //     // {
+    //     //     last_lpn = (lpn / spp->ents_per_pg + 1) * spp->ents_per_pg - 1;
+    //     //     last_lpn = (last_lpn < end_lpn) ? last_lpn : end_lpn;
+    //     //     sequence_cnt = last_lpn - lpn;
+    //     //     int gtd_index = lpn/spp->ents_per_pg;
+    //     //     lr_node lrn = ssd->lr_nodes[gtd_index];
+    //     //     if (lrn.u) {
+    //     //         // * this model has been trained, try to find if this sequential write is longer than any segments
+    //     //         for (int j = 0; j < MAX_INTERVALS; j++) {
+    //     //             if (lrn.brks[j].key >= lpn && lrn.brks[j].valid_cnt - sequence_cnt < sequence_cnt) {
 
-        //                 // * modify this model
-        //                 lr_breakpoint* brk = &lrn.brks[j];
-        //                 brk->b = 0;
-        //                 brk->w = 1;
-        //                 brk->key = start_lpn;
-        //                 brk->valid_cnt = sequence_cnt;
-
-
-        //                 // * modifiy the next model 
-        //                 if (j != MAX_INTERVALS-1 && lrn.brks[j+1].key < end_lpn) {
-        //                     lrn.brks[j+1].key = end_lpn;
-        //                     lrn.brks[j+1].valid_cnt -= (end_lpn - lrn.brks[j+1].key);
-        //                 }
+    //     //                 // * modify this model
+    //     //                 lr_breakpoint* brk = &lrn.brks[j];
+    //     //                 brk->b = 0;
+    //     //                 brk->w = 1;
+    //     //                 brk->key = start_lpn;
+    //     //                 brk->valid_cnt = sequence_cnt;
 
 
-        //                 // * mark the bitmap valid
-        //                 for (int j = start_lpn; j < end_lpn; j++)
-        //                     ssd->bitmaps[j] = 1;
+    //     //                 // * modifiy the next model 
+    //     //                 if (j != MAX_INTERVALS-1 && lrn.brks[j+1].key < end_lpn) {
+    //     //                     lrn.brks[j+1].key = end_lpn;
+    //     //                     lrn.brks[j+1].valid_cnt -= (end_lpn - lrn.brks[j+1].key);
+    //     //                 }
 
-        //             }
-        //         }
-        //     }
-        //     lpn=last_lpn;
+
+    //     //                 // * mark the bitmap valid
+    //     //                 for (int j = start_lpn; j < end_lpn; j++)
+    //     //                     ssd->bitmaps[j] = 1;
+
+    //     //             }
+    //     //         }
+    //     //     }
+    //     //     lpn=last_lpn;
            
-        sequence_cnt = end_lpn - start_lpn;
-        int gtd_index = lpn/spp->ents_per_pg;
-        lr_node lrn = ssd->lr_nodes[gtd_index];
-        if (lrn.u) {
-            // * this model has been trained, try to find if this sequential write is longer than any segments
-            for (int j = 0; j < MAX_INTERVALS; j++) {
-                //printf("111111111122222\n");
-                //经过测试这里的代码并不会被执行因为这个start_lpn的值>key的值而且如果被执行就会乱套，
-                //因为这个model的设计本身就是在model_train时进行修改的这里修改将不符合论文中的设计
-                //这里如果进行了修改那么在预测时就会startppn+b在预测时将会出错,
-                //整个在整个过程中并没有对这个model进行修改，只有在modeltrain中进行了修改。
-                //简而言之就是论文中所说的对off的修改并没有实现。
-                if (lrn.brks[j].key >= start_lpn && lrn.brks[j].valid_cnt < sequence_cnt) {
-                    //printf("111111111122222\n");
-                    // * modify this model
-                    lr_breakpoint* brk = &lrn.brks[j];
-                    brk->b = 0;
-                    brk->w = 1;
-                    brk->key = start_lpn;
-                    brk->valid_cnt = sequence_cnt;
+    //     sequence_cnt = end_lpn - start_lpn;
+    //     int gtd_index = lpn/spp->ents_per_pg;
+    //     lr_node lrn = ssd->lr_nodes[gtd_index];
+    //     if (lrn.u) {
+    //         // * this model has been trained, try to find if this sequential write is longer than any segments
+    //         for (int j = 0; j < MAX_INTERVALS; j++) {
+    //             //printf("111111111122222\n");
+    //             //经过测试这里的代码并不会被执行因为这个start_lpn的值>key的值而且如果被执行就会乱套，
+    //             //因为这个model的设计本身就是在model_train时进行修改的这里修改将不符合论文中的设计
+    //             //这里如果进行了修改那么在预测时就会startppn+b在预测时将会出错,
+    //             //整个在整个过程中并没有对这个model进行修改，只有在modeltrain中进行了修改。
+    //             //简而言之就是论文中所说的对off的修改并没有实现。
+    //             if (lrn.brks[j].key >= start_lpn && lrn.brks[j].valid_cnt < sequence_cnt) {
+    //                 //printf("111111111122222\n");
+    //                 // * modify this model
+    //                 lr_breakpoint* brk = &lrn.brks[j];
+    //                 brk->b = 0;
+    //                 brk->w = 1;
+    //                 brk->key = start_lpn;
+    //                 brk->valid_cnt = sequence_cnt;
 
 
-                    // * modifiy the next model 
-                    if (j != MAX_INTERVALS-1 && lrn.brks[j+1].key < end_lpn) {
-                        lrn.brks[j+1].key = end_lpn;
-                        lrn.brks[j+1].valid_cnt -= (end_lpn - lrn.brks[j+1].key);
-                    }
+    //                 // * modifiy the next model 
+    //                 if (j != MAX_INTERVALS-1 && lrn.brks[j+1].key < end_lpn) {
+    //                     lrn.brks[j+1].key = end_lpn;
+    //                     lrn.brks[j+1].valid_cnt -= (end_lpn - lrn.brks[j+1].key);
+    //                 }
 
 
-                    // * mark the bitmap valid
-                    for (int j = start_lpn; j < end_lpn; j++)
-                        ssd->bitmaps[j] = 1;
+    //                 // * mark the bitmap valid
+    //                 for (int j = start_lpn; j < end_lpn; j++)
+    //                     ssd->bitmaps[j] = 1;
 
-                }
-            }
-        }
-        }
+    //             }
+    //         }
+    //     }
+    //     }
         
 
     // ssd->stat.write_time += (maxlat + (time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));

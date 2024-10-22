@@ -82,23 +82,25 @@ enum {
 
 // #define CMT_NUM 16*1024
 // #define CMT_NUM 4*1024
-#define MAX_INTERVALS 8         // ! 模型参数：一个模型中包含几个段
+#define MAX_INTERVALS 16         // ! 模型参数：一个模型中包含几个段
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
-#define Gc_threshold  5   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
+#define Gc_threshold  4   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
 
 typedef struct lr_breakpoint {
     float w;
     float b;
-    int key;
     int valid_cnt;
 }lr_breakpoint;
 
 typedef struct lr_node {
-
-    lr_breakpoint brks[MAX_INTERVALS];
-    uint64_t start_lpn;
-    uint64_t start_ppa;
+    lr_breakpoint brks[MAX_INTERVALS];//4*16=64个字节
+    //这里有4个write_point指针4*2=8个字节 这个write_point指针在超级块中并不在model中
+    //write_point写入到了ssd这个结构体的write_pointer中但是实际情况位每32
+    //还有一个16位2个字节的整数记录指针下一页的位置
+    //还有一个bitmap 512位 512/8=64个字节
+    //uint64_t start_lpn;
+    //uint64_t start_ppa;
     uint8_t u;
     uint8_t less;
     float success_ratio;
@@ -213,7 +215,7 @@ struct ssdparams {
     int ch_xfer_lat;  /* channel transfer latency for one page in nanoseconds
                        * this defines the channel bandwith
                        */
-
+    
     double gc_thres_pcent;
     int gc_thres_lines;
     double gc_thres_pcent_high;
@@ -258,7 +260,7 @@ struct ssdparams {
     int ents_per_pg;
     int tt_cmt_size;
     int tt_gtd_size;
-
+    int interval_size;
 
     // * the virtual ppn params
     int chn_per_lun;
@@ -293,9 +295,9 @@ struct wp_lines{
 
 /* wp: record next write addr */
 struct write_pointer {
-    int line_id[Gc_threshold - 1];//This indicates the group number of the physical block group applied for by this logical block group ；Since Gc_threshold-1=4, it can be represented as 2bits
+    //int line_id[Gc_threshold];//This indicates the group number of the physical block group applied for by this logical block group ；Since Gc_threshold-1=4, it can be represented as 2bits
     struct line *curline;
-    struct wp_lines *wpl;
+    struct wp_lines *wpl;//使用这个来代替lr_node中的write_pos.
     int vic_cnt;//也表示line_id中的数目
     int ch;
     int lun;
