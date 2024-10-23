@@ -82,15 +82,15 @@ enum {
 
 // #define CMT_NUM 16*1024
 // #define CMT_NUM 4*1024
-#define MAX_INTERVALS 16         // ! 模型参数：一个模型中包含几个段
+#define MAX_INTERVALS 32         // ! 模型参数：一个模型中包含几个段
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
 #define Gc_threshold  4   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
 
 typedef struct lr_breakpoint {
-    float w;
-    float b;
-    int valid_cnt;
+    
+    int b;
+    uint16_t bitmap;
 }lr_breakpoint;
 
 typedef struct lr_node {
@@ -102,8 +102,7 @@ typedef struct lr_node {
     //uint64_t start_lpn;
     //uint64_t start_ppa;
     uint8_t u;
-    uint8_t less;
-    float success_ratio;
+
 }lr_node;
 
 typedef struct Seg {
@@ -389,7 +388,7 @@ struct ssd {
     struct ssd_channel *ch;
     struct ppa *maptbl; /* page level mapping table */
     uint64_t *rmap;     /* reverse mapptbl, assume it's stored in OOB */
-    uint8_t *bitmaps;
+    int bitmap_table[256];//8位bitcount表
     bool*seg_bitmaps;
 
     struct line_mgmt lm;

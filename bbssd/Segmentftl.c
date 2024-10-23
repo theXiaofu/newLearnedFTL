@@ -22,7 +22,7 @@
 // static int hit_num = 0;
 // static int gc_num = 0;
 // static int gc_line_num = 0;
-static int gc_threshold = 5;   // ! gc参数：当一个gtd_wp使用了多少个Line时开始
+static int gc_threshold = 4;   // ! gc参数：当一个gtd_wp使用了多少个Line时开始
                                                         //与Segmentftl.h中的Gc_threshold  5一样因为写Gc_threshold  femu无法运行
 static int free_line_threshold = 3;    // ! gc参数：当还剩多少未使用的free_line时开始GC
 //static int level_compress_threshold=20;//当每一个node节点的层级大于这个值时将进行压缩
@@ -201,7 +201,7 @@ static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,b
 // }
 
 //通过slpn elpn插入到日志段中，其中slpn和elpn是组内的偏移
-static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint64_t sppn, uint64_t tvpn,bool model_modify)
+static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint64_t sppn, uint64_t tvpn)
 {
     struct Seg *new_seg = g_malloc0(sizeof(struct Seg));
     if(slpn>ssd->sp.ents_per_pg||elpn>ssd->sp.ents_per_pg)
@@ -209,64 +209,34 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
         printf("slpn||elpn>ents_per_pg\n");
     }
     
-    if(model_modify)
+
+    if(ssd->model_used)
     {
+        
         int interval_size = ssd->sp.interval_size;
         int s =slpn;
-        int sslpn = tvpn*ssd->sp.ents_per_pg;
         int k = s/interval_size;
+        lr_breakpoint * lr_b;
+        lr_node*lr_n=&(ssd->lr_nodes[tvpn]);
+        uint16_t mask;
         int nextend = (k + 1)*interval_size;
+        int count;
         while(s<=elpn)
         {
-            int num = 0;
-            
+            lr_b = &(lr_n->brks[k]);
             if(nextend>elpn)
                 nextend = elpn+1;
-            //for  test-------------------------------------------------    
-            // int test_num = 0;
-            // for(int i = k*interval_size;i<(k+1)*interval_size;++i)
-            // {
-            //     if(ssd->bitmaps[sslpn+i])
-            //     {
-            //         ++test_num;
-            //     }
-            // }
-            // if(test_num!=ssd->lr_nodes[tvpn].brks[k].valid_cnt)
-            // {
-            //     printf("error:    test_num:%d\tvalidcnt:%d\n",test_num,ssd->lr_nodes[tvpn].brks[k].valid_cnt);
-            // }
-            //test over-----------------------------------------------
-            if(ssd->lr_nodes[tvpn].brks[k].valid_cnt+s>nextend)
-            {
-                for(int i =s;i<nextend;i++)
-                {
-                    if(ssd->bitmaps[sslpn+i])
-                    {
-                        ssd->bitmaps[sslpn+i]=0;
-                        ++num;
-                    }
-                }
-            }
-                
+
             
-            if(ssd->lr_nodes[tvpn].brks[k].valid_cnt+s<nextend+num)//实际应该是左边-num右边-s加法比较快所以用加法
+            mask = ((1 << (nextend - s)) - 1) << s; // 创建掩码
+            lr_b->bitmap &= ~mask; // 清除对应的位
+            count = ssd->bitmap_table[lr_b->bitmap & 0xFF] + ssd->bitmap_table[(lr_b->bitmap>>8)&0xFF];
+            if(count + s < nextend)
             {
-                ssd->lr_nodes[tvpn].brks[k].valid_cnt = nextend-s;
-                ssd->lr_nodes[tvpn].brks[k].w = 1.0;
-                ssd->lr_nodes[tvpn].brks[k].b = sppn-s;
-                int z = k*interval_size;
-                for(int i = z;i < z+interval_size;i++)
-                {
-                    if(i>=s&&i<nextend)
-                    ssd->bitmaps[sslpn+i]=1;
-                    else
-                    ssd->bitmaps[sslpn+i]=0;
-                }
+                lr_b->bitmap = mask;
+                lr_b->b = (int)sppn-s;
             }
-            else
-            {
-                ssd->lr_nodes[tvpn].brks[k].valid_cnt -= num;
-            }
+
             s = nextend;
             k++;
             nextend += interval_size;
@@ -1254,11 +1224,8 @@ static void ssd_init_maptbl(struct ssd *ssd)
 
     for (int i = 0; i < spp->tt_trans_pgs; i++) {
         ssd->gtd[i].ppa = UNMAPPED_PPA;
-        // ssd->lr_nodes[i].b = 0;
-        // ssd->lr_nodes[i].w = 0;
-        ssd->lr_nodes[i].less = 0;
         ssd->lr_nodes[i].u = 1;     // * the bit denote if the model is used
-
+        
         // the min-max attributes
 
         ssd->gtd_usage[i] = 512;    // how many translations in one page is used
@@ -1306,10 +1273,11 @@ static void ssd_init_rmap(struct ssd *ssd)
 
 static void ssd_init_bitmap(struct ssd *ssd) {
     struct ssdparams *spp = &ssd->sp;
-    ssd->bitmaps = g_malloc0(sizeof(uint8_t)*spp->tt_pgs);
+    //ssd->bitmaps = g_malloc0(sizeof(uint8_t)*spp->tt_pgs);
     ssd->seg_bitmaps = g_malloc0(sizeof(bool)*spp->ents_per_pg);
-    for (int i = 0; i < spp->tt_pgs; i++)
-        ssd->bitmaps[i] = 0;
+    ssd->bitmap_table[0]=0;
+    for (int i = 0; i < 256; i++)
+        ssd->bitmap_table[i] = ssd->bitmap_table[i>>1] + (1&i);
 
 }
 
@@ -1323,10 +1291,11 @@ static void ssd_init_all_models(struct ssd *ssd) {
         ssd->lr_nodes[i].u = 1;
         for (int j = 0; j < MAX_INTERVALS; j++) {
             lr_breakpoint* brk = &ssd->lr_nodes[i].brks[j];
-            brk->w = 1;
             brk->b = 0;
             // * all models' valid cnt is zero, to facilitate the model sequential initilization
-            brk->valid_cnt = 0;
+            brk->bitmap = 0;
+            
+            //brk->valid_cnt = 0;
         }
     }
 }
@@ -2638,12 +2607,12 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
     struct hash_table *ht = &cm->ht;
     //uint64_t train_lpns[parallel][trans_ent];
     uint64_t train_vppns[parallel][trans_ent];
-    int success = 0;
+    //int success = 0;
     int total = 0;
     struct Cmt_Senode* cmt_senode;
     // gc_line_num++;
-   const int interval_size = ssd->sp.interval_size;
-    const int segment_max_train_num = interval_size;
+   //const int interval_size = ssd->sp.interval_size;
+    //const int segment_max_train_num = interval_size;
     for (int i = 0; i < parallel; i++) {
         total += group_gtd_index[i];
 
@@ -2681,7 +2650,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             {
                 //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
                 lpn = group_gtd_lpns[i][st]-slpn;
-                insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn,false);
+                insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
                 st = en;
             }
         }
@@ -2689,7 +2658,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         {
             //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
             lpn = group_gtd_lpns[i][st]-slpn;
-            insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn,false);
+            insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
         }
         
         if(cmt_senode)
@@ -2701,144 +2670,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             // if(cm->tt_entries<0)
             // evict_CMT_Senode_from_cmt(ssd);
         }
-        //printf("122222\n");
-        // * update the gtd ppa
-        // int gtd_index = start_gtd + i;
-        // struct ppa old_gtd_ppa = ssd->gtd[gtd_index];
-        // mark_page_invalid(ssd, &old_gtd_ppa);
-        // set_rmap_ent(ssd, INVALID_LPN, &old_gtd_ppa);
-        // gc_translation_page_write(ssd, &old_gtd_ppa);
-
-
-        if (group_gtd_index[i] > TRAIN_THRESHOLD) {
-            
-
-            // * prepare the training arrays
-            //uint64_t start_train_lpn = group_gtd_lpns[i][0];
-            //uint64_t start_train_ppa = train_vppns[i][0];
-            //ssd->lr_nodes[start_gtd+i].start_lpn = start_train_lpn;
-            //ssd->lr_nodes[start_gtd+i].start_ppa = start_train_ppa;
-            // for (int pgi = 0; pgi < group_gtd_index[i]; pgi++) {
-            //     train_lpns[i][pgi] = group_gtd_lpns[i][pgi] - start_train_lpn;
-            //     train_vppns[i][pgi] = train_vppns[i][pgi] - start_train_ppa;
-            // }
-
-            // int interval_num = group_gtd_index[i] / MAX_INTERVALS;
-            // uint64_t max_inter_idx[MAX_INTERVALS];
-
-            
-            // /* 2. find k-biggest intervals */
-            // for (int j = 0; j < MAX_INTERVALS; j++) {
-            //     if ((j+1)*interval_num < group_gtd_index[i]) {
-            //         max_inter_idx[j] = (j+1)*interval_num;
-            //     } else {
-            //         max_inter_idx[j] = group_gtd_index[i]-1;
-            //     }
-            // }
-
-
-            int lr_success = 0;
-            int lr_total = 0;
-            int end_indx = 0;
-            int pos = 0;
-            
-            for (int j = 0; j < MAX_INTERVALS; j++) {
-                //int count = 0;
-                int k0 = end_indx;
-                end_indx += interval_size;
-                if(end_indx>trans_ent)
-                {
-                    end_indx = trans_ent;
-                }
-                uint64_t segment_train_lpns[segment_max_train_num];
-                uint64_t segment_train_ppas[segment_max_train_num];
-                //int start = j == 0 ? 0 : max_inter_idx[j-1];
-                //int end = max_inter_idx[j];
-                int num_p = 0;
-                uint64_t x0 = group_gtd_lpns[i][pos];
-                uint64_t b0 = train_vppns[i][pos];
-                while(pos<group_gtd_index[i]&&group_gtd_lpns[i][pos]-slpn<end_indx) {
-                    segment_train_lpns[num_p] = group_gtd_lpns[i][pos]-x0;
-                    segment_train_ppas[num_p++] = train_vppns[i][pos++]-b0;
-                }
-                if(num_p ==0)
-                {
-                    continue;
-                }
-                for(;k0<end_indx;++k0)
-                {
-                    ssd->bitmaps[slpn+k0]=0;
-                }
-                if(num_p==1)
-                {
-                    ssd->lr_nodes[tvpn].brks[j].w = 1.0;
-                    ssd->lr_nodes[tvpn].brks[j].b = b0-x0+slpn;
-                    ssd->lr_nodes[tvpn].brks[j].valid_cnt = 1;
-                    ssd->bitmaps[x0]=1;
-                    continue;
-                }
-                
-
-                // * 3.1 set the brk key of each segment
-                //ssd->lr_nodes[tvpn].brks[j].key = segment_train_lpns[num_p-1];
-
-                // * 3.2 set the brk w and b of each segment
-                float w_u = 0, b_u = 0;
-
-                // clock_gettime(CLOCK_MONOTONIC, &time1);
-                LeastSquareNew(segment_train_lpns, segment_train_ppas, num_p, &w_u, &b_u);
-                // clock_gettime(CLOCK_MONOTONIC, &time2);
-                // ssd->stat.calculate_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
-                
-                // int already_one = 0;
-                int predict_right = 0;
-                ssd->lr_nodes[tvpn].brks[j].w = w_u;
-                ssd->lr_nodes[tvpn].brks[j].b = b_u+b0-w_u*(x0-slpn);
-                //printf("segment_train_lpn0:%lld\tsegment_train_ppas:%lld\n",(long long)segment_train_lpns[0],(long long)segment_train_ppas[0]+b0);
-                //printf("floata:%f\tfloatb:%f\n",w_u,b_u);
-
-                int su = 0;
-                float pred_loc;
-                
-                for (int ii = 0; ii < num_p; ii++) {
-                    pred_loc = predict(segment_train_lpns[ii]+x0-slpn, &ssd->lr_nodes[tvpn].brks[j].w, \
-                                         &ssd->lr_nodes[tvpn].brks[j].b);
-                    
-                    uint64_t tmp_loc = (uint64_t)pred_loc;
-                    if (pred_loc - tmp_loc >= 0.5) {
-                        tmp_loc++;
-                    }
-
-                    if (tmp_loc == segment_train_ppas[ii]+b0) {
-                        su++;
-                        predict_right++;
-                        // if (ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] == 1) {
-                        //     already_one++;
-                        // }
-                        ssd->bitmaps[x0 + segment_train_lpns[ii]] = 1;
-                        // ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] = 1;
-                            
-                    } else {
-                         // ssd->lr_nodes[start_gtd+i].bitmap[tmp_loc] = 0;
-                        ssd->bitmaps[x0 + segment_train_lpns[ii]] = 0;
-                    }
-
-                }
-                ssd->lr_nodes[tvpn].brks[j].valid_cnt = su;
-                lr_success += su;
-                success += su;
-                lr_total += num_p;
-                
-            }
-            
-            lr_node *ln = &ssd->lr_nodes[start_gtd+i];
-            ssd->lr_nodes[start_gtd+i].u = 1;
-            ssd->lr_nodes[start_gtd+i].less = 0;
-            ln->success_ratio = lr_success*1.0/lr_total;
-            //printf("lr_success:%d\tlr_total:%d\tsuccess_ratio:%f\n",lr_success,lr_total,ln->success_ratio);
-            getchar();
-        }
-    }
+   }
 }
 
 static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *wpp, struct line *delete_line) {
@@ -2938,7 +2770,7 @@ static bool model_predict(struct ssd *ssd, uint64_t lpn, struct ppa *ppa) {
     int piece_wise_no = -1;
     lr_node *t = &ssd->lr_nodes[gtd_index];
     // * find which piece the lpn belongs to
-    piece_wise_no = pred_lpn/MAX_INTERVALS;
+    piece_wise_no = pred_lpn/spp->interval_size;
     
     
 
@@ -2946,29 +2778,18 @@ static bool model_predict(struct ssd *ssd, uint64_t lpn, struct ppa *ppa) {
     if (piece_wise_no != -1) {
 
         // * 通过函数得到预测值
-        float pred_ppa_f = predict(pred_lpn, &t->brks[piece_wise_no].w, &t->brks[piece_wise_no].b);
-        uint64_t pred_ppa = (uint64_t)pred_ppa_f;
-
-        // * 四舍五入
-        if (pred_ppa_f - pred_ppa >= 0.5) {
-            pred_ppa++;
-        }
-
+        uint64_t pred_ppa = pred_lpn + t->brks[piece_wise_no].b;
         // * pred_ppa只可能在0-512之间，大于是错的
         // if (pred_ppa >= 512) {
         //     return false;
         // }
 
-        // * pred_ppa在bitmap中命中
-        
-
-        // * 按理说这时就应返回true，但有一些浮点数计算精度的问题，可能有的算不准，所以需要再验证一下
+        // * 按理说这时就应返回true，可能有的算不准，所以需要再验证一下
         *ppa = get_maptbl_ent(ssd, lpn);
         uint64_t actual_ppa = ppa2vppn(ssd, ppa);
         uint64_t read_pred_ppa = pred_ppa ;
         if (read_pred_ppa == actual_ppa) {
             *ppa = get_maptbl_ent(ssd, lpn);
-                
             return true;        
         } else {
             // * 用来排查bitmap[]=1但是测的不准的情况，这里是
@@ -3003,7 +2824,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
     uint64_t start_lpn = lba / spp->secs_per_pg;
     uint64_t end_lpn = (lba + nsecs - 1) / spp->secs_per_pg;
     uint64_t tvpn;
-    uint64_t lpn, last_lpn,svpn;
+    uint64_t lpn, last_lpn,svpn,slpn;
     uint64_t sublat=0, maxlat = 0;
     struct nand_lun *lun;
     struct Seg* seg = NULL;
@@ -3096,7 +2917,9 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
             goto ssd_read_latency;
         } 
         ssd->stat.access_cnt++;
-        if (ssd->bitmaps[lpn] == 1) {
+        slpn=lpn&(spp->ents_per_pg-1);//这里相当于lpn-tvpn*spp->ents_per_pg
+        //slpn>>4相当于slpn/16  slpn&15相当于slpn%16
+        if (ssd->lr_nodes[tvpn].brks[slpn>>4].bitmap&(1<<(slpn&15))) {
             
             int gtd_index = lpn/spp->ents_per_pg;
             if (ssd->lr_nodes[gtd_index].u == 1) {
@@ -3267,7 +3090,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
                 slpn = slpn-sgtd*spp->ents_per_pg;
                 
                 
-                insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd,ssd->model_used);
+                insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
                 dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
                 dir_cmsenode->dirty = DIRTY;
                 //再加回来
@@ -3304,7 +3127,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     }
     slpn = slpn-sgtd*spp->ents_per_pg;
     
-    insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd,ssd->model_used);
+    insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
     dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
     dir_cmsenode->dirty = DIRTY;
     
