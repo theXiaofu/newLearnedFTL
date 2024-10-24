@@ -288,13 +288,14 @@ typedef struct line {
 
 // *  modify ====================
 struct wp_lines{
+    
     struct line *line;
     struct wp_lines *next;
 };
 
 /* wp: record next write addr */
 struct write_pointer {
-    //int line_id[Gc_threshold];//This indicates the group number of the physical block group applied for by this logical block group ；Since Gc_threshold-1=4, it can be represented as 2bits
+    struct line *line_id[Gc_threshold];//This indicates the group number of the physical block group applied for by this logical block group ；Since Gc_threshold-1=4, it can be represented as 2bits
     struct line *curline;
     struct wp_lines *wpl;//使用这个来代替lr_node中的write_pos.
     int vic_cnt;//也表示line_id中的数目
@@ -305,6 +306,7 @@ struct write_pointer {
     int pl;
     int id;
 
+    int curline_pos;
     // TODO: how many lines this wpp invade
     int invade_lines;
 };

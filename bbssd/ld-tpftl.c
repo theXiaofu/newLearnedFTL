@@ -1987,14 +1987,14 @@ static uint64_t gc_translation_page_write(struct ssd *ssd, struct ppa *old_ppa)
     /* need to advance the write pointer here */
     // advance_gc_trans_write_pointer(ssd, &ssd->trans_wp);
     advance_line_write_pointer(ssd, &ssd->trans_wp);
-
-    // if (ssd->sp.enable_gc_delay) {
-    //     struct nand_cmd gcw;
-    //     gcw.type = GC_IO;
-    //     gcw.cmd = NAND_WRITE;
-    //     gcw.stime = 0;
-    //     ssd_advance_status(ssd, &new_ppa, &gcw);
-    // }
+    //fxx:这里需要写
+    if (ssd->sp.enable_gc_delay) {
+        struct nand_cmd gcw;
+        gcw.type = GC_IO;
+        gcw.cmd = NAND_WRITE;
+        gcw.stime = 0;
+        ssd_advance_status(ssd, &new_ppa, &gcw);
+    }
 
     /* advance per-ch gc_endtime as well */
 #if 0
@@ -2069,13 +2069,13 @@ static int gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, str
             clean_one_trans_block(ssd, &ppa);
             mark_block_free(ssd, &ppa);
 
-            // if (spp->enable_gc_delay) {
-            //     struct nand_cmd gce;
-            //     gce.type = GC_IO;
-            //     gce.cmd = NAND_ERASE;
-            //     gce.stime = 0;
-            //     ssd_advance_status(ssd, &ppa, &gce);
-            // }
+            if (spp->enable_gc_delay) {
+                struct nand_cmd gce;
+                gce.type = GC_IO;
+                gce.cmd = NAND_ERASE;
+                gce.stime = 0;
+                ssd_advance_status(ssd, &ppa, &gce);
+            }
 
             lunp->gc_endtime = lunp->next_lun_avail_time;
         }
@@ -2120,34 +2120,34 @@ static void batch_gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *w
 
 }
 
-static void free_all_blocks(struct ssd *ssd, struct ppa *tppa) {
-    struct ssdparams *spp = &ssd->sp;
+// static void free_all_blocks(struct ssd *ssd, struct ppa *tppa) {
+//     struct ssdparams *spp = &ssd->sp;
     
-    int ch, lun;
-    struct ppa ppa;
-    ppa.g.blk = tppa->g.blk;
-    for (ch = 0; ch < spp->nchs; ch++) {
-        for (lun = 0; lun < spp->luns_per_ch; lun++) {
-            ppa.g.ch = ch;
-            ppa.g.lun = lun;
-            ppa.g.pl = 0;
+//     int ch, lun;
+//     struct ppa ppa;
+//     ppa.g.blk = tppa->g.blk;
+//     for (ch = 0; ch < spp->nchs; ch++) {
+//         for (lun = 0; lun < spp->luns_per_ch; lun++) {
+//             ppa.g.ch = ch;
+//             ppa.g.lun = lun;
+//             ppa.g.pl = 0;
 
-            struct nand_lun *lunp = get_lun(ssd, &ppa);
-            mark_block_free(ssd, &ppa);
+//             struct nand_lun *lunp = get_lun(ssd, &ppa);
+//             mark_block_free(ssd, &ppa);
 
-            if (spp->enable_gc_delay) {
-                struct nand_cmd gce;
-                gce.type = GC_IO;
-                gce.cmd = NAND_ERASE;
-                gce.stime = 0;
-                ssd_advance_status(ssd, &ppa, &gce);
-            }
+//             if (spp->enable_gc_delay) {
+//                 struct nand_cmd gce;
+//                 gce.type = GC_IO;
+//                 gce.cmd = NAND_ERASE;
+//                 gce.stime = 0;
+//                 ssd_advance_status(ssd, &ppa, &gce);
+//             }
 
-            lunp->gc_endtime = lunp->next_lun_avail_time;
-        }
+//             lunp->gc_endtime = lunp->next_lun_avail_time;
+//         }
         
-    }
-}
+//     }
+// }
 
 static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int *start_gtd) {
     const int parallel = ssd->sp.tt_luns;
@@ -2444,7 +2444,8 @@ static int line_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, st
 
     model_training(ssd, wpp, group_gtd_lpns, group_gtd_index, start_gtd);
 
-    free_all_blocks(ssd, &ppa);
+    //gc_read_all_valid_data的时候已经free_all_blocks了这里多余了
+    //free_all_blocks(ssd, &ppa);
 
     struct wp_lines *wpl = wpp->wpl;
     // TODO: evict this line out of the wp_lines of wpp;
