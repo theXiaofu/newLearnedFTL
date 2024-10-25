@@ -34,6 +34,11 @@ static void reset_stat(struct ssd *ssd)
     // st->erase_joule = 0;
     // st->joule = 0;
 
+    /*DFTL */
+    // st->cmt_hit_cnt = 0;
+    // st->cmt_miss_cnt = 0;
+    // st->cmt_hit_ratio = 0;
+    // st->access_cnt = 0;
     /*TPFTL*/
     // st->cmt_hit_cnt = 0;
     // st->cmt_miss_cnt = 0;
@@ -82,6 +87,13 @@ static void print_stat(struct ssd *ssd)
     // printf("write joule: %Lf\n", st->write_joule);
     // printf("erase joule: %Lf\n", st->erase_joule);
     // printf("All joule: %Lf\n", st->joule);
+
+    /*DFLT*/
+
+    // printf("CMT hit count: %lu\n", st->cmt_hit_cnt);
+    // printf("CMT miss count: %lu\n", st->cmt_miss_cnt);
+    // printf("CMT access count: %lu\n", st->access_cnt);
+    // printf("CMT hit ratio: %lf\n", st->cmt_hit_ratio);
 
     /*tpftl*/
     // if (st->access_cnt == 0) {

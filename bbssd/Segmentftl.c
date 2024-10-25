@@ -267,7 +267,30 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
     return node->seg_count - old_count;
 }
 
-
+static void print_senode(struct Seg* head)
+{
+    struct Seg* tmp;
+    printf("----------------seg----------\n");
+    tmp = head;
+    head = tmp;
+    if(head)
+    {
+        struct Seg*next = head->next_level;
+        
+        printf("slpn:\telpn:\tsppn:\t\n");
+        while(head)
+        {
+            
+            printf("%lld\t%lld\t%lld\t\n",(long long)head->x1,(long long)head->x2,(long long)head->sppn);
+            tmp = head;
+            head=head->next;
+        }
+        printf("\n");
+        print_senode(next);
+        
+    }
+    printf("----------------seg----------\n");
+}
 
 static void *ftl_thread(void *arg);
 
@@ -451,7 +474,7 @@ static struct Seg* lpn2seg(struct ssd *ssd,uint64_t lpn,uint64_t*elpn)
             }
             if(tmp->x1>lpn)
             {
-                if(*elpn > tmp->x1)
+                if(*elpn >= tmp->x1)
                 {
                     *elpn = tmp->x1 - 1;       
                 }
@@ -2482,7 +2505,7 @@ static void clean_one_trans_block(struct ssd *ssd, struct ppa *ppa)
 
 static int gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, struct line *victim_line)
 {   
-    printf("7777777777\n");
+    //printf("7777777777\n");
     // printf("gtd do gc: %d\n", gc_line_num++);
     // fprintf(gc_fp, "%ld\n", counter);
     struct ssdparams *spp = &ssd->sp;
@@ -2530,7 +2553,7 @@ static int gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, str
     /* update line status */
     mark_line_free(ssd, &ppa);
 
-    printf("788888888\n");
+    //printf("788888888\n");
 
     return 0;
 }
@@ -2538,7 +2561,7 @@ static int gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, str
 
 
 static void batch_gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, int num, struct line *delete_line) {
-    printf("55555555\n");
+    //printf("55555555\n");
     struct line *victim_line=NULL;
     struct wp_lines *wpl ;
     int cnt = 0;
@@ -2552,16 +2575,19 @@ static void batch_gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *w
         cnt++;
         wpl = wpl->next;
     }
+
     if(cnt!=wpp->vic_cnt)
     {
         printf("erro: %d :wpp vic_cnt and cnt are different!! \n",__LINE__);
     }
+
+    cnt = wpp->vic_cnt - 1;
     if(cnt>Gc_threshold)
     {
         printf("erro:%d  victim line > Gc_threshold\n",__LINE__);
     }
     
-    cnt = wpp->vic_cnt - 1;
+    
     //清除其中有效页最少的一半
     
     if(cnt == 1)
@@ -2601,7 +2627,7 @@ static void batch_gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *w
         //clear_one_write_pointer_victim_lines(victim_line,wpp);
 
     }
-    printf("56666666\n");
+    //printf("56666666\n");
 
     //clear_all_write_pointer_victim_lines(wpl, wpp);
     return;
@@ -3133,7 +3159,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 else
                 {
                     printf("error%d:maptable and segment are inconsistent !!!\n",__LINE__);
-                    printf("actual_ppa is %lld\tread_ppa is %lld\n",(long long)actual_ppa,(long long)read_ppa);
+                    printf("lpn:%lld\ti:%lld\tactual_ppa is %lld\tread_ppa is %lld\n",(long long)lpn,(long long)i,(long long)actual_ppa,(long long)read_ppa);
+                    print_senode(ssd->senodes[tvpn].head);
                 }
             }
             

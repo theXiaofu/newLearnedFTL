@@ -1,0 +1,351 @@
+1.先8线程顺序写7G
+Write_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1455: Fri Oct 25 12:25:54
+  write: IOPS=2397, BW=128MiB/s (135MB/s)(56.0GiB/446854msec)
+    clat (usec): min=210, max=171848, avg=3331.37, stdev=6220.62
+     lat (usec): min=211, max=171849, avg=3332.37, stdev=6220.65
+    clat percentiles (usec):
+     |  1.00th=[  1057],  5.00th=[  1729], 10.00th=[  1991], 20.00th=[  2245],
+     | 30.00th=[  2409], 40.00th=[  2606], 50.00th=[  2802], 60.00th=[  2900],
+     | 70.00th=[  2999], 80.00th=[  3195], 90.00th=[  3589], 95.00th=[  3785],
+     | 99.00th=[ 27132], 99.50th=[ 42730], 99.90th=[129500], 99.95th=[129500],
+     | 99.99th=[130548]
+   bw (  KiB/s): min= 7814, max=22120, per=12.55%, avg=16495.77, stdev=2385.06,0
+   iops        : min=  150, max=  382, avg=300.62, stdev=42.21, samples=7140
+  lat (usec)   : 250=0.01%, 500=0.07%, 750=0.20%, 1000=0.49%
+  lat (msec)   : 2=10.34%, 4=85.64%, 10=1.89%, 20=0.21%, 50=0.85%
+  lat (msec)   : 100=0.18%, 250=0.13%
+  cpu          : usr=0.16%, sys=0.28%, ctx=1071534, majf=0, minf=85
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1071453,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=128MiB/s (135MB/s), 128MiB/s-128MiB/s (135MB/s-135MB/s), io=56.0GiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=163/1071211, merge=0/0, ticks=56/3550084, in_queue=3137196, util%
+
+total cnt: 783
+cmt cnt: 759
+model cnt: 23
+read joule: 8431895.500000
+write joule: 285376163.099979
+erase joule: 3946272.000000
+All joule: 297754330.599979
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+2.顺序读
+Read_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1494: Fri Oct 25 12:29:424
+   read: IOPS=14.6k, BW=779MiB/s (817MB/s)(56.0GiB/73578msec)
+    clat (usec): min=45, max=15914, avg=547.63, stdev=122.37
+     lat (usec): min=45, max=15914, avg=547.85, stdev=122.37
+    clat percentiles (usec):
+     |  1.00th=[  269],  5.00th=[  359], 10.00th=[  400], 20.00th=[  441],
+     | 30.00th=[  478], 40.00th=[  519], 50.00th=[  553], 60.00th=[  562],
+     | 70.00th=[  603], 80.00th=[  644], 90.00th=[  685], 95.00th=[  758],
+     | 99.00th=[  840], 99.50th=[  881], 99.90th=[  922], 99.95th=[  963],
+     | 99.99th=[ 1037]
+   bw (  KiB/s): min=93968, max=107000, per=12.51%, avg=99799.63, stdev=1719.853
+   iops        : min= 1756, max= 1924, avg=1820.25, stdev=15.78, samples=1173
+  lat (usec)   : 50=0.01%, 100=0.05%, 250=0.84%, 500=32.72%, 750=61.13%
+  lat (usec)   : 1000=5.23%
+  lat (msec)   : 2=0.02%, 4=0.01%, 10=0.01%, 20=0.01%
+  cpu          : usr=0.45%, sys=2.50%, ctx=1071087, majf=0, minf=332
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=1071075,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=779MiB/s (817MB/s), 779MiB/s-779MiB/s (817MB/s-817MB/s), io=56.0GiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=1068402/0, merge=0/0, ticks=572776/0, in_queue=512124, util=100.%
+
+
+total cnt: 14680064
+cmt cnt: 14621325
+model cnt: 55156
+read joule: 51392764.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 51392764.500000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+3.随即读 2G 8线程
+Read_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1510: Fri Oct 25 12:32:534
+   read: IOPS=16.1k, BW=625MiB/s (655MB/s)(16.0GiB/26216msec)
+    clat (usec): min=45, max=7471, avg=493.93, stdev=154.78
+     lat (usec): min=45, max=7471, avg=494.13, stdev=154.78
+    clat percentiles (usec):
+     |  1.00th=[  165],  5.00th=[  277], 10.00th=[  318], 20.00th=[  359],
+     | 30.00th=[  400], 40.00th=[  441], 50.00th=[  478], 60.00th=[  519],
+     | 70.00th=[  562], 80.00th=[  635], 90.00th=[  685], 95.00th=[  758],
+     | 99.00th=[  881], 99.50th=[  922], 99.90th=[ 1037], 99.95th=[ 1074],
+     | 99.99th=[ 1237]
+   bw (  KiB/s): min=73976, max=89779, per=12.49%, avg=79917.77, stdev=2309.27,6
+   iops        : min= 1436, max= 2871, avg=2006.23, stdev=369.38, samples=416
+  lat (usec)   : 50=0.04%, 100=0.22%, 250=4.00%, 500=50.00%, 750=39.39%
+  lat (usec)   : 1000=6.21%
+  lat (msec)   : 2=0.13%, 4=0.01%, 10=0.01%
+  cpu          : usr=0.56%, sys=2.73%, ctx=422573, majf=0, minf=310
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=422567,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=625MiB/s (655MB/s), 625MiB/s-625MiB/s (655MB/s-655MB/s), io=16.0GiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=420947/0, merge=0/0, ticks=203900/0, in_queue=181784, util=99.85%
+total cnt: 4194304
+cmt cnt: 3390495
+model cnt: 661433
+read joule: 15178380.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 15178380.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+4.随即写 8线程 256M 然后再随即写 8线程512M
+
+Read_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1575: Fri Oct 25 12:41:164
+  write: IOPS=3061, BW=118MiB/s (124MB/s)(4096MiB/34622msec)
+    clat (usec): min=210, max=277050, avg=2600.88, stdev=5260.58
+     lat (usec): min=211, max=277051, avg=2601.66, stdev=5260.61
+    clat percentiles (usec):
+     |  1.00th=[   469],  5.00th=[   938], 10.00th=[  1221], 20.00th=[  1516],
+     | 30.00th=[  1713], 40.00th=[  1876], 50.00th=[  2057], 60.00th=[  2245],
+     | 70.00th=[  2409], 80.00th=[  2638], 90.00th=[  2966], 95.00th=[  3294],
+     | 99.00th=[ 20317], 99.50th=[ 49021], 99.90th=[ 62653], 99.95th=[103285],
+     | 99.99th=[137364]
+   bw (  KiB/s): min=  385, max=21244, per=12.55%, avg=15207.36, stdev=2812.31,4
+   iops        : min=    8, max=  562, avg=382.40, stdev=82.46, samples=544
+  lat (usec)   : 250=0.18%, 500=0.99%, 750=1.73%, 1000=2.98%
+  lat (msec)   : 2=40.35%, 4=51.60%, 10=0.33%, 20=0.80%, 50=0.55%
+  lat (msec)   : 100=0.43%, 250=0.06%, 500=0.01%
+  cpu          : usr=0.21%, sys=0.33%, ctx=106031, majf=0, minf=61
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,105988,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=118MiB/s (124MB/s), 118MiB/s-118MiB/s (124MB/s-124MB/s), io=4096MiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=63/105391, merge=0/0, ticks=0/272916, in_queue=241332, util=99.7%
+
+total cnt: 1965
+cmt cnt: 1862
+model cnt: 96
+read joule: 2006004.000000
+write joule: 31707839.100001
+erase joule: 528000.000000
+All joule: 34241843.100001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+5.顺序读
+
+Read_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1617: Fri Oct 25 12:48:044
+   read: IOPS=14.5k, BW=777MiB/s (815MB/s)(56.0GiB/73768msec)
+    clat (usec): min=45, max=1470, avg=549.10, stdev=121.12
+     lat (usec): min=46, max=1470, avg=549.30, stdev=121.12
+    clat percentiles (usec):
+     |  1.00th=[  241],  5.00th=[  359], 10.00th=[  400], 20.00th=[  441],
+     | 30.00th=[  482], 40.00th=[  519], 50.00th=[  562], 60.00th=[  562],
+     | 70.00th=[  603], 80.00th=[  644], 90.00th=[  717], 95.00th=[  758],
+     | 99.00th=[  840], 99.50th=[  881], 99.90th=[  963], 99.95th=[  996],
+     | 99.99th=[ 1074]
+   bw (  KiB/s): min=91943, max=105162, per=12.51%, avg=99590.35, stdev=1965.176
+   iops        : min= 1691, max= 1855, avg=1816.25, stdev=21.87, samples=1176
+  lat (usec)   : 50=0.02%, 100=0.14%, 250=0.95%, 500=32.18%, 750=60.94%
+  lat (usec)   : 1000=5.73%
+  lat (msec)   : 2=0.03%
+  cpu          : usr=0.44%, sys=2.48%, ctx=1071084, majf=0, minf=334
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=1071075,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=777MiB/s (815MB/s), 777MiB/s-777MiB/s (815MB/s-815MB/s), io=56.0GiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=1069393/0, merge=0/0, ticks=574700/0, in_queue=514000, util=100.%
+
+total cnt: 14680064
+cmt cnt: 14622392
+model cnt: 54089
+read joule: 51392733.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 51392733.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+6.随即读 2G 8线程
+Read_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1688: Fri Oct 25 12:55:404
+   read: IOPS=13.4k, BW=521MiB/s (547MB/s)(16.0GiB/31422msec)
+    clat (usec): min=45, max=1544, avg=592.45, stdev=165.06
+     lat (usec): min=45, max=1545, avg=592.66, stdev=165.06
+    clat percentiles (usec):
+     |  1.00th=[  237],  5.00th=[  326], 10.00th=[  396], 20.00th=[  441],
+     | 30.00th=[  515], 40.00th=[  553], 50.00th=[  594], 60.00th=[  635],
+     | 70.00th=[  676], 80.00th=[  717], 90.00th=[  799], 95.00th=[  881],
+     | 99.00th=[  996], 99.50th=[ 1037], 99.90th=[ 1156], 99.95th=[ 1205],
+     | 99.99th=[ 1254]
+   bw (  KiB/s): min=59024, max=75000, per=12.47%, avg=66566.02, stdev=2733.22,6
+   iops        : min= 1248, max= 2399, avg=1666.84, stdev=237.97, samples=496
+  lat (usec)   : 50=0.04%, 100=0.10%, 250=1.35%, 500=27.73%, 750=52.29%
+  lat (usec)   : 1000=17.59%
+  lat (msec)   : 2=0.90%
+  cpu          : usr=0.52%, sys=2.21%, ctx=422572, majf=0, minf=325
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=422567,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=521MiB/s (547MB/s), 521MiB/s-521MiB/s (547MB/s-547MB/s), io=16.0GiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=422061/0, merge=0/0, ticks=245432/0, in_queue=218620, util=99.78%
+
+total cnt: 4194304
+cmt cnt: 2833586
+model cnt: 1074204
+read joule: 15682772.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 15682772.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+7.特例写让LearnFTL失效只记录最后一次写的结果：
+Write_BandWidth_Test: (groupid=0, jobs=1): err= 0: pid=1746: Fri Oct 25 13:01:04
+  write: IOPS=2521, BW=135MiB/s (141MB/s)(7168MiB/53135msec)
+    clat (usec): min=208, max=96362, avg=394.36, stdev=501.54
+     lat (usec): min=208, max=96364, avg=395.20, stdev=501.69
+    clat percentiles (usec):
+     |  1.00th=[  212],  5.00th=[  212], 10.00th=[  215], 20.00th=[  215],
+     | 30.00th=[  223], 40.00th=[  412], 50.00th=[  416], 60.00th=[  416],
+     | 70.00th=[  420], 80.00th=[  453], 90.00th=[  816], 95.00th=[  824],
+     | 99.00th=[  857], 99.50th=[  889], 99.90th=[ 2507], 99.95th=[ 2868],
+     | 99.99th=[ 2900]
+   bw (  KiB/s): min=109272, max=142440, per=99.99%, avg=138121.70, stdev=4988.6
+   iops        : min= 1962, max= 2624, avg=2521.03, stdev=98.81, samples=106
+  lat (usec)   : 250=32.46%, 500=57.10%, 750=0.18%, 1000=9.92%
+  lat (msec)   : 2=0.01%, 4=0.33%, 10=0.01%, 100=0.01%
+  cpu          : usr=0.80%, sys=1.98%, ctx=133972, majf=0, minf=11
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,133967,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=135MiB/s (141MB/s), 135MiB/s-135MiB/s (141MB/s-141MB/s), io=7168MiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=43/133378, merge=0/0, ticks=0/50948, in_queue=116, util=0.22%
+
+total cnt: 532
+cmt cnt: 466
+model cnt: 61
+read joule: 388703.000000
+write joule: 62896475.200002
+erase joule: 959904.000000
+All joule: 64245082.200002
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+8.顺序读
+Read_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1760: Fri Oct 25 13:03:564
+   read: IOPS=14.6k, BW=780MiB/s (817MB/s)(56.0GiB/73558msec)
+    clat (usec): min=44, max=13985, avg=547.53, stdev=120.86
+     lat (usec): min=45, max=13986, avg=547.76, stdev=120.86
+    clat percentiles (usec):
+     |  1.00th=[  277],  5.00th=[  359], 10.00th=[  400], 20.00th=[  441],
+     | 30.00th=[  478], 40.00th=[  519], 50.00th=[  553], 60.00th=[  562],
+     | 70.00th=[  603], 80.00th=[  644], 90.00th=[  685], 95.00th=[  758],
+     | 99.00th=[  840], 99.50th=[  873], 99.90th=[  922], 99.95th=[  963],
+     | 99.99th=[ 1045]
+   bw (  KiB/s): min=93560, max=109928, per=12.51%, avg=99838.14, stdev=1767.264
+   iops        : min= 1756, max= 1976, avg=1820.93, stdev=16.31, samples=1174
+  lat (usec)   : 50=0.01%, 100=0.03%, 250=0.65%, 500=33.19%, 750=60.93%
+  lat (usec)   : 1000=5.17%
+  lat (msec)   : 2=0.02%, 4=0.01%, 10=0.01%, 20=0.01%
+  cpu          : usr=0.45%, sys=2.46%, ctx=1071089, majf=0, minf=327
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=1071075,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=780MiB/s (817MB/s), 780MiB/s-780MiB/s (817MB/s-817MB/s), io=56.0GiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=1068766/0, merge=0/0, ticks=573804/0, in_queue=512100, util=100.%
+
+total cnt: 14680064
+cmt cnt: 14654231
+model cnt: 22251
+read joule: 51392943.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 51392943.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+9.随即读 2G 8线程
+Read_BandWidth_Test: (groupid=0, jobs=8): err= 0: pid=1776: Fri Oct 25 13:07:014
+   read: IOPS=12.9k, BW=501MiB/s (526MB/s)(16.0GiB/32672msec)
+    clat (usec): min=45, max=12578, avg=615.92, stdev=166.46
+     lat (usec): min=45, max=12579, avg=616.15, stdev=166.46
+    clat percentiles (usec):
+     |  1.00th=[  241],  5.00th=[  359], 10.00th=[  400], 20.00th=[  478],
+     | 30.00th=[  519], 40.00th=[  562], 50.00th=[  603], 60.00th=[  644],
+     | 70.00th=[  685], 80.00th=[  758], 90.00th=[  840], 95.00th=[  881],
+     | 99.00th=[  996], 99.50th=[ 1037], 99.90th=[ 1123], 99.95th=[ 1172],
+     | 99.99th=[ 1287]
+   bw (  KiB/s): min=56504, max=79544, per=12.48%, avg=64101.90, stdev=3207.35,0
+   iops        : min= 1228, max= 2536, avg=1610.57, stdev=244.82, samples=520
+  lat (usec)   : 50=0.04%, 100=0.09%, 250=0.94%, 500=22.41%, 750=54.51%
+  lat (usec)   : 1000=21.10%
+  lat (msec)   : 2=0.91%, 4=0.01%, 10=0.01%, 20=0.01%
+  cpu          : usr=0.43%, sys=2.21%, ctx=422573, majf=0, minf=317
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=422567,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=501MiB/s (526MB/s), 501MiB/s-501MiB/s (526MB/s-526MB/s), io=16.0GiBc
+
+Disk stats (read/write):
+  nvme0n1: ios=422078/0, merge=0/0, ticks=255516/0, in_queue=227608, util=99.75%
+
+total cnt: 4194304
+cmt cnt: 3091278
+model cnt: 773751
+read joule: 15832526.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 15832526.500000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
