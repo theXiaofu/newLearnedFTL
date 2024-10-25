@@ -156,7 +156,7 @@ struct ppa {
             uint64_t ch  : CH_BITS;
             uint64_t rsv : 1;
         } g;
-        //uint64_t next_avail_time;
+        
         uint64_t ppa;
     };
 };

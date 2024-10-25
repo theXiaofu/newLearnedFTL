@@ -232,7 +232,7 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
             if(count + s < nextend)
             {
                 lr_b->bitmap = mask;
-                lr_b->b = (int)sppn-s;
+                lr_b->b = (int)sppn-slpn;
             }
 
             s = nextend;
@@ -355,30 +355,45 @@ static uint64_t ppa2vppn(struct ssd *ssd, struct ppa *ppa,uint64_t su_bl_id) {
     
     struct ssdparams *spp = &ssd->sp;
     uint64_t vppn;
-    int i = 0;
+    uint64_t i ;
+    i = 0;
     for(;i<Gc_threshold;++i)
     {
-        if(ssd->gtd_wps[su_bl_id].line_id[i]->id == ppa->g.blk)
+        if(ssd->gtd_wps[su_bl_id].line_id[i]&&ssd->gtd_wps[su_bl_id].line_id[i]->id == ppa->g.blk)
         {
+            
             break;
         }
+    }
+    if(i==Gc_threshold)
+    {
+        printf("erro: %d:line_id:%lld not exit!\n",__LINE__,(long long)ppa->g.blk);
+        
     }
     //printf("erro: %d:line_id not exit!\n",__LINE__);
     vppn = ppa->g.ch + \
             ppa->g.lun * spp->chn_per_lun + \
             ppa->g.pl * spp->chn_per_pl + \
             ppa->g.pg * spp->chn_per_pg + \
-            ppa->g.blk * spp->chn_per_blk;
+            i * spp->chn_per_blk;
     
     return vppn;
 }
 
 static struct ppa vppn2ppa(struct ssd *ssd, uint64_t vppn,uint64_t su_bl_id) {
     struct ppa ppa;
-
+    //printf("vppn2ppa\n");
     struct ssdparams *spp = &ssd->sp;
     int blk = vppn / spp->chn_per_blk;
-
+    if(blk>=Gc_threshold)
+    {
+        printf("error:__LINE__:%d   blk:%d  >= Gcthreshold\n",__LINE__,blk);
+    }
+    
+    if(!ssd->gtd_wps[su_bl_id].line_id[blk])
+    {
+        printf("error:__LINE__:%d:line id not exit!!!\n",__LINE__);
+    }
     ppa.g.blk = ssd->gtd_wps[su_bl_id].line_id[blk]->id;
 
     vppn -= ppa.g.blk*spp->chn_per_blk;
@@ -815,7 +830,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
     } else if (ssd->trans_wp.vic_cnt >= Gc_threshold) {
 
         // * 如果gtd写指针的line的数量大于=阈值，对其进行GC
-        printf("trans_wp vic_cnt >Gcthreshold\n");
+        //printf("trans_wp vic_cnt >Gcthreshold\n");
         QTAILQ_INSERT_TAIL(&lm->victim_list, ssd->trans_wp.curline, entry);
         lm->victim_line_cnt++;
 
@@ -871,7 +886,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
 
                     } else if (vl->type == DATA) {
                         // fprintf(gc_fp, "%ld\n",counter);
-                        printf("line_do_gc\n");
+                        //printf("line_do_gc\n");
                         line_do_gc(ssd, true, write_back_wp, vl);
                         //write_back_wp->vic_cnt--;
                     }
@@ -892,15 +907,17 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                     init_line_write_pointer(ssd, write_back_wp, false);
                     // write_back_wp->vic_cnt++;
 
+                    
                     if (vl->type == GTD) {
                         
-                        // printf("gtd batch do gc\n");
+                        //printf("gtd batch do gc\n");
                         batch_gtd_do_gc(ssd, true, write_back_wp, write_back_wp->vic_cnt, vl);
                     } else if (vl->type == DATA) {
-                        // printf("line %d do batch gc\n", write_back_wp->id);
+                        //printf("line %d do batch gc victim cnt:%d\n", write_back_wp->id,write_back_wp->vic_cnt);
                         // * model rebuilding
                         batch_line_do_gc(ssd, true, write_back_wp, vl);
 
+                        //printf("line %d do batch gc victim cnt:%d\n", write_back_wp->id,write_back_wp->vic_cnt);
                         if (write_back_wp == wpp) {
                             if (wpp->curline->rest == 0) {
                                 func(&wpp->curline->rest);
@@ -1104,6 +1121,11 @@ static struct ppa get_new_line_page(struct ssd *ssd, struct write_pointer *wpp)
     ppa.g.pl = wpp->pl;
     wpp->curline->rest--;
     if (wpp->curline->rest < 0) {
+        if(&ssd->trans_wp==wpp)
+        printf("trans_wp\n");
+        else
+        printf("data_wp\n");
+
         printf("buduijin\n");
         func(&wpp->curline->rest);
     }
@@ -2549,6 +2571,8 @@ static void batch_gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *w
     
     cnt /= 2;
     
+    if(cnt<2)
+    cnt = 2;
 
     for(int i = 0;i < cnt;++i)
     {
@@ -2785,7 +2809,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
 }
 
 static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *wpp, struct line *delete_line) {
-    printf("111111\n");
+    //printf("111111\n");
     struct ppa ppa;
     const int trans_ent = ssd->sp.ents_per_pg;
     const int parallel = ssd->sp.tt_luns;
@@ -2821,7 +2845,10 @@ static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *w
     {
         printf("erro:%d  victim line > Gc_threshold victim line cnt :%d\n",__LINE__,cnt);
     }
-    
+    if(cnt==1)
+    {
+        printf("erro:%d victim cnt = 1\n",__LINE__);
+    }
     cnt = wpp->vic_cnt - 1;
     //清除其中有效页最少的一半
     
@@ -2829,9 +2856,11 @@ static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *w
     {
         cnt = 2;
     }
-    
+    //明天再改这里的cnt要设置>2最好能全去掉不然容易报错。
     cnt /= 2;
     
+    if(cnt<2)
+    cnt = 2;
 
     for(int i = 0;i < cnt;++i)
     {
@@ -2906,14 +2935,14 @@ static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *w
     model_training(ssd, wpp, group_gtd_lpns, group_gtd_index, start_gtd);
     /* update line status */
     
-    printf("111222\n");
+    //printf("111222\n");
     return 0;
     
 }
 
 static int line_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, struct line *victim_line)
 {
-    printf("333333\n");
+    //printf("333333\n");
     // printf("line do gc: %d\n", gc_line_num++);
     // struct line *victim_line = NULL;
     // struct ssdparams *spp = &ssd->sp;
@@ -2942,12 +2971,13 @@ static int line_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, st
 
     //struct wp_lines *wpl = wpp->wpl;
     // TODO: evict this line out of the wp_lines of wpp;
+    //printf("0000000---111\n");
     clear_one_write_pointer_victim_lines(victim_line,wpp);
-
+    //printf("00000---222\n");
     /* update line status */
     mark_line_free(ssd, &ppa);
     model_training(ssd, wpp, group_gtd_lpns, group_gtd_index, start_gtd);
-    printf("3444444\n");
+    //printf("3444444\n");
 
     return 0;
 }
@@ -3193,6 +3223,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
 static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
 {
     // struct timespec time1, time2;
+    //printf("write start\n");
     uint64_t lba = req->slba;
     struct ssdparams *spp = &ssd->sp;
     struct cmt_mgmt* cm = &ssd->cm;
@@ -3222,7 +3253,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         {
             end_tmp_lpn = end_lpn;
         } 
-
+    //printf("write 1\n");
     for (lpn = start_lpn; lpn <= end_tmp_lpn; lpn++) {
             curlat = 0;
             // clock_gettime(CLOCK_MONOTONIC, &time1);
@@ -3280,26 +3311,32 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             maxlat = (curlat > maxlat) ? curlat : maxlat;
             // clock_gettime(CLOCK_MONOTONIC, &time2);
         }
-
+    
         for (lpn = start_lpn; lpn <= end_tmp_lpn; lpn++)
         {
+            
             elpn = lpn;
             ppa = get_maptbl_ent(ssd, lpn);
 
             if(lpn==start_lpn)
             {
+
                 sequence_cnt = 1;
                 slpn=start_lpn;
+                
                 svpn = ppa2vppn(ssd,&ppa,wp_index);
                 sgtd = gtd_index;
                 //先去掉
                 cm->tt_entries+=ssd->senodes[sgtd].seg_count;
+                
             }
             else
             {
+
                 ppn = ppa2vppn(ssd,&ppa,wp_index);
                 if(ppn!=svpn+sequence_cnt||sgtd!=gtd_index)
                 {
+
                     //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)slpn,(long long)sequence_cnt);
                     if(slpn + sequence_cnt !=elpn)
                     {
@@ -3311,6 +3348,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
                     insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
                     dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
                     dir_cmsenode->dirty = DIRTY;
+
                     //再加回来
                     cm->tt_entries-=ssd->senodes[sgtd].seg_count;
                     if(cm->tt_entries<0)
@@ -3328,6 +3366,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
                 {
                     sequence_cnt++;
                 }
+
             }
             
         }
@@ -3349,7 +3388,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         cm->tt_entries-=ssd->senodes[sgtd].seg_count;
         if(cm->tt_entries<0)
         evict_CMT_Senode_from_cmt(ssd);
-   
+    //printf("write 4\n");
 
 
 
@@ -3359,7 +3398,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     
 
     // ssd->stat.write_time += (maxlat + (time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
-
+    //printf("write end \n");
     return maxlat;
 }
 
