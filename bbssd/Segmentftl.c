@@ -54,12 +54,12 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp);
 //将新段插入到这一层中同时对这层旧段进行修改和从上到下的压缩，如果new_seg为NULL，那么只进行压缩。
 //如果返回值表示这一层的起始段。
 //bit_map包含上层和new_seg的位图。
-static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,bool *bit_map,struct Senode *node)
+static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,bool *bit_map,struct Senode *node,int k)
 {
     if(start_seg==NULL)
     {
         if(new_seg)
-        node->l++;//建立一个新层级
+        node->small_senode[k].l++;//建立一个新层级
         return new_seg;
     }
     struct Seg*nextl_start_seg = start_seg->next_level;//the starting segment of the next level
@@ -167,13 +167,13 @@ static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,b
                 printf("segment error:%d!!!!!!!!!!!!!!!!!",__LINE__);
             }
         }
-        start_seg->next_level = insert_seg2level(nextl_newseg,nextl_start_seg,bit_map,node);
+        start_seg->next_level = insert_seg2level(nextl_newseg,nextl_start_seg,bit_map,node,k);
         return start_seg;
     }
     else
     {
-        node->l--;
-        return insert_seg2level(new_seg,nextl_start_seg,bit_map,node);
+        node->small_senode[k].l--;
+        return insert_seg2level(new_seg,nextl_start_seg,bit_map,node,k);
     }
     return NULL;
 }
@@ -201,7 +201,12 @@ static struct Seg* insert_seg2level(struct Seg *new_seg, struct Seg *start_seg,b
 //通过slpn elpn插入到日志段中，其中slpn和elpn是组内的偏移
 static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint64_t sppn, uint64_t tvpn)
 {
-    struct Seg *new_seg = g_malloc0(sizeof(struct Seg));
+    //printf("111111111\n");
+    struct Seg *new_seg = NULL;
+    struct Senode *node = &(ssd->senodes[tvpn]);
+    int old_count = node->seg_count;
+    
+    bool *bitmap = ssd->seg_bitmaps;
     if(slpn>ssd->sp.ents_per_pg||elpn>ssd->sp.ents_per_pg)
     {
         printf("slpn||elpn>ents_per_pg\n");
@@ -223,9 +228,36 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
         {
             lr_b = &(lr_n->brks[k]);
             if(nextend>elpn)
+            {
                 nextend = elpn+1;
-
+            }
+                
+            new_seg = g_malloc0(sizeof(struct Seg));
+            node->seg_count++;
+            new_seg->x1 = s - k*interval_size;
+            new_seg->x2 = nextend - 1 - k*interval_size;
+            //new_seg->next_avail_time = next_avail_time;
+            new_seg->sppn = sppn + s - slpn;
+            new_seg->next = new_seg->next_level = NULL;
             
+            // for(int i = 0;i<ssd->sp.ents_per_pg;++i)
+            // {
+            //     bitmap[i]=0;
+            // }
+            memset(bitmap,0,sizeof(bool)*(ssd->sp.interval_size));
+            for(int i = new_seg->x1;i<=new_seg->x2;++i)
+            {
+                bitmap[i]=true;
+            }
+
+            node->small_senode[k].head = insert_seg2level(new_seg,node->small_senode[k].head,bitmap,node,k);
+    // if(node->l > 1)
+    // {
+    //     printf("cnt:%d\tlevel:%d\n",node->seg_count,node->l);
+    //     //print_senode(node->head);
+    // }
+    
+
             mask = ((1 << (nextend - s)) - 1) << s; // 创建掩码
             lr_b->bitmap &= ~mask; // 清除对应的位
             count = ssd->bitmap_table[lr_b->bitmap & 0xFF] + ssd->bitmap_table[(lr_b->bitmap>>8)&0xFF];
@@ -240,31 +272,52 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
             nextend += interval_size;
         }
     }
-    
-    
-    new_seg->x1=slpn;
-    new_seg->x2=elpn;
-    //new_seg->next_avail_time = next_avail_time;
-    new_seg->sppn = sppn;
-    new_seg->next = new_seg->next_level = NULL;
-    struct Senode *node = &(ssd->senodes[tvpn]);
-    int old_count = node->seg_count;
-    node->seg_count++;
-    bool *bitmap = ssd->seg_bitmaps;
-    // for(int i = 0;i<ssd->sp.ents_per_pg;++i)
-    // {
-    //     bitmap[i]=0;
-    // }
-    memset(bitmap,0,sizeof(bool)*(ssd->sp.ents_per_pg));
-    for(int i = slpn;i<=elpn;++i)
-    bitmap[i]=true;
-    node->head = insert_seg2level(new_seg,node->head,bitmap,node);
+    else
+    {
+        int interval_size = ssd->sp.interval_size;
+        int s =slpn;
+        int k = s/interval_size;
+        int nextend = (k + 1)*interval_size;
+        while(s<=elpn)
+        {
+            if(nextend>elpn)
+            {
+                nextend = elpn+1;
+            }
+                
+            new_seg = g_malloc0(sizeof(struct Seg));
+            node->seg_count++;
+            new_seg->x1 = s - k*interval_size;
+            new_seg->x2 = nextend - 1 - k*interval_size;
+            //new_seg->next_avail_time = next_avail_time;
+            new_seg->sppn = sppn + s - slpn;
+            new_seg->next = new_seg->next_level = NULL;
+            
+            // for(int i = 0;i<ssd->sp.ents_per_pg;++i)
+            // {
+            //     bitmap[i]=0;
+            // }
+            memset(bitmap,0,sizeof(bool)*(ssd->sp.interval_size));
+            for(int i = new_seg->x1;i<=new_seg->x2;++i)
+            {
+                bitmap[i]=true;
+            }
+
+            node->small_senode[k].head = insert_seg2level(new_seg,node->small_senode[k].head,bitmap,node,k);
     // if(node->l > 1)
     // {
     //     printf("cnt:%d\tlevel:%d\n",node->seg_count,node->l);
     //     //print_senode(node->head);
     // }
+
+            s = nextend;
+            k++;
+            nextend += interval_size;
+        }
+    }
+    //printf("segcnt:%d\n",node->seg_count);
     return node->seg_count - old_count;
+   
 }
 
 static void print_senode(struct Seg* head)
@@ -458,8 +511,9 @@ static struct ppa vppn2ppa(struct ssd *ssd, uint64_t vppn,uint64_t su_bl_id) {
 static struct Seg* lpn2seg(struct ssd *ssd,uint64_t lpn,uint64_t*elpn)
 {
     uint64_t tvpn = lpn/(ssd->sp.ents_per_pg);
-    lpn = lpn-tvpn*(ssd->sp.ents_per_pg);
-    struct Seg *head = ssd->senodes[tvpn].head,*tmp;
+    int k = (lpn - tvpn*ssd->sp.ents_per_pg)/ssd->sp.interval_size;
+    lpn = lpn-tvpn*(ssd->sp.ents_per_pg)-k*ssd->sp.interval_size;
+    struct Seg *head = ssd->senodes[tvpn].small_senode[k].head,*tmp;
     tmp = NULL;
     *elpn = 1000000;//elpn为无穷大
     while(head)
@@ -847,7 +901,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
             func(&wpp->curline->rest);
             printf("what's up?\n");
         }   
-
+        //printf("Gc end1\n");
         return true;
         
     } else if (ssd->trans_wp.vic_cnt >= Gc_threshold) {
@@ -917,8 +971,9 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                     if (write_back_wp == wpp) {
                         if (wpp->curline->rest == 0) {
                             init_line_write_pointer(ssd, wpp, false);
-                                // printf("what's up?\n");
-                        }   
+                            //printf("here line:%d what's up?\n",__LINE__);
+                        }
+                        //printf("Gc end2\n");   
                         return true;
                     }
                 } else {
@@ -945,7 +1000,8 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                             if (wpp->curline->rest == 0) {
                                 func(&wpp->curline->rest);
                                 printf("what's up?\n");
-                            }   
+                            }
+                            //printf("Gc end3\n");   
                             return true;
                         }
                     }
@@ -954,7 +1010,8 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                     if (wpp->curline->rest == 0) {
                         func(&wpp->curline->rest);
                         printf("what's up?\n");
-                    }   
+                    }
+                    //printf("Gc end4\n");   
                     return true;
                 }
             }
@@ -963,6 +1020,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
         
 
     }
+    //printf("Gc end5\n");
     return false;
 }
 
@@ -974,7 +1032,7 @@ static void clear_one_write_pointer_victim_lines(  struct line *victim_line, str
     int i = 0;
     for(;i < Gc_threshold; ++i)
     {
-        if(wpp->line_id[i]==victim_line)
+        if(wpp->line_id[i]&&wpp->line_id[i]==victim_line)
         {
             wpp->line_id[i]=NULL;
             break;
@@ -1046,9 +1104,23 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                 
                 wpp->pg = 0;
 
+                if(wpp->curline->rest>0||wpp->curline->rest < 0)
+                {
+                    if(wpp->curline->type==GTD)
+                    {
+                        printf("error:LINE:%d GTD has rest : %d but init new line!\n",__LINE__,wpp->curline->rest);
+                    }
+                    else
+                    {
+                        printf("error:LINE:%d DATA has rest:%d but init new line!\n",__LINE__,wpp->curline->rest);
+                    }
+                    
+                }
+
                 QTAILQ_INSERT_TAIL(&lm->victim_list, wpp->curline, entry);
                 // pqueue_insert(lm->victim_line_pq, wpp->curline);
                 // wpp->vic_cnt++;
+                
                 
 
                 lm->victim_line_cnt++;
@@ -1073,8 +1145,11 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                         func(&wpp->curline->rest);
                         printf("what's up?\n");
                     }
-
-                    goto another_try;
+                    if(wpp->curline->rest!=ssd->sp.pgs_per_line)
+                    {
+                        goto another_try;
+                    }
+                    
                 }
             }
         }
@@ -1119,7 +1194,7 @@ static struct ppa get_new_line_page(struct ssd *ssd, struct write_pointer *wpp)
     struct ppa ppa;
     int j;
     //printf("00000000\n");
-    if(wpp->line_id[wpp->curline_pos]!=wpp->curline)
+    if(!wpp->line_id[wpp->curline_pos]||wpp->line_id[wpp->curline_pos]!=wpp->curline)
     {//第一次被使用要给其分配pos
         for( j = 0; j < Gc_threshold; ++j)
         {
@@ -1149,7 +1224,7 @@ static struct ppa get_new_line_page(struct ssd *ssd, struct write_pointer *wpp)
         else
         printf("data_wp\n");
 
-        printf("buduijin\n");
+        printf("buduijin rest is %d\n",wpp->curline->rest);
         func(&wpp->curline->rest);
     }
     ftl_assert(ppa.g.pl == 0);
@@ -1232,7 +1307,7 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->interval_size = spp->ents_per_pg%MAX_INTERVALS ? spp->ents_per_pg/MAX_INTERVALS+1 : spp->ents_per_pg/MAX_INTERVALS ;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
     /* because a segment using  4Byte and model using half CMT,tt_blks should / 2*/
-    spp->tt_cmt_size = spp->tt_blks/2;/*原文为一半*/
+    spp->tt_cmt_size = spp->tt_blks;/*一共512KB一半256KB用于model,剩余256KB用于cmt*/
     //spp->enable_request_prefetch = true;    /* cannot set false! */
     //spp->enable_select_prefetch = true;
 
@@ -1337,8 +1412,13 @@ static void ssd_init_Senode(struct ssd*ssd)
     ssd->senodes = g_malloc0(sizeof(struct Senode) * spp->tt_gtd_size);
     for(int i = 0;i < spp->tt_gtd_size;++i)
     {
-        ssd->senodes[i].head = NULL;
-        ssd->senodes[i].l = 0;
+        for(int j = 0; j < MAX_INTERVALS;++j)
+        {
+            ssd->senodes[i].small_senode[j].head = NULL;
+            ssd->senodes[i].small_senode[j].l = 0;
+            
+        }
+        
         ssd->senodes[i].seg_count = 0;
         ssd->senodes[i].tvpn = i; 
     }
@@ -1373,10 +1453,13 @@ static void ssd_init_rmap(struct ssd *ssd)
 static void ssd_init_bitmap(struct ssd *ssd) {
     struct ssdparams *spp = &ssd->sp;
     //ssd->bitmaps = g_malloc0(sizeof(uint8_t)*spp->tt_pgs);
-    ssd->seg_bitmaps = g_malloc0(sizeof(bool)*spp->ents_per_pg);
+    ssd->seg_bitmaps = g_malloc0(sizeof(bool)*(spp->interval_size));
     ssd->bitmap_table[0]=0;
     for (int i = 0; i < 256; i++)
+    {
         ssd->bitmap_table[i] = ssd->bitmap_table[i>>1] + (1&i);
+    }
+        
 
 }
 
@@ -1414,6 +1497,11 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->calculate_time = 0;
     st->sort_time = 0;
     st->model_training_nums = 0;
+    
+
+    st->write_num = 0;
+    st->should_write_num = 0;
+    st->erase_cnt = 0;
     // st->max_read_lpn = 0;
     // st->min_read_lpn = INVALID_LPN;
     // st->max_write_lpn = 0;
@@ -1611,6 +1699,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_ERASE:
         /* erase: only need to advance NAND status */
+        ssd->stat.erase_cnt++;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->blk_er_lat;
@@ -3113,12 +3202,13 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
         if (cmt_senode) {
             //ssd->stat.cmt_hit_cnt++;
             seg = lpn2seg(ssd,lpn,&last_lpn);
-            svpn = lpn - tvpn * spp->ents_per_pg - seg->x1 + seg->sppn;
+            int k = (lpn - tvpn * spp->ents_per_pg)/spp->interval_size;
+            svpn = lpn - tvpn * spp->ents_per_pg - k*spp->interval_size - seg->x1 + seg->sppn;
             if(last_lpn>seg->x2)
             {
                 last_lpn = seg->x2;
             }
-            last_lpn +=  tvpn*spp->ents_per_pg;   
+            last_lpn +=  tvpn*spp->ents_per_pg + k*spp->interval_size;   
             if(last_lpn > end_lpn)
             {
                 last_lpn = end_lpn;
@@ -3160,7 +3250,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 {
                     printf("error%d:maptable and segment are inconsistent !!!\n",__LINE__);
                     printf("lpn:%lld\ti:%lld\tactual_ppa is %lld\tread_ppa is %lld\n",(long long)lpn,(long long)i,(long long)actual_ppa,(long long)read_ppa);
-                    print_senode(ssd->senodes[tvpn].head);
+                    print_senode(ssd->senodes[tvpn].small_senode[k].head);
                 }
             }
             
@@ -3264,7 +3354,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     uint64_t lpn,svpn=0,elpn,slpn=0,ppn,sgtd=0;
     uint64_t curlat = 0, maxlat = 0;
     int sequence_cnt = 0;
-
+    ssd->stat.should_write_num +=end_lpn - start_lpn + 1;
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
     }
@@ -3317,7 +3407,10 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             if (!lwp->curline) {
                 init_line_write_pointer(ssd, lwp, true);
             } else {
+
                 advance_line_write_pointer(ssd, lwp);
+                
+                
             }
 
             ppa = get_new_line_page(ssd, lwp);
@@ -3397,8 +3490,6 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             }
             
         }
-
-
 
         //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)slpn,(long long)sequence_cnt);
         if(slpn + sequence_cnt !=lpn)

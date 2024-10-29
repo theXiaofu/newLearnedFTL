@@ -115,12 +115,17 @@ typedef struct Seg {
     struct Seg *next_level ;   //next_level表示指向下一层的链表
 } Seg;
 
-typedef struct Senode {
-    uint64_t tvpn;
+typedef struct Small_Senode
+{
     int l;//the number of level
     struct Seg *head;
-    int seg_count;
     
+}Small_Senode;
+
+typedef struct Senode {
+    uint64_t tvpn;
+    struct Small_Senode small_senode[MAX_INTERVALS];
+    int seg_count;
 } Senode;
 
 typedef struct Cmt_Senode{
@@ -361,7 +366,11 @@ struct statistics {
     uint64_t req_num;
     long double average_lat;
     uint64_t gc_times;
+
     uint64_t write_num;
+    uint64_t should_write_num;
+    uint64_t erase_cnt;
+    
     uint64_t line_gc_times[512];
     uint64_t wp_victims[512];
     uint64_t trans_wp_gc_times;
@@ -373,7 +382,6 @@ struct statistics {
     long long write_time;
     long long read_time;
     long long model_training_nums;
-    int gc_cnt;
     // uint64_t max_read_lpn;
     // uint64_t min_read_lpn;
     // uint64_t max_write_lpn;

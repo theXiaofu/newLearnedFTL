@@ -359,7 +359,11 @@ struct statistics {
     uint64_t req_num;
     long double average_lat;
     uint64_t gc_times;
+
     uint64_t write_num;
+    uint64_t should_write_num;
+    uint64_t erase_cnt;
+    
     uint64_t line_gc_times[512];
     uint64_t wp_victims[512];
     uint64_t trans_wp_gc_times;

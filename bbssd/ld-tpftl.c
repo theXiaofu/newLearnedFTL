@@ -647,6 +647,18 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                 // pqueue_insert(lm->victim_line_pq, wpp->curline);
                 // wpp->vic_cnt++;
                 
+                if(wpp->curline->rest>0)
+                {
+                    if(wpp->curline->type==GTD)
+                    {
+                        printf("error:LINE:%d GTD has rest but init new line!\n",__LINE__);
+                    }
+                    else
+                    {
+                        printf("error:LINE:%d DATA has rest but init new line!\n",__LINE__);
+                    }
+                    
+                }
 
                 lm->victim_line_cnt++;
 
@@ -806,7 +818,7 @@ static void ssd_init_params(struct ssdparams *spp)
     printf("total pages: %d\n", spp->tt_line_wps);
 
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = spp->tt_blks/2;/*原文为一半这里应该/4*/
+    spp->tt_cmt_size = spp->tt_blks/2;/*原文为一半*/
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
 
@@ -1002,6 +1014,11 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->calculate_time = 0;
     st->sort_time = 0;
     st->model_training_nums = 0;
+
+    st->write_num = 0;
+    st->should_write_num = 0;
+    st->erase_cnt = 0;
+
     // st->max_read_lpn = 0;
     // st->min_read_lpn = INVALID_LPN;
     // st->max_write_lpn = 0;
@@ -1195,6 +1212,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_ERASE:
         /* erase: only need to advance NAND status */
+        ssd->stat.erase_cnt = 0;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->blk_er_lat;
@@ -2656,6 +2674,8 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     uint64_t lpn;
     uint64_t curlat = 0, maxlat = 0;
     int sequence_cnt = 0;
+
+    ssd->stat.should_write_num +=end_lpn - start_lpn + 1;
 
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
