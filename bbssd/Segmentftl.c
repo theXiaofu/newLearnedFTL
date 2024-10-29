@@ -1104,19 +1104,6 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                 
                 wpp->pg = 0;
 
-                if(wpp->curline->rest>0||wpp->curline->rest < 0)
-                {
-                    if(wpp->curline->type==GTD)
-                    {
-                        printf("error:LINE:%d GTD has rest : %d but init new line!\n",__LINE__,wpp->curline->rest);
-                    }
-                    else
-                    {
-                        printf("error:LINE:%d DATA has rest:%d but init new line!\n",__LINE__,wpp->curline->rest);
-                    }
-                    
-                }
-
                 QTAILQ_INSERT_TAIL(&lm->victim_list, wpp->curline, entry);
                 // pqueue_insert(lm->victim_line_pq, wpp->curline);
                 // wpp->vic_cnt++;

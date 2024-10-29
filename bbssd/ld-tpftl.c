@@ -646,19 +646,6 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                 QTAILQ_INSERT_TAIL(&lm->victim_list, wpp->curline, entry);
                 // pqueue_insert(lm->victim_line_pq, wpp->curline);
                 // wpp->vic_cnt++;
-                
-                if(wpp->curline->rest>0)
-                {
-                    if(wpp->curline->type==GTD)
-                    {
-                        printf("error:LINE:%d GTD has rest but init new line!\n",__LINE__);
-                    }
-                    else
-                    {
-                        printf("error:LINE:%d DATA has rest but init new line!\n",__LINE__);
-                    }
-                    
-                }
 
                 lm->victim_line_cnt++;
 
@@ -683,7 +670,10 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                         printf("what's up?\n");
                     }
 
-                    goto another_try;
+                    if(wpp->curline->rest!=ssd->sp.pgs_per_line)
+                    {
+                        goto another_try;
+                    }
                 }
             }
         }
@@ -1212,7 +1202,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_ERASE:
         /* erase: only need to advance NAND status */
-        ssd->stat.erase_cnt = 0;
+        ssd->stat.erase_cnt++;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->blk_er_lat;
