@@ -446,11 +446,11 @@ static void ssd_init_params(struct ssdparams *spp)
 {
     spp->secsz = 512;
     spp->secs_per_pg = 8;
-    spp->pgs_per_blk = 256;
-    spp->blks_per_pl = 256; /* 16GB */
+    spp->pgs_per_blk = 512;
+    spp->blks_per_pl = 512; /* 16GB */
     spp->pls_per_lun = 1;
-    spp->luns_per_ch = 8;
-    spp->nchs = 8;
+    spp->luns_per_ch = 2;
+    spp->nchs = 4;
 
     spp->pg_rd_lat = NAND_READ_LATENCY;
     spp->pg_wr_lat = NAND_PROG_LATENCY;
@@ -492,7 +492,7 @@ static void ssd_init_params(struct ssdparams *spp)
 
     spp->ents_per_pg = 512;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = spp->tt_blks / 2;
+    spp->tt_cmt_size = spp->tt_blks;
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
 
@@ -633,6 +633,10 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->cmt_miss_cnt = 0;
     st->cmt_hit_ratio = 0;
     st->access_cnt = 0;
+
+    st->write_num = 0;
+    st->should_write_num = 0;
+    st->erase_cnt = 0;
 }
 
 void ssd_init(FemuCtrl *n)
@@ -756,6 +760,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->pg_rd_lat;
         lat = lun->next_lun_avail_time - cmd_stime;
+        ssd->stat.read_joule += 3.5;
 #if 0
         lun->next_lun_avail_time = nand_stime + spp->pg_rd_lat;
 
@@ -770,6 +775,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_WRITE:
         /* write: transfer data through channel first */
+        ssd->stat.write_num++;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         if (ncmd->type == USER_IO) {
@@ -778,6 +784,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
             lun->next_lun_avail_time = nand_stime + spp->pg_wr_lat;
         }
         lat = lun->next_lun_avail_time - cmd_stime;
+        ssd->stat.write_joule += 16.7;
 
 #if 0
         chnl_stime = (ch->next_ch_avail_time < cmd_stime) ? cmd_stime : \
@@ -795,11 +802,13 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_ERASE:
         /* erase: only need to advance NAND status */
+        ssd->stat.erase_cnt++;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->blk_er_lat;
 
         lat = lun->next_lun_avail_time - cmd_stime;
+        ssd->stat.erase_joule += 132;
         break;
 
     default:
@@ -1959,6 +1968,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
                 //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
                 //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
+                ssd->stat.access_cnt--;
+                ssd->stat.cmt_hit_cnt--;
                 continue;
             }
             
@@ -1989,6 +2000,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
                 //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
                 //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
+                ssd->stat.access_cnt--;
+                ssd->stat.cmt_miss_cnt--;
                 continue;
             }
             //after reading the translation page, data page can only begin to read
@@ -2025,13 +2038,14 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     // double time;
 
     struct cmt_entry *cmt_entry;
-    struct statistics *st = &ssd->stat;
+    //struct statistics *st = &ssd->stat;
     // struct nand_lun *old_lun, *new_lun;
-
+    ssd->stat.should_write_num +=end_lpn-start_lpn+1;
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
     }
 
+ 
     while (should_gc_high(ssd)) {
         /* perform GC here until !should_gc(ssd) */
         r = do_gc(ssd, true);
@@ -2039,11 +2053,13 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             break;
     }
 
+    
+
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
         // old_lun = NULL;
 
         // clock_gettime(CLOCK_MONOTONIC, &t1);
-        st->access_cnt++;
+        //st->access_cnt++;
         cmt_entry = cmt_hit(ssd, lpn);
 
         // clock_gettime(CLOCK_MONOTONIC, &t2);
@@ -2052,10 +2068,10 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         // fflush(ssd->fpw);
 
         if (cmt_entry) {
-            st->cmt_hit_cnt++;
+            //st->cmt_hit_cnt++;
             ppa = get_maptbl_ent(ssd, lpn);
         } else {
-            st->cmt_miss_cnt++;
+            //st->cmt_miss_cnt++;
             last_lpn = (lpn / spp->ents_per_pg + 1) * spp->ents_per_pg - 1;
             last_lpn = (last_lpn < end_lpn) ? last_lpn : end_lpn;
 

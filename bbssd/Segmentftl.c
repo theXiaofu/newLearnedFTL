@@ -1,11 +1,11 @@
 /**
- * Filename: ld-tpftl.c
- * Author: Shengzhe Wang
- * Date Created: 2022-05
+ * Filename: Segmentftl.c
+ * Author: Xuanxuan Fu
+ * Date Created: 2024-10
  * Version: 1.0
  *
  * Brief Description:
- *     This file implementing the main function of LearnedFTL (HPCA' 24).
+ *     This file implementing the main function of S+Mftl .
  *
  * Copyright Notice:
  *     Copyright (C) 2023 Shengzhe Wang. All rights reserved.
@@ -928,6 +928,10 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
         // QTAILQ_REMOVE(&lm->victim_list, vl, entry);
         // int max_vic = 1;
         if (lm->free_line_cnt < free_line_threshold) {
+            if(lm->victim_line_cnt==0)
+            {
+                printf("error:no lm->victimline\n");//这里会用完  用完就会报错
+            }
             while (tvl) {
                 struct write_pointer *tmp_wp = ssd->line2write_pointer[tvl->id];
                 if (tmp_wp->vic_cnt > 1) {
@@ -940,6 +944,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
             }
             if (!tvl) {
                 tvl = QTAILQ_FIRST(&lm->victim_list);
+                
                 write_back_wp = ssd->line2write_pointer[tvl->id];
             }
             if (write_back_wp->vic_cnt == 1) {
@@ -1040,7 +1045,11 @@ static void clear_one_write_pointer_victim_lines(  struct line *victim_line, str
     }
     if(i==Gc_threshold)
     {
-        printf("erro:%d :victim line hasn't lineid  \n",__LINE__);
+        if(victim_line->type==DATA)
+        {
+            printf("erro:%d :victim line hasn't lineid  \n",__LINE__);
+        }
+        
     }
 
     while (wpl) {

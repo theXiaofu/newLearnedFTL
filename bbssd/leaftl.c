@@ -643,7 +643,13 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->cmt_hit_ratio = 0;
     st->access_cnt = 0;
     st->model_hit = 0;
+
     st->write_cnt = 0;
+
+    st->write_num = 0;
+    st->should_write_num = 0;
+    st->erase_cnt = 0;
+
     st->wa_cnt = 0;
     st->gc_cnt = 0;
     st->read_joule = 0;
@@ -797,6 +803,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_WRITE:
         ssd->stat.wa_cnt++;
+        ssd->stat.write_num++;
         /* write: transfer data through channel first */
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
@@ -824,6 +831,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_ERASE:
         /* erase: only need to advance NAND status */
+        ssd->stat.erase_cnt++;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->blk_er_lat;
@@ -2417,6 +2425,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     struct statistics *st = &ssd->stat;
     bool update_in_buffer = false;
 
+    ssd->stat.should_write_num +=end_lpn-start_lpn+1;
     ssd->start_write = true;
 
     if (end_lpn >= spp->tt_pgs) {

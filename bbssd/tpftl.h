@@ -286,6 +286,15 @@ struct statistics {
     uint64_t cmt_miss_cnt;
     double cmt_hit_ratio;
     uint64_t access_cnt;
+    
+    uint64_t write_num;
+    uint64_t should_write_num;
+    uint64_t erase_cnt;
+
+    long double read_joule;
+    long double write_joule;
+    long double erase_joule;
+    long double joule;
 };
 
 struct ssd {

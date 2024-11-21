@@ -273,6 +273,11 @@ struct statistics {
     uint64_t access_cnt;
     uint64_t write_cnt;
     uint64_t model_hit;
+
+    uint64_t write_num;
+    uint64_t should_write_num;
+    uint64_t erase_cnt;
+    
     double model_hit_ratio;
     int single_read;
     int double_read;

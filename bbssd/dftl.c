@@ -447,7 +447,7 @@ static void ssd_init_params(struct ssdparams *spp)
 
     spp->ents_per_pg = 512;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = spp->tt_blks / 2;
+    spp->tt_cmt_size = spp->tt_blks;
 
     check_params(spp);
 }
@@ -573,6 +573,10 @@ static void ssd_init_statistics(struct ssd *ssd)
 {
     struct statistics *st = &ssd->stat;
 
+    st->write_num = 0;
+    st->should_write_num = 0;
+    st->erase_cnt = 0;
+
     st->cmt_hit_cnt = 0;
     st->cmt_miss_cnt = 0;
     st->cmt_hit_ratio = 0;
@@ -697,6 +701,8 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->pg_rd_lat;
         lat = lun->next_lun_avail_time - cmd_stime;
+        ssd->stat.read_joule += 3.5;
+
 #if 0
         lun->next_lun_avail_time = nand_stime + spp->pg_rd_lat;
 
@@ -711,6 +717,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_WRITE:
         /* write: transfer data through channel first */
+        ssd->stat.write_num++;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         if (ncmd->type == USER_IO) {
@@ -719,6 +726,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
             lun->next_lun_avail_time = nand_stime + spp->pg_wr_lat;
         }
         lat = lun->next_lun_avail_time - cmd_stime;
+        ssd->stat.write_joule += 16.7;
 
 #if 0
         chnl_stime = (ch->next_ch_avail_time < cmd_stime) ? cmd_stime : \
@@ -736,11 +744,14 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
     case NAND_ERASE:
         /* erase: only need to advance NAND status */
+        ssd->stat.erase_cnt++;
         nand_stime = (lun->next_lun_avail_time < cmd_stime) ? cmd_stime : \
                      lun->next_lun_avail_time;
         lun->next_lun_avail_time = nand_stime + spp->blk_er_lat;
 
         lat = lun->next_lun_avail_time - cmd_stime;
+        ssd->stat.erase_joule += 132;
+
         break;
 
     default:
@@ -1381,6 +1392,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
                 //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
                 //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
+                ssd->stat.access_cnt--;
+                ssd->stat.cmt_hit_cnt--;
                 continue;
             }
         } else {
@@ -1391,6 +1404,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
                 //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
                 //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
+                ssd->stat.access_cnt--;
+                ssd->stat.cmt_miss_cnt--;
                 continue;
             }
             lun = get_lun(ssd, &ppa);
@@ -1421,11 +1436,14 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     uint64_t curlat = 0, maxlat = 0;
     int r;
     struct cmt_entry *cmt_entry;
-    struct statistics *st = &ssd->stat;
+    //struct statistics *st = &ssd->stat;
+
+    ssd->stat.should_write_num+=end_lpn-start_lpn+1;
 
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
     }
+
 
     while (should_gc_high(ssd)) {
         /* perform GC here until !should_gc(ssd) */
@@ -1435,12 +1453,12 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     }
 
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
-        st->access_cnt++;
+        //st->access_cnt++;
         cmt_entry = cmt_hit(ssd, lpn);
         if (cmt_entry) {
-            st->cmt_hit_cnt++;
+            //st->cmt_hit_cnt++;
         } else {
-            st->cmt_miss_cnt++;
+            //st->cmt_miss_cnt++;
             process_translation_page_write(ssd, req, lpn);
         }
         ppa = get_maptbl_ent(ssd, lpn);
