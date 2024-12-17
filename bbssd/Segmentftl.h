@@ -375,12 +375,23 @@ struct statistics {
     uint64_t wp_victims[512];
     uint64_t trans_wp_gc_times;
     uint64_t line_wp_gc_times;
+    
     long long calculate_time;
     long long sort_time;
     long long predict_time;
+
+    long long GC_erase_time;
+    long long GC_write_time;
+    long long GC_read_time;
+    long long GC_insert_time;
     long long GC_time;
+
+    long long read_CMT_time;
+    long long max_read_CMT_time;
+    long long insert_CMT_model_time;
     long long write_time;
     long long read_time;
+
     long long model_training_nums;
     // uint64_t max_read_lpn;
     // uint64_t min_read_lpn;

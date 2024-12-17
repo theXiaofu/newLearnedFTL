@@ -1491,9 +1491,21 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->model_out_range = 0;
     st->predict_time = 0;
     st->calculate_time = 0;
-    st->sort_time = 0;
     st->model_training_nums = 0;
-    
+
+    st->sort_time = 0;
+    st->GC_erase_time=0;
+    st->GC_read_time=0;
+    st->GC_write_time=0;
+    st->GC_insert_time=0;
+    st->GC_time=0;
+
+    st->write_time=0;
+    st->insert_CMT_model_time=0;
+    st->read_time=0;
+    st->read_CMT_time=0;
+    st->max_read_CMT_time = 0;
+
 
     st->write_num = 0;
     st->should_write_num = 0;
@@ -2618,7 +2630,7 @@ static int gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, str
             clean_one_trans_block(ssd, &ppa);
             mark_block_free(ssd, &ppa);
 
-            //fxx:感觉这里需要进行擦除操作
+            //fxx:这里需要进行擦除操作
             if (spp->enable_gc_delay) {
                 struct nand_cmd gce;
                 gce.type = GC_IO;
@@ -2753,12 +2765,13 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
     const int parallel = ssd->sp.tt_luns;
     struct ssdparams *spp = &ssd->sp;
     struct nand_lun *lunp;
-    int ch, lun;
+    int ch, lun,max_cnt;
     struct ppa ppa;
     uint64_t tmp_lpn;
     ppa.g.blk = tppa->g.blk;
     uint64_t lat = 0;
     uint64_t use_lat = 0;
+    max_cnt=0;
     for (ch = 0; ch < spp->nchs; ch++) {
         for (lun = 0; lun < spp->luns_per_ch; lun++) {
             ppa.g.ch = ch;
@@ -2770,7 +2783,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
 
             struct nand_page *pg_iter = NULL;
             int cnt = 0;
-
+            cnt=0;
             for (int pg = 0; pg < spp->pgs_per_blk; pg++) {
                 ppa.g.pg = pg;
                 pg_iter = get_pg(ssd, &ppa);
@@ -2782,7 +2795,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
                     tmp_lpn = get_rmap_ent(ssd, &ppa);
                     int gtd_index = tmp_lpn/spp->ents_per_pg;
                     *start_gtd = gtd_index - (gtd_index % parallel);      // ! FIXME: 
-                    int gtd_index_loc = gtd_index % spp->trans_per_line;    // gtd_index%64
+                    int gtd_index_loc = gtd_index % spp->trans_per_line;    // gtd_index%8
 
                     // * check if there is invalid page
                     // if (group_gtd_index[gtd_index_loc] >= 512) {
@@ -2800,6 +2813,11 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
                 }
             }
             
+            if(max_cnt < cnt)
+            {
+                max_cnt = cnt;
+            }
+
             mark_block_free(ssd, &ppa);
             
             if (spp->enable_gc_delay) {
@@ -2816,7 +2834,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
             
 
             lunp->gc_endtime = lunp->next_lun_avail_time;
-            ssd->stat.GC_time += use_lat;
+            
             // clean_one_block_through_line_wp(ssd, &ppa, wpp);
             // mark_block_free(ssd, &ppa);
 
@@ -2831,11 +2849,15 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
             // lunp->gc_endtime = lunp->next_lun_avail_time;
         }
     }
+    //因为并行所以我们这里只记录单个lun最大的那个擦出和读时间实际的
+    ssd->stat.GC_time += use_lat;//按照这个计算，实际还要加上写操作的不再考虑写操作因为写操作过程中可能还会进行GC了。
+    ssd->stat.GC_erase_time+=ssd->sp.blk_er_lat;
+    ssd->stat.GC_read_time+=max_cnt*ssd->sp.pg_rd_lat;
 }
 
 
 static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int start_gtd) {
-    // struct timespec time1, time2;
+    struct timespec time1, time2;
     //printf("Segmentftl Model Training...\n");
     ssd->stat.model_training_nums++;
     const int trans_ent = ssd->sp.ents_per_pg;
@@ -2857,11 +2879,11 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
 
         // * first sort the lpns
 
-        // clock_gettime(CLOCK_MONOTONIC, &time1);
+        clock_gettime(CLOCK_MONOTONIC, &time1);
         quick_sort(group_gtd_lpns[i], 0, group_gtd_index[i]-1);
-        // clock_gettime(CLOCK_MONOTONIC, &time2);
+        clock_gettime(CLOCK_MONOTONIC, &time2);
 
-        // ssd->stat.sort_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
+        ssd->stat.sort_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
 
         // * second write them back, collect the ppa
         for (int pgi = 0; pgi < group_gtd_index[i]; pgi++) {
@@ -2896,7 +2918,11 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             {
                 //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
                 lpn = group_gtd_lpns[i][st]-slpn;
+
+                clock_gettime(CLOCK_MONOTONIC, &time1);
                 insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
+                clock_gettime(CLOCK_MONOTONIC, &time2);
+                ssd->stat.GC_insert_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
                 st = en;
             }
         }
@@ -2904,7 +2930,10 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
         {
             //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
             lpn = group_gtd_lpns[i][st]-slpn;
+            clock_gettime(CLOCK_MONOTONIC, &time1);
             insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
+            clock_gettime(CLOCK_MONOTONIC, &time2);
+            ssd->stat.GC_insert_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
         }
         
         if(cmt_senode)
@@ -2917,6 +2946,11 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             // evict_CMT_Senode_from_cmt(ssd);
         }
    }
+   if(total>0)
+   {
+        ssd->stat.GC_write_time+=( (total + parallel - 1) /parallel) *ssd->sp.pg_wr_lat;
+   }
+   
 }
 
 static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *wpp, struct line *delete_line) {
@@ -3166,8 +3200,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
     struct nand_lun *lun;
     struct Seg* seg = NULL;
     struct nand_cmd srd;
-    // struct timespec time1, time2;
-    
+    struct timespec time1, time2;
+    long long time000;
 
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
@@ -3197,7 +3231,16 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
 
         if (cmt_senode) {
             //ssd->stat.cmt_hit_cnt++;
+            clock_gettime(CLOCK_MONOTONIC, &time1);
             seg = lpn2seg(ssd,lpn,&last_lpn);
+            clock_gettime(CLOCK_MONOTONIC, &time2);
+            time000 = ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
+            if(ssd->stat.max_read_CMT_time < time000)
+            {
+                ssd->stat.max_read_CMT_time = time000;
+            }
+            ssd->stat.read_CMT_time += time000;
+
             int k = (lpn - tvpn * spp->ents_per_pg)/spp->interval_size;
             svpn = lpn - tvpn * spp->ents_per_pg - k*spp->interval_size - seg->x1 + seg->sppn;
             if(last_lpn>seg->x2)
@@ -3335,7 +3378,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
 
 static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
 {
-    // struct timespec time1, time2;
+    struct timespec time1, time2;
     //printf("write start\n");
     uint64_t lba = req->slba;
     struct ssdparams *spp = &ssd->sp;
@@ -3460,8 +3503,10 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
                     }
                     slpn = slpn-sgtd*spp->ents_per_pg;
                     
-                    
+                    clock_gettime(CLOCK_MONOTONIC, &time1);
                     insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
+                    clock_gettime(CLOCK_MONOTONIC, &time2);
+                    ssd->stat.insert_CMT_model_time+=((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
                     dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
                     dir_cmsenode->dirty = DIRTY;
 
@@ -3494,7 +3539,10 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         }
         slpn = slpn-sgtd*spp->ents_per_pg;
         
+        clock_gettime(CLOCK_MONOTONIC, &time1);
         insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
+        clock_gettime(CLOCK_MONOTONIC, &time2);
+        ssd->stat.insert_CMT_model_time+=((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
         dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
         dir_cmsenode->dirty = DIRTY;
         
