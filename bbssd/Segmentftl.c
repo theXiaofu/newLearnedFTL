@@ -316,6 +316,7 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
         }
     }
     //printf("segcnt:%d\n",node->seg_count);
+    
     return node->seg_count - old_count;
    
 }
@@ -407,6 +408,11 @@ static inline struct ppa get_maptbl_ent(struct ssd *ssd, uint64_t lpn)
 static inline void set_maptbl_ent(struct ssd *ssd, uint64_t lpn, struct ppa *ppa)
 {
     ftl_assert(lpn < ssd->sp.tt_pgs);
+
+    if(ssd->maptbl[lpn].ppa == UNMAPPED_PPA)
+    {
+        ssd->stat.all_count++;
+    }
     ssd->maptbl[lpn] = *ppa;
 }
 
@@ -1493,6 +1499,8 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->calculate_time = 0;
     st->model_training_nums = 0;
 
+    st->all_count = 0;
+    st->seg_count=0;
     st->sort_time = 0;
     st->GC_erase_time=0;
     st->GC_read_time=0;
@@ -1504,7 +1512,6 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->insert_CMT_model_time=0;
     st->read_time=0;
     st->read_CMT_time=0;
-    st->max_read_CMT_time = 0;
 
 
     st->write_num = 0;
@@ -2920,7 +2927,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
                 lpn = group_gtd_lpns[i][st]-slpn;
 
                 clock_gettime(CLOCK_MONOTONIC, &time1);
-                insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
+                ssd->stat.seg_count += insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
                 clock_gettime(CLOCK_MONOTONIC, &time2);
                 ssd->stat.GC_insert_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
                 st = en;
@@ -2931,7 +2938,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             //printf("slpn:%lld\tsequence_cnt:%lld\n",(long long)group_gtd_lpns[i][st],(long long)(en-st));
             lpn = group_gtd_lpns[i][st]-slpn;
             clock_gettime(CLOCK_MONOTONIC, &time1);
-            insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
+            ssd->stat.seg_count += insert_seg2senode(ssd,lpn,en-st-1+lpn,train_vppns[i][st],tvpn);
             clock_gettime(CLOCK_MONOTONIC, &time2);
             ssd->stat.GC_insert_time += ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
         }
@@ -3235,10 +3242,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
             seg = lpn2seg(ssd,lpn,&last_lpn);
             clock_gettime(CLOCK_MONOTONIC, &time2);
             time000 = ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
-            if(ssd->stat.max_read_CMT_time < time000)
-            {
-                ssd->stat.max_read_CMT_time = time000;
-            }
+            
             ssd->stat.read_CMT_time += time000;
 
             int k = (lpn - tvpn * spp->ents_per_pg)/spp->interval_size;
@@ -3504,7 +3508,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
                     slpn = slpn-sgtd*spp->ents_per_pg;
                     
                     clock_gettime(CLOCK_MONOTONIC, &time1);
-                    insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
+                    ssd->stat.seg_count += insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
                     clock_gettime(CLOCK_MONOTONIC, &time2);
                     ssd->stat.insert_CMT_model_time+=((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
                     dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);
@@ -3540,7 +3544,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         slpn = slpn-sgtd*spp->ents_per_pg;
         
         clock_gettime(CLOCK_MONOTONIC, &time1);
-        insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
+        ssd->stat.seg_count += insert_seg2senode(ssd,slpn,slpn+sequence_cnt-1,svpn,sgtd);
         clock_gettime(CLOCK_MONOTONIC, &time2);
         ssd->stat.insert_CMT_model_time+=((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
         dir_cmsenode = find_hash_cmt_senode(&cm->ht,sgtd);

@@ -647,7 +647,7 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                 // pqueue_insert(lm->victim_line_pq, wpp->curline);
                 // wpp->vic_cnt++;
 
-                                           lm->victim_line_cnt++;
+                lm->victim_line_cnt++;
 
                 // TODO: do the group-borrow work here;
                 // bool res = borrow_or_gc(ssd, wpp);

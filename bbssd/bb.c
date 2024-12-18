@@ -117,7 +117,6 @@ static void reset_stat(struct ssd *ssd)
     st->insert_CMT_model_time=0;
     st->read_time=0;
     st->read_CMT_time=0;
-    st->max_read_CMT_time = 0;
     
 
      st->model_hit_num = 0;
@@ -219,6 +218,8 @@ static void print_stat(struct ssd *ssd)
      printf("should_write cnt: %lld\n", (long long)ssd->stat.should_write_num);
      printf("erase cnt: %lld\n", (long long)ssd->stat.erase_cnt);
      
+     printf("all_count : %lld\n", (long long)ssd->stat.all_count);
+     printf("seg_count : %lld\n", (long long)ssd->stat.seg_count);
      printf("sort_time : %lld\n", (long long)ssd->stat.sort_time);
      printf("GC_erase_time : %lld\n", (long long)ssd->stat.GC_erase_time);
      printf("GC_read_time : %lld\n", (long long)ssd->stat.GC_read_time);
@@ -229,7 +230,7 @@ static void print_stat(struct ssd *ssd)
      printf("insert_CMT_model_time : %lld\n", (long long)ssd->stat.insert_CMT_model_time);
      printf("read_time : %lld\n", (long long)ssd->stat.read_time);
      printf("read_CMT_time : %lld\n", (long long)ssd->stat.read_CMT_time);
-     printf("max_read_CMT_time : %lld\n", (long long)ssd->stat.max_read_CMT_time);
+
 
     
 

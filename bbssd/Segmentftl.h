@@ -380,6 +380,8 @@ struct statistics {
     long long sort_time;
     long long predict_time;
 
+    long long all_count;
+    long long seg_count;
     long long GC_erase_time;
     long long GC_write_time;
     long long GC_read_time;
@@ -387,7 +389,6 @@ struct statistics {
     long long GC_time;
 
     long long read_CMT_time;
-    long long max_read_CMT_time;
     long long insert_CMT_model_time;
     long long write_time;
     long long read_time;
