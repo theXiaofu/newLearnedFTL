@@ -109,8 +109,8 @@ enum {
 #define NO_PPN 0xff
 #define INVALID_POS_ENTRY 0xffffffff
 #define INVALID_SEG 0x0000ffff
-#define REVERSE_INDEX 0x7fffffff
-#define DIRTY_INFO 0x80000000
+
+
 #define LRU_TABLE_FLAG 0xff
 #define WRITE_CACHE_SPACE 0xfe
 
@@ -260,17 +260,17 @@ typedef struct{
 
 
 
-FTL_Map* init_FTL_Map(FemuCtrl *n);
-static void free_FTL_Map(FTL_Map* ftl_map);
-static void seg2table(Seg* seg_st,int max_size, Table* l2p);
-static int table2seg(Seg* seg_st, Table* l2p);
-static void insert_seg_to_read_cache(FTL_Map* ftl_map,void* header_seg_table,int seg_num);
-static void insert_table_to_write_table(FTL_Map* ftl_map,Table* table_st);
-static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn);
-void write_SegTable(FTL_Map* write,uint32_t* lpn,uint16_t* ppn,int num);
+// static FTL_Map* init_FTL_Map(FemuCtrl *n);
+// static void free_FTL_Map(FTL_Map* ftl_map);
+// static void seg2table(Seg* seg_st,int max_size, Table* l2p);
+// static int table2seg(Seg* seg_st, Table* l2p);
+// static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int seg_num);
+// static void insert_table_to_write_table(struct ssd*ssd,Table* table_st);
+// static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn);
+// static void write_SegTable(struct ssd* ssd,NvmeRequest *req ,uint32_t* lpn,uint16_t* ppn,int num);
 
-static void print_read_cache_space_by_index(FTL_Map* ftl_map,int i);
-static void print_read_cache_space(FTL_Map* ftl_map);
+// static void print_read_cache_space_by_index(FTL_Map* ftl_map,int i);
+// static void print_read_cache_space(FTL_Map* ftl_map);
 
 
 
@@ -660,32 +660,32 @@ do { \
 
 
 
-//打印一下read_cache_LRU链表
-static void print_read_cache_LRU(FTL_Map* ftl_map)
-{
-    Seg_LRU *seg_LRU = ftl_map->seg_LRU;
-    int nex = ftl_map->read_cache_LRU_head; 
-    printf("read_cache_LRU_head:%d\n", seg_LRU[nex].nex);
-    printf("read_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
-    do{
-        printf("pos:%d\n", nex);
-        nex = seg_LRU[nex].nex;
-    }while(nex!=ftl_map->read_cache_LRU_head);
-}
+// //打印一下read_cache_LRU链表
+// static void print_read_cache_LRU(FTL_Map* ftl_map)
+// {
+//     Seg_LRU *seg_LRU = ftl_map->seg_LRU;
+//     int nex = ftl_map->read_cache_LRU_head; 
+//     printf("read_cache_LRU_head:%d\n", seg_LRU[nex].nex);
+//     printf("read_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
+//     do{
+//         printf("pos:%d\n", nex);
+//         nex = seg_LRU[nex].nex;
+//     }while(nex!=ftl_map->read_cache_LRU_head);
+// }
 
-//打印一下write_cache_LRU链表
-static void print_write_cache_LRU(FTL_Map* ftl_map)
-{
-    Seg_LRU *seg_LRU = ftl_map->seg_LRU;
-    int nex = ftl_map->write_cache_LRU_head; 
-    printf("write_point:%d\n", ftl_map->cache->write_cache->write_point);
-    printf("write_cache_LRU_head:%d\n", seg_LRU[nex].nex);
-    printf("write_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
-    do{
-        printf("pos:%d\n", nex);
-        nex = seg_LRU[nex].nex;
-    }while(nex!=ftl_map->write_cache_LRU_head);
-}
+// //打印一下write_cache_LRU链表
+// static void print_write_cache_LRU(FTL_Map* ftl_map)
+// {
+//     Seg_LRU *seg_LRU = ftl_map->seg_LRU;
+//     int nex = ftl_map->write_cache_LRU_head; 
+//     printf("write_point:%d\n", ftl_map->cache->write_cache->write_point);
+//     printf("write_cache_LRU_head:%d\n", seg_LRU[nex].nex);
+//     printf("write_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
+//     do{
+//         printf("pos:%d\n", nex);
+//         nex = seg_LRU[nex].nex;
+//     }while(nex!=ftl_map->write_cache_LRU_head);
+// }
 
 
 
