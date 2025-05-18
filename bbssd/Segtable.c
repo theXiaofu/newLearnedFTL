@@ -331,6 +331,28 @@ static inline void print_seglru(struct ssd*ssd,int line)
             else
             {
                 header = *(uint32_t*)(read_cache->read_cache+seg_LRU[i].pos_entry_number);
+                if(seg_LRU[i].seg_num!=LRU_TABLE_FLAG)
+                {
+                    Header_Seg* header_seg = (Header_Seg*)(read_cache->read_cache+seg_LRU[i].pos_entry_number);
+
+                    for(int i = 1;i<seg_LRU[i].seg_num;i++)
+                    {
+                        if(header_seg->seg[i].slpn<=header_seg->seg[i-1].slpn)
+                        {
+                            printf("line:%d header: %d\n",line,header);
+                            printf("seg_num: %d\n",seg_LRU[i].seg_num);
+                            int space_id = ftl_map->cache->read_cache->segsize2space[seg_LRU[i].seg_num];
+                            printf("space_id: %d,space_num: %d\n",space_id,read_cache->read_cache_space[space_id].num);
+
+                            for(int j = 0;j<seg_LRU[i].seg_num;++j)
+                            {
+                            
+                                printf("i:%d slpn: %d , elpn: %d, vppn: %d\n",j,header_seg->seg[j].slpn,header_seg->seg[j].elpn,header_seg->seg[j].ppn.vppn);
+                            }
+                        }
+                    }
+                }
+                
             }
             if(header!=i)
             {
@@ -2363,7 +2385,7 @@ static void insert_table_to_write_table(struct ssd*ssd,Table* table_st)
 
 
 //要把LRU的头给更新了
-static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn)
+static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn,int* res)
 {
     FTL_Map* ftl_map = ssd->ftl_map;
     Seg_LRU* seg_lru = ftl_map->seg_LRU;
@@ -2450,7 +2472,8 @@ static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn)
             }
             //printf("read3\n");
             //printf("result=%d seg_num = %d\n",result,seg_num);
-            return segs[result].ppn.vppn+offset-segs[result].slpn;
+            *res = result;
+            return segs[result].ppn.vppn+(offset-segs[result].slpn);
         }
     }
         
@@ -2499,6 +2522,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
 
         for(int i = 0;i<num;++i)
         {
+            //这里要获取后8位虽然lr_node里边处理过了但是如果lr_node关闭就没被处理就要重新处理不能省略
             offset = lpn[i]&0xff;
 
             //更新bitmap
@@ -2634,26 +2658,29 @@ static void insert_lr_nodes(struct ssd* ssd,int gtd_index,uint32_t* lpns, uint16
     lr_node* lr_n = &ssd->lr_nodes[gtd_index];
     lr_breakpoint*lr_b;
     //printf("insert_lr_nodes\n");
-    
+    for(int i = 0; i < cnt; i++)
+    {
+        lpns[i] &= 0xff;
+    }
     //printf("insert_lr_nodes1\n");
-    int current_group = (lpns[0]&0xff) >>4;
+    int current_group = lpns[0]>>4;
     int start = 0;
     
     for (int i = 1; i <= cnt; i++) {
         // 检查是否到达数组末尾或组发生变化
 
-        if (i == cnt || ((lpns[i]&0xff) >>4)  != current_group) {
+        if (i == cnt || (lpns[i] >>4)  != current_group) {
             // 处理当前组
             int group_start = start;
             
             for (int j = start + 1; j <= i; j++) {
                 //printf("insert_lr_nodes2\n");
                 // 检查是否到达组的末尾或不满足连续递增条件
-                if (j == i || (lpns[j]&&0xff) != (lpns[j-1]&0xff) + 1 || vppns[j] != vppns[j-1] + 1) {
+                if (j == i || lpns[j] != lpns[j-1] + 1 || vppns[j] != vppns[j-1] + 1) {
                     //printf("insert_lr_nodes3\n");
                     // 调用insert函数处理当前连续段
                     
-                    uint16_t mask = ((1 << ((lpns[j-1]&0xff) +1 - (lpns[group_start]&0xff))) - 1) << (lpns[group_start]&0xf); // 创建掩码
+                    uint16_t mask = ((1 << (lpns[j-1] +1 - lpns[group_start])) - 1) << (lpns[group_start]&0xf); // 创建掩码
                     //printf("insert_lr_nodes4\n");
                     lr_b = &(lr_n->brks[current_group]);
                     //printf("insert_lr_nodes5\n");
@@ -2665,10 +2692,13 @@ static void insert_lr_nodes(struct ssd* ssd,int gtd_index,uint32_t* lpns, uint16
                     //printf("insert_lr_nodes6\n");
                     int count = ssd->bitmap_table[lr_b->bitmap & 0xFF]+ ssd->bitmap_table[(lr_b->bitmap>>8)&0xFF];
                     //printf("insert_lr_nodes7\n");
-                    if(count + (lpns[group_start]&0xff) <= (lpns[j-1]&0xff))
+                    if(count + lpns[group_start] <= lpns[j-1])
                     {
                         lr_b->bitmap = mask;
-                        lr_b->b = vppns[group_start]-(lpns[group_start]&0xff);
+                        //注意这里要截断一下因为我们可能在模型预测的时候slpn对应的vppn较小
+                        //这样vppn-slpn就是负数高位溢出 这样我们再加上这个值就会再加回来得到正确的值
+                        //vppn=0 slpn = 1 那么b=vppn-slpn =  0xffff 那么slpn+b = 0xffff+ 1 = 0 
+                        lr_b->b = vppns[group_start]-lpns[group_start];
                     }
                     //printf("insert_lr_nodes8\n");
 
@@ -2679,7 +2709,7 @@ static void insert_lr_nodes(struct ssd* ssd,int gtd_index,uint32_t* lpns, uint16
             // 更新下一组的起始位置和当前组
             start = i;
             if (i < cnt) {
-                current_group = (lpns[i]&0xff) >> 4;
+                current_group = lpns[i] >> 4;
             }
         }
     }
@@ -3159,6 +3189,12 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint32_t 
                     print_seg_num(ssd,__LINE__);
                 }
                 
+                g_map[gtd_idx].seg_num = table2seg(g_map[gtd_idx].header_seg.seg, &(g_map[gtd_idx].table));
+                if(g_map[gtd_idx].seg_num >read_cache->max_seg_size)
+                {
+                    g_map[gtd_idx].seg_num = LRU_TABLE_FLAG;
+                }
+
                 print_seg_num(ssd,__LINE__);
 
                 print_seglru(ssd,__LINE__);
@@ -3171,8 +3207,6 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint32_t 
                 if(seg_lru[gtd_idx].seg_num ==WRITE_CACHE_SPACE)
                 {
                     print_seglru(ssd,__LINE__);
-                    // if(seg_lru[gtd_idx].seg_num != g_map[gtd_idx].seg_num)
-                    // printf("erro: not consistent seh_lru is %d, g_map is %d\n",seg_lru[gtd_idx].seg_num,g_map[gtd_idx].seg_num);
                     table = &(write_cache->write_table[seg_lru[gtd_idx].pos_entry_number]);
                     //在写缓存中
                     for(int j = 0;j<group_gtd_index[i];j++)
@@ -3187,38 +3221,60 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint32_t 
                 else
                 {
                     //在读缓存中
+
+                    //说明插入的是段  由于可能涉及到修改seg的大小可能涉及到再次驱逐再次进入这个函数就会造成数据不一致这里直接删除回到闪存中
+                        //从read_cache中删除
+                    REMOVE_READ_CACHE_LRU(ftl_map,gtd_idx);
+                    uint32_t seg_pos = seg_lru[gtd_idx].pos_entry_number;
+                    uint32_t space_idx = read_cache->segsize2space[seg_lru[gtd_idx].seg_num];
+                    Read_Cache_Space* read_cache_space = read_cache->read_cache_space;
+                    seg_lru[gtd_idx].pos_entry_number = INVALID_POS_ENTRY;
+                    uint32_t header;
+
                     if(g_map[gtd_idx].seg_num==LRU_TABLE_FLAG)
                     {
-                        print_seg_num(ssd,__LINE__);
-                        print_seglru(ssd,__LINE__);
-                        if(seg_lru[gtd_idx].seg_num != g_map[gtd_idx].seg_num)
-                        printf("erro: not consistent seh_lru is %d, g_map is %d\n",seg_lru[gtd_idx].seg_num,g_map[gtd_idx].seg_num);
+                        if(g_map[gtd_idx].seg_num!=seg_lru[gtd_idx].seg_num)
+                        {
+                            printf("error : g_map segnum : %d, seg_lru segnum : %d\n", g_map[gtd_idx].seg_num, seg_lru[gtd_idx].seg_num );
+                            exit(0);
+                        }
+                        //把左边的段移到这个位置
 
-
-                        table = (Table*)(read_cache_cache+seg_lru[gtd_idx].pos_entry_number);
+                        if(seg_pos>read_cache_space[space_idx].st)
+                        {
+                            print_seglru(ssd,__LINE__);
+                            print_seg_num(ssd,__LINE__);
+                            memcpy(read_cache_cache+seg_pos,read_cache_cache+read_cache_space[space_idx].st,read_cache_space[space_idx].size);
+                            
+                            //更新lru中的信息
+                            header = *((uint32_t*)(read_cache_cache+seg_pos));
+                            seg_lru[header].pos_entry_number = seg_pos;
+                            // printf("gtd_idx:%d\n",gtd_idx);
+                            // printf("memcpy_gtd_idx:%d\n",*((uint32_t*)(read_cache_cache+read_cache_space[space_idx].end)));
+                            // printf("space_idx:%d\n",space_idx);
+                            print_seg_num(ssd,__LINE__);
+                            print_seglru(ssd,__LINE__);
+                        }
+                        read_cache_space[space_idx].st += read_cache_space[space_idx].size;
+                        read_cache_space[space_idx].num--;
+                        print_space_seg(ssd,__LINE__);
 
                         for(int j = 0;j<group_gtd_index[i];j++)
                         {
                             int lpn = group_gtd_lpns[i][j]&0xff;
-                            table->l2p[lpn].vppn=train_vppns[i][j];
-                            table->bitmap[lpn>>5] |= (1<<(lpn&31));
+                            g_map[gtd_idx].table.l2p[lpn].vppn=train_vppns[i][j];
+                            g_map[gtd_idx].table.bitmap[lpn>>5] |= (1<<(lpn&31));
                         }
-                        g_map[gtd_idx].table = *table;
+                        
+                        g_map[gtd_idx].seg_num= table2seg(g_map[gtd_idx].header_seg.seg,&(g_map[gtd_idx].table));
+                        if(g_map[gtd_idx].seg_num>read_cache->max_seg_size)
+                        {
+                            g_map[gtd_idx].seg_num = LRU_TABLE_FLAG;
+                        }
                         print_seg_num(ssd,__LINE__);
-                        print_seglru(ssd,__LINE__);
                     }
                     else
                     {
-                        
-                        //说明插入的是段  由于可能涉及到修改seg的大小可能涉及到再次驱逐再次进入这个函数就会造成数据不一致这里直接删除回到闪存中
-                        //从read_cache中删除
-                        REMOVE_READ_CACHE_LRU(ftl_map,gtd_idx);
-                        uint32_t seg_pos = seg_lru[gtd_idx].pos_entry_number;
-                        uint32_t space_idx = read_cache->segsize2space[seg_lru[gtd_idx].seg_num];
-                        Read_Cache_Space* read_cache_space = read_cache->read_cache_space;
-                        seg_lru[gtd_idx].pos_entry_number = INVALID_POS_ENTRY;
-                        uint32_t header;
-
                         //把右边的段移到这个位置
                         read_cache_space[space_idx].end -= read_cache_space[space_idx].size;
                         read_cache_space[space_idx].num--;
@@ -3474,7 +3530,11 @@ static bool model_predict(struct ssd *ssd, uint64_t lpn, struct ppa *ppa) {
     if (piece_wise_no != -1) {
 
         // * 通过函数得到预测值
-        uint64_t pred_ppa = pred_lpn + t->brks[piece_wise_no].b;
+        //注意这里要截断一下因为我们可能在模型预测的时候slpn对应的vppn较小
+        //这样vppn-slpn就是负数高位溢出 这样我们再加上这个值就会再加回来得到正确的值
+        //vppn=0 slpn = 1 那么b=vppn-slpn =  0xffff 那么slpn+b = 0xffff+ 1 = 0 
+
+        uint64_t pred_ppa = (pred_lpn + t->brks[piece_wise_no].b)&(0xffff);
         // * pred_ppa只可能在0-512之间，大于是错的
         // if (pred_ppa >= 512) {
         //     return false;
@@ -3579,7 +3639,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
  
         //ssd->stat.cmt_hit_cnt++;
         clock_gettime(CLOCK_MONOTONIC, &time1);
-        svpn = read_SegTable(ssd,req,lpn);
+        int result;
+        svpn = read_SegTable(ssd,req,lpn,&result);
         clock_gettime(CLOCK_MONOTONIC, &time2);
         time000 = ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
             
@@ -3591,6 +3652,55 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
             printf("error%d:maptable and segment are inconsistent !!!\n",__LINE__);
             printf("lpn:%lld\tactual_ppa is %lld\tread_ppa is %lld ,g_map[%lld].l2p is %d\n",(long long)lpn,(long long)actual_vpn,(long long)svpn,(long long)tvpn,ftl_map->g_map[tvpn].table.l2p[lpn&0xff].vppn);
             printf("seglru_seg_num:%d  g_map_seg_num:%d\n", ftl_map->seg_LRU[tvpn].seg_num, ftl_map->g_map[tvpn].seg_num);
+            ftl_map->g_map[tvpn].seg_num =  table2seg(ftl_map->g_map[tvpn].header_seg.seg,&(ftl_map->g_map[tvpn].table));
+            printf("seglru_seg_num:%d  g_map_seg_num:%d\n", ftl_map->seg_LRU[tvpn].seg_num, ftl_map->g_map[tvpn].seg_num);
+            printf("result:%d\n",result);
+            Seg_LRU* seg_lru = ftl_map->seg_LRU;
+            if(seg_lru[tvpn].seg_num==LRU_TABLE_FLAG)
+            {
+                //printf("read1\n");
+                //说明是table
+                Table* table = (Table*)(ftl_map->cache->read_cache->read_cache+seg_lru[tvpn].pos_entry_number);
+                printf("in read table: vppn %d  ", table->l2p[lpn&0xff].vppn);
+            }
+            else
+            {
+                //printf("read2\n");
+                //说明是段
+                int seg_num = seg_lru[tvpn].seg_num;
+                Seg* segs = ((Header_Seg*)(ftl_map->cache->read_cache->read_cache+seg_lru[tvpn].pos_entry_number))->seg;
+                for(int i = 0;i<seg_num;i++)
+                {
+                    printf("i: %d, slpn: %d, elpn: %d, b: %d\n",i,segs[i].slpn,segs[i].elpn,segs[i].ppn.vppn);
+                    if(segs[i].slpn<=(lpn&0xff)&&segs[i].elpn>=(lpn&0xff))
+                    {
+                        printf(" in read seg : vppn  %lld \n",(long long)(segs[i].ppn.vppn+((lpn&0xff)-segs[i].slpn)));
+                    }
+                }
+                
+            }
+
+            if(ftl_map->seg_LRU[tvpn].seg_num <255)
+            {
+                Seg* segs = ftl_map->g_map[tvpn].header_seg.seg;
+                for(int i = 0;i<ftl_map->g_map[tvpn].seg_num;i++)
+                {
+                    printf("i: %d, slpn: %d, elpn: %d, b: %d\n",i,segs[i].slpn,segs[i].elpn,segs[i].ppn.vppn);
+                    if(ftl_map->g_map[tvpn].header_seg.seg[i].slpn<=(lpn&0xff)&&ftl_map->g_map[tvpn].header_seg.seg[i].elpn>=(lpn&0xff))
+                    {
+                        printf("vppn seg: %lld\n",(long long)(lpn&0xff)+ftl_map->g_map[tvpn].header_seg.seg[i].ppn.vppn-ftl_map->g_map[tvpn].header_seg.seg[i].slpn);
+                    }
+                }
+            }
+
+            for(int i = 0;i<256;i++)
+            {
+                printf("%d\n",ftl_map->g_map[tvpn].table.l2p[i].vppn);
+            }
+            
+
+            
+
             exit(0);
         }
 

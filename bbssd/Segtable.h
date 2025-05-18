@@ -12,7 +12,7 @@
 
 #define Se_HASH_SIZE (24593ULL)
 #define ENT_PER_TP (2048ULL)
-#define GC_THRESH 5
+#define GC_THRESH 9
 
 
 enum {
