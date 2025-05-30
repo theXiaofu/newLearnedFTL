@@ -257,8 +257,19 @@ static int insert_seg2senode(struct ssd *ssd,uint64_t slpn, uint64_t elpn, uint6
     //     //print_senode(node->head);
     // }
     
-
-            mask = ((1 << (nextend - s)) - 1) << s; // 创建掩码
+            
+            mask = ((1 << (nextend - s)) - 1) << (s&0xf); // 创建掩码
+            // if(s>=16)
+            // {
+            //     uint16_t z = 1<<s;
+            //     printf("s:%d >16 mask: %d\n",s,z);
+                
+            // }
+            // else
+            // {
+            //     uint16_t z = 1<<s;
+            //     printf("s:%d < 16 mask: %d\n",s,z);
+            // }
             lr_b->bitmap &= ~mask; // 清除对应的位
             count = ssd->bitmap_table[lr_b->bitmap & 0xFF] + ssd->bitmap_table[(lr_b->bitmap>>8)&0xFF];
             if(count + s < nextend)

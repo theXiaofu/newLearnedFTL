@@ -16,7 +16,7 @@
 // #pragma GCC push_options
 // #pragma GCC optimize(0)
 
-#include "Segtable.h"
+#include "Segtable_gc.h"
 #include "util.h"
 #include"string.h"
 // static int hit_num = 0;
@@ -846,7 +846,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
 
     } else if (lm->free_line_cnt < 10) {
 
-        //这个到时候可以修改设置以下分为7个链表从高到低来找到一个victim最大的块
+       //这个到时候可以修改设置以下分为7个链表从高到低来找到一个victim最大的块
         struct line *tvl = QTAILQ_FIRST(&lm->victim_list);
         struct write_pointer *write_back_wp = NULL;
         struct line *vl = NULL;
@@ -859,31 +859,77 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
             {
                 printf("error:no lm->victimline\n");//这里会用完  用完就会报错
             }
+                
+            int vim_cnt=0x3fffffff;
             while (tvl) {
                 struct write_pointer *tmp_wp = ssd->line2write_pointer[tvl->id];
-                if (tmp_wp->vic_cnt > 1) {
-                    write_back_wp = tmp_wp;
-                    vl = tvl;
-                    break;
+                
+                if (tmp_wp->vic_cnt >= 1) {
+                    if(tmp_wp==wpp&&tmp_wp->vic_cnt==1)
+                    {
+                        tvl = tvl->entry.tqe_next;
+                        continue;
+                    }
+                    //找出最适合回收的也就是vic_cnt>1且回收两个
+                    struct wp_lines *wpl = tmp_wp->wpl->next;
+                    struct line* min1=NULL,*min2=NULL;
+                    while(wpl)
+                    {
+                        if (min1 == NULL || wpl->line->vpc < min1->vpc) 
+                        {
+                            min2 = min1;    // 原最小值降级为次小值
+                            min1 = wpl->line;  // 更新最小值
+                        }         // 更新次小值（仅当次小值未初始化或当前值更小）
+                        else if (min2 == NULL || wpl->line->vpc < min2->vpc) 
+                        {
+                            min2 = wpl->line;
+                        }
+                        
+                        wpl = wpl->next;
+                    }
+                    //break;
+                    if(min1->vpc+min2->vpc<vim_cnt)
+                    {
+                        vim_cnt = min1->vpc+min2->vpc;
+                        write_back_wp = tmp_wp;
+                        vl = min1;
+                    }
                 }
-
+                tvl = tvl->entry.tqe_next;
+            } 
+            tvl = QTAILQ_FIRST(&lm->victim_list);
+            while(tvl)
+            {
+                struct write_pointer *tmp_wp = ssd->line2write_pointer[tvl->id];
+                
+                if (tmp_wp->vic_cnt >= 1) {
+                    if(tmp_wp==wpp&&tmp_wp->vic_cnt==1)
+                    {
+                        tvl = tvl->entry.tqe_next;
+                        continue;
+                    }
+                    //找出最适合回收的也就是vic_cnt>1且回收两个
+                    struct wp_lines *wpl = tmp_wp->wpl->next;
+                    struct line* min1=NULL;
+                    while(wpl)
+                    {
+                        if(wpl->line!=tmp_wp->curline)
+                        if (min1 == NULL || wpl->line->vpc < min1->vpc) 
+                        {
+                            min1 = wpl->line;  // 更新最小值
+                        }         // 更新次小值（仅当次小值未初始化或当前值更小）
+                        wpl = wpl->next;
+                    }
+                    //break;
+                    if(tmp_wp->curline&& tmp_wp->curline->rest>=min1->vpc&&min1->vpc <=vim_cnt)
+                    {
+                        vim_cnt = min1->vpc;
+                        write_back_wp = tmp_wp;
+                        vl = min1;
+                    }
+                }
                 tvl = tvl->entry.tqe_next;
             }
-            if (!tvl) {
-                tvl = QTAILQ_FIRST(&lm->victim_list);
-                
-                write_back_wp = ssd->line2write_pointer[tvl->id];
-            }
-            if (write_back_wp->vic_cnt == 1) {
-                printf("???\n");
-            }
-
-            // if (&ssd->trans_wp == wpp) {
-            //     printf("trans wp is doing gc\n");
-            // }
-            
-            if (vl) { 
-                
                 // if (write_back_wp->curline && write_back_wp->curline->rest == vl->vpc) {
                 //     printf("some pages are not successfully invalidated! \n");
                 // }
@@ -950,7 +996,6 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                     //printf("Gc end4\n");   
                     return true;
                 }
-            }
         }
         
         

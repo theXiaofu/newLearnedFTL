@@ -268,6 +268,8 @@ struct ssdparams {
     int chn_per_pg;
     int chn_per_blk;
 
+    int tt_gtdwpp_cnt;
+
     bool enable_request_prefetch;
     bool enable_select_prefetch;
 
@@ -304,6 +306,7 @@ struct write_pointer {
     int blk;
     int pl;
     int id;
+    int write_point_type;//-1表示为data line的指针否则表示翻译页的指针
 
     // TODO: how many lines this wpp invade
     int invade_lines;
@@ -404,7 +407,7 @@ struct ssd {
     // * the cmt management
     struct cmt_mgmt cm;
 
-    struct write_pointer trans_wp; // the write pointer for writing translation pages
+    struct write_pointer* trans_wp; // the write pointer for writing translation pages
     struct lr_node *lr_nodes;  // the linear regression model
     struct ht cmt;    // current mapping table
     uint64_t num_trans_write;

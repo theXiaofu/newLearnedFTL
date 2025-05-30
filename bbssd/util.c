@@ -31,9 +31,9 @@
 // }
 
 
-
-static int findPos (uint64_t * a, int low, int high){
-	uint64_t val = a[low];
+/*
+static int findPos (uint32_t * a, int low, int high){
+	uint32_t val = a[low];
  
 	while(low < high){
 		while(low < high && a[high] >= val){
@@ -50,7 +50,9 @@ static int findPos (uint64_t * a, int low, int high){
 	return low;
 }
 
-void quick_sort(uint64_t * a, int low, int high){
+
+
+void quick_sort(uint32_t * a, int low, int high){
 	int pos;
 	if(low < high){
 		pos = findPos(a, low, high);
@@ -58,6 +60,7 @@ void quick_sort(uint64_t * a, int low, int high){
 		quick_sort(a, pos+1, high);
 	}
 }
+
 
 
 // static uint64_t re_standardlize(float pred_y, uint64_t max_y, uint64_t min_y) {
@@ -79,6 +82,155 @@ void quick_sort(uint64_t * a, int low, int high){
 
 // 	printf("train_success_num: %d ; total models: %d\n", train_success_num, *total);
 // }
+
+int least_square(uint32_t *x, uint32_t *y, uint32_t start, int num, float *w, float *b) {
+	float t1=0, t2=0, t3=0, t4=0;  
+	for(int i = start; i < start+num; ++i) {  
+		t1 += x[i]*x[i];  
+		t2 += x[i];  
+		t3 += x[i]*y[i];  
+		t4 += y[i];  
+	}  
+	*w = (t3*num - t2*t4) / (t1*num - t2*t2);  
+	//b = (t4 - a*t2) / num;  
+	*b = (t1*t4 - t2*t3) / (t1*num - t2*t2);  
+	// printf("training result: %f %f\n", *w, *b);
+	int train_success_num = 0;
+	for (int i = start; i < start+num; i++) {
+		float yy = predict(x[i], w, b);
+		int ya = y[i];
+		if (abs(yy - ya) < 1) {
+			train_success_num++;
+		}
+	}
+	return train_success_num;
+}
+
+
+
+void LeastSquare(uint32_t *x, uint32_t *y, int num, float *w, float *b) {  
+
+		// // first standardlize the data
+        float t1=0, t2=0, t3=0, t4=0;  
+        for(int i=0; i<num; ++i) {  
+            t1 += x[i]*x[i];  
+            t2 += x[i];  
+            t3 += x[i]*y[i];  
+            t4 += y[i];  
+        }  
+        *w = (t3*num - t2*t4) / (t1*num - t2*t2);  
+        //b = (t4 - a*t2) / num;  
+        *b = (t1*t4 - t2*t3) / (t1*num - t2*t2);  
+		// printf("training result: %f %f\n", *w, *b);
+		
+		// int train_success_num = 0;
+		// for (int i = 0; i < num; i++) {
+		// 	float yy = predict(x[i], w, b);
+		// 	int ya = y[i];
+		// 	if (abs(yy - ya) < 1) {
+		// 		train_success_num++;
+		// 	}
+		// }
+		// printf("train success: %d ; %d\n", train_success_num, num);
+}  
+
+
+
+int LeastSquareNew(uint32_t *x, uint32_t *y, int num, float *w, float *b) {  
+
+        float t1=0, t2=0, t3=0, t4=0;  
+        for(int i=0; i<num; ++i) {  
+            t1 += x[i]*x[i];  
+            t2 += x[i];  
+            t3 += x[i]*y[i];  
+            t4 += y[i];  
+        }  
+        *w = (t3*num - t2*t4) / (t1*num - t2*t2);  
+        //b = (t4 - a*t2) / num;  
+        *b = (t1*t4 - t2*t3) / (t1*num - t2*t2);  
+		// printf("training result: %f %f\n", *w, *b);
+		
+		int train_success_num = 0;
+
+		return train_success_num;
+		// printf("train success: %d ; %d\n", train_success_num, num);
+}  
+
+
+
+// float* regression(uint64_t *x, uint64_t *y, float learning_rate, int num_iterations, float *w, float *b){
+
+// 	float *cost = (float*) malloc(sizeof(float)*num_iterations);
+// 	int n = 10;
+
+// 	for(int i=0; i<num_iterations; i++){
+// 		cost[i] = batch_gradient_descent(x, y, n, learning_rate, w, b);
+// 	}
+
+// 	return cost;
+// }
+
+
+float batch_gradient_descent(uint32_t *x, uint32_t *y, int n, float learning_rate, float *w, float *b){
+
+	float db = 0.0;
+	float dw = 0.0;
+	float cost = 0.0;
+
+	for(int i=0; i<n; i++){
+
+		cost += pow(((*w * x[i] + *b) - y[i]),2);
+		db += (*w * x[i] + *b) - y[i];
+		dw += ((*w * x[i] + *b) - y[i])*x[i];
+	}
+
+	cost /= n;
+	*w = *w - learning_rate*(dw)/n;
+	*b = *b - learning_rate*(db)/n;
+
+	return cost;
+}
+
+
+
+float predict(uint32_t x, float *w, float *b){
+
+	float y = *w * x + *b;
+	return y;
+
+}
+
+*/
+
+
+
+
+//------------------------------------------------------------------
+static int findPos (uint64_t * a, int low, int high){
+	uint64_t val = a[low];
+ 
+	while(low < high){
+		while(low < high && a[high] >= val){
+			--high;
+		}
+		a[low] = a[high];
+ 
+		while(low < high && a[low] <= val){
+			++low;
+		}
+		a[high] = a[low];
+	}
+	a[low] = val;
+	return low;
+}
+void quick_sort(uint64_t * a, int low, int high){
+	int pos;
+	if(low < high){
+		pos = findPos(a, low, high);
+		quick_sort(a, low, pos-1);
+		quick_sort(a, pos+1, high);
+	}
+}
 
 int least_square(uint64_t *x, uint64_t *y, uint64_t start, int num, float *w, float *b) {
 	float t1=0, t2=0, t3=0, t4=0;  
@@ -150,20 +302,6 @@ int LeastSquareNew(uint64_t *x, uint64_t *y, int num, float *w, float *b) {
 		// printf("train success: %d ; %d\n", train_success_num, num);
 }  
 
-
-// float* regression(uint64_t *x, uint64_t *y, float learning_rate, int num_iterations, float *w, float *b){
-
-// 	float *cost = (float*) malloc(sizeof(float)*num_iterations);
-// 	int n = 10;
-
-// 	for(int i=0; i<num_iterations; i++){
-// 		cost[i] = batch_gradient_descent(x, y, n, learning_rate, w, b);
-// 	}
-
-// 	return cost;
-// }
-
-
 float batch_gradient_descent(uint64_t *x, uint64_t *y, int n, float learning_rate, float *w, float *b){
 
 	float db = 0.0;
@@ -184,13 +322,17 @@ float batch_gradient_descent(uint64_t *x, uint64_t *y, int n, float learning_rat
 	return cost;
 }
 
-
 float predict(uint64_t x, float *w, float *b){
 
 	float y = *w * x + *b;
 	return y;
 
 }
+
+
+
+//---------------------------
+
 
 
 uint64_t hash_func(uint64_t key) {
@@ -204,5 +346,13 @@ uint64_t hash_func(uint64_t key) {
   return key;
 
 }
+
+
+
+
+
+
+
+
 
 #pragma GCC pop_options

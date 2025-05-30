@@ -446,11 +446,11 @@ static void ssd_init_params(struct ssdparams *spp)
 {
     spp->secsz = 512;
     spp->secs_per_pg = 8;
-    spp->pgs_per_blk = 512;
-    spp->blks_per_pl = 512; /* 16GB */
+    spp->pgs_per_blk = 256;
+    spp->blks_per_pl = 256; /* 8GB */
     spp->pls_per_lun = 1;
-    spp->luns_per_ch = 2;
-    spp->nchs = 4;
+    spp->luns_per_ch = 4;   /* default 8 */
+    spp->nchs = 8;          /* default 8 */
 
     spp->pg_rd_lat = NAND_READ_LATENCY;
     spp->pg_wr_lat = NAND_PROG_LATENCY;
@@ -490,9 +490,9 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->gc_thres_lines_high = (int)((1 - spp->gc_thres_pcent_high) * spp->tt_lines);
     spp->enable_gc_delay = true;
 
-    spp->ents_per_pg = 512;
+    spp->ents_per_pg = spp->pgs_per_blk;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = spp->tt_blks;
+    spp->tt_cmt_size = 87380;
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
 

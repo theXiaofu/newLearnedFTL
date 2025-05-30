@@ -22,7 +22,7 @@
 // static int hit_num = 0;
 // static int gc_num = 0;
 // static int gc_line_num = 0;
-static int gc_threshold = 4;   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC
+static int gc_threshold = 8;   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC
 static int free_line_threshold = 3;    // ! gc参数：当还剩多少未使用的free_line时开始GC
 // static int train_num = 0;
 
@@ -332,7 +332,7 @@ static void init_line_write_pointer(struct ssd *ssd, struct write_pointer *wpp, 
     wpp->blk = curline->id;
     wpp->pl = 0;
     ssd->line2write_pointer[wpp->curline->id] = wpp;
-    if (&ssd->trans_wp == wpp) {
+    if (wpp->write_point_type>=0) {
         wpp->curline->type = GTD;
     } else {
         wpp->curline->type = DATA;
@@ -351,10 +351,8 @@ static void init_line_write_pointer(struct ssd *ssd, struct write_pointer *wpp, 
 
 static void ssd_init_write_pointer(struct ssd *ssd)
 {
-    
-    
+
     ssd->gtd_wps = g_malloc0(sizeof(struct write_pointer) * ssd->sp.tt_line_wps);
-    
     for (int i = 0; i < ssd->sp.tt_line_wps; i++) {
         ssd->gtd_wps[i].curline = NULL;
         ssd->gtd_wps[i].wpl = g_malloc0(sizeof(struct wp_lines));
@@ -362,15 +360,23 @@ static void ssd_init_write_pointer(struct ssd *ssd)
         ssd->gtd_wps[i].wpl->next = NULL;
         ssd->gtd_wps[i].vic_cnt = 0;
         ssd->gtd_wps[i].id = i;
+        ssd->gtd_wps[i].write_point_type=-1;
     }
-    ssd->trans_wp.wpl = g_malloc0(sizeof(struct wp_lines));
-    ssd->trans_wp.wpl->line = NULL;
-    ssd->trans_wp.wpl->next = NULL;
-    ssd->trans_wp.vic_cnt = 0;
-    ssd->trans_wp.id = ssd->sp.tt_lines;
+ 
+    ssd->trans_wp = g_malloc0(sizeof(struct write_pointer)*ssd->sp.tt_gtdwpp_cnt);
+    for(int i = 0;i<ssd->sp.tt_gtdwpp_cnt;++i)
+    {
+        ssd->trans_wp[i].curline = NULL;
+        ssd->trans_wp[i].wpl = g_malloc0(sizeof(struct wp_lines));
+        ssd->trans_wp[i].wpl->line = NULL;
+        ssd->trans_wp[i].wpl->next = NULL;
+        ssd->trans_wp[i].vic_cnt = 0;
+        ssd->trans_wp[i].id = ssd->sp.tt_lines;
+        ssd->trans_wp[i].write_point_type = i;
+    } 
     // init the rmap for lines
     ssd->line2write_pointer = g_malloc0(sizeof(struct write_pointer *) * ssd->sp.tt_lines);
-    init_line_write_pointer(ssd, &ssd->trans_wp, false);
+    //init_line_write_pointer(ssd, &ssd->trans_wp, false);
 
 
 }
@@ -441,7 +447,7 @@ static void insert_wp_lines(struct write_pointer *wpp) {
 
 static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
     struct line_mgmt *lm = &ssd->lm;
-    //printf("GC happens?\n");
+    // printf("GC happens?\n");
     // if (ssd->lm.free_line_cnt < 4) {
     //     printf("what's wrong?\n");
     // }
@@ -453,7 +459,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
         // * 如果一个写指针对应的Line的数量超过4，就必须GC
         init_line_write_pointer(ssd, wpp, false);
         // wpp->vic_cnt++;
-        if (&ssd->trans_wp == wpp) {
+        if (wpp->write_point_type>=0) {
             batch_gtd_do_gc(ssd, true, wpp, wpp->vic_cnt, NULL);
         } else {
             batch_line_do_gc(ssd, true, wpp, NULL);
@@ -466,19 +472,21 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
 
         return true;
         
-    } else if (ssd->trans_wp.vic_cnt >= gc_threshold) {
+    } else 
+    for(int i = 0;i<ssd->sp.tt_gtdwpp_cnt;++i) 
+    if (ssd->trans_wp[i].vic_cnt >= gc_threshold) {
 
         // * 如果gtd写指针的line的数量大于=阈值，对其进行GC
 
-        QTAILQ_INSERT_TAIL(&lm->victim_list, ssd->trans_wp.curline, entry);
+        QTAILQ_INSERT_TAIL(&lm->victim_list, ssd->trans_wp[i].curline, entry);
         lm->victim_line_cnt++;
 
-        init_line_write_pointer(ssd, &ssd->trans_wp, false);
+        init_line_write_pointer(ssd, &ssd->trans_wp[i], false);
 
         // ssd->trans_wp.vic_cnt++;
 
         // * put this line to the victim lines the line write pointer belongs to
-        batch_gtd_do_gc(ssd, true, &ssd->trans_wp, ssd->trans_wp.vic_cnt, NULL);
+        batch_gtd_do_gc(ssd, true, &ssd->trans_wp[i], ssd->trans_wp[i].vic_cnt, NULL);
 
     } else if (lm->free_line_cnt < 10) {
 
@@ -508,7 +516,7 @@ static bool should_do_gc_v3(struct ssd *ssd, struct write_pointer *wpp) {
                 printf("???\n");
             }
 
-            // if (&ssd->trans_wp == wpp) {
+            // if (wpp->write_point_type>=0) {
             //     printf("trans wp is doing gc\n");
             // }
             
@@ -664,7 +672,7 @@ static void advance_line_write_pointer (struct ssd *ssd, struct write_pointer *w
                 
                 if (!res)
                     init_line_write_pointer(ssd, wpp, false);
-                else if (wpp != &ssd->trans_wp) {
+                else {
                     if (wpp->curline->rest == 0) {
                         func(&wpp->curline->rest);
                         printf("what's up?\n");
@@ -750,11 +758,11 @@ static void ssd_init_params(struct ssdparams *spp)
 {
     spp->secsz = 512;
     spp->secs_per_pg = 8;
-    spp->pgs_per_blk = 512;
-    spp->blks_per_pl = 512; /* 8GB */
+    spp->pgs_per_blk = 256;
+    spp->blks_per_pl = 1024; /* 8GB */
     spp->pls_per_lun = 1;
-    spp->luns_per_ch = 2;   /* default 8 */
-    spp->nchs = 4;          /* default 8 */
+    spp->luns_per_ch = 4;   /* default 8 */
+    spp->nchs = 8;          /* default 8 */
 
     spp->pg_rd_lat = NAND_READ_LATENCY;
     spp->pg_wr_lat = NAND_PROG_LATENCY;
@@ -800,23 +808,31 @@ static void ssd_init_params(struct ssdparams *spp)
     // 512 = 4KB / 8Byte 
     spp->addr_size = 8;
     spp->pg_size = spp->secsz * spp->secs_per_pg;
-    spp->ents_per_pg = spp->pg_size / spp->addr_size;
+    spp->ents_per_pg = spp->pgs_per_blk;
     spp->tt_trans_pgs = spp->tt_pgs / spp->ents_per_pg;
     // one translation page can accomodate 512 pages(1 blocks), so 64 trans pages combine a line
     spp->trans_per_line = spp->pgs_per_line / spp->ents_per_pg;
     spp->tt_line_wps = spp->tt_trans_pgs/spp->trans_per_line;
     printf("total pages: %d\n", spp->tt_line_wps);
 
+
+
+
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = spp->tt_blks/2;/*原文为一半*/
+    spp->tt_cmt_size = 174760;/*512KB/(3*4Byte)=43690*/
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
+
+
+    spp->tt_gtdwpp_cnt = spp->tt_gtd_size/(spp->pgs_per_line);
+    spp->tt_gtdwpp_cnt+= spp->tt_gtd_size%(spp->pgs_per_line) ? 1 : 0;
 
     // * for virtual ppn
     spp->chn_per_lun = spp->nchs;
     spp->chn_per_pl = spp->nchs * spp->luns_per_ch;
     spp->chn_per_pg = spp->chn_per_pl * spp->pls_per_lun;
     spp->chn_per_blk = spp->chn_per_pg * spp->pgs_per_blk;
+
 
     check_params(spp);
 }
@@ -1345,11 +1361,29 @@ static struct cmt_entry *cmt_hit_no_move(struct ssd *ssd, uint64_t lpn)
 
 static uint64_t translation_write_page(struct ssd *ssd, uint64_t tvpn)
 {
+    //printf("translation_write_page\n");
     struct ssdparams *spp = &ssd->sp;
-    struct ppa new_gtd_ppa = get_new_line_page(ssd, &ssd->trans_wp);
-
-    // * 4.6. update the gtd
+       // * 4.6. update the gtd
     uint64_t index = tvpn / spp->ents_per_pg;
+
+    int wwp_pos = index/(spp->pgs_per_line);
+    //printf("translation_write_page: index: %d\n", wwp_pos);
+    //struct ssdparams *spp = &ssd->sp;
+    struct write_pointer *lwp= &ssd->trans_wp[wwp_pos];
+    if (!lwp->curline) {
+        //printf("init_line_write_pointer\n");
+        init_line_write_pointer(ssd, lwp, true);
+        //printf("init_line_write_pointer done\n");
+    } else {
+        //printf("advance_line_write_pointer\n");
+        advance_line_write_pointer(ssd, lwp);
+        //printf("advance_line_write_pointer done\n");
+    }
+    struct ppa new_gtd_ppa = get_new_line_page(ssd, lwp);
+
+
+
+ 
     set_gtd_ent(ssd, &new_gtd_ppa, index);
     set_rmap_ent(ssd, index, &new_gtd_ppa);
     mark_page_valid(ssd, &new_gtd_ppa);
@@ -1359,8 +1393,8 @@ static uint64_t translation_write_page(struct ssd *ssd, uint64_t tvpn)
     // srd.stime = 0;  // req->stime?
     // ssd_advance_status(ssd, &new_gtd_ppa, &srd);
 
-    advance_line_write_pointer(ssd, &ssd->trans_wp);
 
+    //printf("translation_write_page done\n");
     return 0;
 }
 
@@ -1977,14 +2011,16 @@ static void mark_line_free(struct ssd *ssd, struct ppa *ppa)
     ssd->line2write_pointer[line->id] = NULL;
 }
 
-static uint64_t gc_translation_page_write(struct ssd *ssd, struct ppa *old_ppa)
+static uint64_t gc_translation_page_write(struct ssd *ssd, struct ppa *old_ppa,struct write_pointer *wpp)
 {
     struct ppa new_ppa;
     struct nand_lun *new_lun;
     uint64_t tvpn = get_rmap_ent(ssd, old_ppa);
 
     ftl_assert(valid_lpn(ssd, tvpn));
-    new_ppa = get_new_line_page(ssd, &ssd->trans_wp);
+    if (wpp->curline->rest < (ssd->sp).pgs_per_line)
+        advance_line_write_pointer(ssd, wpp);
+    new_ppa = get_new_line_page(ssd, wpp);
     /* update GTD */
     set_gtd_ent(ssd, &new_ppa, tvpn);
     /* update rmap */
@@ -1994,7 +2030,7 @@ static uint64_t gc_translation_page_write(struct ssd *ssd, struct ppa *old_ppa)
 
     /* need to advance the write pointer here */
     // advance_gc_trans_write_pointer(ssd, &ssd->trans_wp);
-    advance_line_write_pointer(ssd, &ssd->trans_wp);
+    //advance_line_write_pointer(ssd, &ssd->trans_wp);
     //fxx:这里需要写
     if (ssd->sp.enable_gc_delay) {
         struct nand_cmd gcw;
@@ -2016,7 +2052,7 @@ static uint64_t gc_translation_page_write(struct ssd *ssd, struct ppa *old_ppa)
     return 0;
 }
 
-static void clean_one_trans_block(struct ssd *ssd, struct ppa *ppa)
+static void clean_one_trans_block(struct ssd *ssd, struct ppa *ppa,struct write_pointer *wpp)
 {
     struct ssdparams *spp = &ssd->sp;
     struct nand_page *pg_iter = NULL;
@@ -2037,7 +2073,7 @@ static void clean_one_trans_block(struct ssd *ssd, struct ppa *ppa)
             // if (!equal_ppa)
             //     continue;
             if (mapped_ppa(equal_ppa) && ppa2pgidx(ssd, equal_ppa) == ppa2pgidx(ssd, ppa)) {
-                gc_translation_page_write(ssd, ppa);
+                gc_translation_page_write(ssd, ppa,wpp);
             // }
             } else {
                 printf("translation block contains data page!\n");
@@ -2074,7 +2110,7 @@ static int gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *wpp, str
 
             // 先获取到block,然后消除block,针对每个page都进行重新写入（ssd_write(page)），之后进行擦除
             lunp = get_lun(ssd, &ppa);
-            clean_one_trans_block(ssd, &ppa);
+            clean_one_trans_block(ssd, &ppa,wpp);
             mark_block_free(ssd, &ppa);
 
             if (spp->enable_gc_delay) {
@@ -2157,7 +2193,7 @@ static void batch_gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *w
 //     }
 // }
 
-static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int *start_gtd) {
+static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t group_gtd_lpns[][256], int *group_gtd_index, int *start_gtd) {
     const int parallel = ssd->sp.tt_luns;
     struct ssdparams *spp = &ssd->sp;
     struct nand_lun *lunp;
@@ -2244,7 +2280,7 @@ static void gc_read_all_valid_data(struct ssd *ssd, struct ppa *tppa, uint64_t g
     //printf("22222\n");
 }
 
-static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][512], int *group_gtd_index, int start_gtd) {
+static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t group_gtd_lpns[][256], int *group_gtd_index, int start_gtd) {
     // struct timespec time1, time2;
     //printf("Model Training...\n");
     ssd->stat.model_training_nums++;

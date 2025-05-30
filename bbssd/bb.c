@@ -1,5 +1,5 @@
 #include "../nvme.h"
-#include "./Segmentftl.h"
+#include "./ld-tpftl.h"
 
 
 static void bb_init_ctrl_str(FemuCtrl *n)
@@ -26,7 +26,7 @@ static void bb_init(FemuCtrl *n, Error **errp)
 
 static void reset_stat(struct ssd *ssd)
 {
-     struct statistics *st = &ssd->stat;
+    // struct statistics *st = &ssd->stat;
 
     /*FTL*/
     // st->read_joule = 0;
@@ -96,40 +96,67 @@ static void reset_stat(struct ssd *ssd)
     //  st->erase_joule = 0;
     //  st->joule = 0;
 
+    /*LearnedFTL*/
+
+    // st->cmt_hit_cnt = 0;
+    //  st->cmt_miss_cnt = 0;
+    //  st->cmt_hit_ratio = 0;
+    //  st->access_cnt = 0;
+
+    //  st->write_num = 0;
+    //  st->should_write_num = 0;
+    //  st->erase_cnt = 0;
+    
+    // st->sort_time = 0;
+    // st->GC_time=0;
+
+    // st->write_time=0;
+    // st->read_time=0;
+    
+
+    //  st->model_hit_num = 0;
+    //  st->model_use_num = 0;
+    //  st->read_joule = 0;
+    //  st->write_joule = 0;
+    //  st->erase_joule = 0;
+    //  st->joule = 0;
+
+
+
     /*S+MFTL*/
-     st->cmt_hit_cnt = 0;
-     st->cmt_miss_cnt = 0;
-     st->cmt_hit_ratio = 0;
-     st->access_cnt = 0;
+    //  st->cmt_hit_cnt = 0;
+    //  st->cmt_miss_cnt = 0;
+    //  st->cmt_hit_ratio = 0;
+    //  st->access_cnt = 0;
 
-     st->write_num = 0;
-     st->should_write_num = 0;
-     st->erase_cnt = 0;
+    //  st->write_num = 0;
+    //  st->should_write_num = 0;
+    //  st->erase_cnt = 0;
     
-    st->sort_time = 0;
-    st->GC_erase_time=0;
-    st->GC_read_time=0;
-    st->GC_write_time=0;
-    st->GC_insert_time=0;
-    st->GC_time=0;
+    // st->sort_time = 0;
+    // st->GC_erase_time=0;
+    // st->GC_read_time=0;
+    // st->GC_write_time=0;
+    // st->GC_insert_time=0;
+    // st->GC_time=0;
 
-    st->write_time=0;
-    st->insert_CMT_model_time=0;
-    st->read_time=0;
-    st->read_CMT_time=0;
+    // st->write_time=0;
+    // st->insert_CMT_model_time=0;
+    // st->read_time=0;
+    // st->read_CMT_time=0;
     
 
-     st->model_hit_num = 0;
-     st->model_use_num = 0;
-     st->read_joule = 0;
-     st->write_joule = 0;
-     st->erase_joule = 0;
-     st->joule = 0;
+    //  st->model_hit_num = 0;
+    //  st->model_use_num = 0;
+    //  st->read_joule = 0;
+    //  st->write_joule = 0;
+    //  st->erase_joule = 0;
+    //  st->joule = 0;
 }
 
 static void print_stat(struct ssd *ssd)
 {
-    struct statistics *st = &ssd->stat;
+   // struct statistics *st = &ssd->stat;
     
     /*ftl*/
     // st->joule = st->read_joule + st->write_joule + st->erase_joule;
@@ -209,36 +236,47 @@ static void print_stat(struct ssd *ssd)
     //  printf("All joule: %Lf\n", st->joule);
 
     /*S+MFTL*/
-     st->joule = st->read_joule + st->write_joule + st->erase_joule;
-     printf("total cnt: %lld\n", (long long)ssd->stat.access_cnt);
-     printf("cmt cnt: %lld\n", (long long)ssd->stat.cmt_hit_cnt);
-     printf("model cnt: %lld\n", (long long)ssd->stat.model_hit_num);
+    //  st->joule = st->read_joule + st->write_joule + st->erase_joule;
+    //  printf("total cnt: %lld\n", (long long)ssd->stat.access_cnt);
+    //  printf("cmt cnt: %lld\n", (long long)ssd->stat.cmt_hit_cnt);
+    //  printf("model cnt: %lld\n", (long long)ssd->stat.model_hit_num);
 
-     printf("write cnt: %lld\n", (long long)ssd->stat.write_num);
-     printf("should_write cnt: %lld\n", (long long)ssd->stat.should_write_num);
-     printf("erase cnt: %lld\n", (long long)ssd->stat.erase_cnt);
+    //  printf("write cnt: %lld\n", (long long)ssd->stat.write_num);
+    //  printf("should_write cnt: %lld\n", (long long)ssd->stat.should_write_num);
+    //  printf("erase cnt: %lld\n", (long long)ssd->stat.erase_cnt);
      
-     printf("all_count : %lld\n", (long long)ssd->stat.all_count);
-     printf("seg_count : %lld\n", (long long)ssd->stat.seg_count);
-     printf("sort_time : %lld\n", (long long)ssd->stat.sort_time);
-     printf("GC_erase_time : %lld\n", (long long)ssd->stat.GC_erase_time);
-     printf("GC_read_time : %lld\n", (long long)ssd->stat.GC_read_time);
-     printf("GC_write_time : %lld\n", (long long)ssd->stat.GC_write_time);
-     printf("GC_insert_time : %lld\n", (long long)ssd->stat.GC_insert_time);
-     printf("GC_time : %lld\n", (long long)ssd->stat.GC_time);
-     printf("write_time : %lld\n", (long long)ssd->stat.write_time);
-     printf("insert_CMT_model_time : %lld\n", (long long)ssd->stat.insert_CMT_model_time);
-     printf("read_time : %lld\n", (long long)ssd->stat.read_time);
-     printf("read_CMT_time : %lld\n", (long long)ssd->stat.read_CMT_time);
+    //  printf("all_count : %lld\n", (long long)ssd->stat.all_count);
+    //  printf("seg_count : %lld\n", (long long)ssd->stat.seg_count);
+    //  printf("sort_time : %lld\n", (long long)ssd->stat.sort_time);
+    //  printf("GC_erase_time : %lld\n", (long long)ssd->stat.GC_erase_time);
+    //  printf("GC_read_time : %lld\n", (long long)ssd->stat.GC_read_time);
+    //  printf("GC_write_time : %lld\n", (long long)ssd->stat.GC_write_time);
+    //  printf("GC_insert_time : %lld\n", (long long)ssd->stat.GC_insert_time);
+    //  printf("GC_time : %lld\n", (long long)ssd->stat.GC_time);
+    //  printf("write_time : %lld\n", (long long)ssd->stat.write_time);
+    //  printf("insert_CMT_model_time : %lld\n", (long long)ssd->stat.insert_CMT_model_time);
+    //  printf("read_time : %lld\n", (long long)ssd->stat.read_time);
+    //  printf("read_CMT_time : %lld\n", (long long)ssd->stat.read_CMT_time);
 
-
+    //  for(int i = 0;i<ssd->ftl_map->cache->read_cache->space_num;i++)
+    //  {
+    //     //输出space的各个参数
+    //     printf("read_cache_space[%d].st = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].st);
+    //     printf("read_cache_space[%d].end = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].end);
+    //     printf("read_cache_space[%d].max_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].max_seg_num);
+    //     printf("read_cache_space[%d].min_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].min_seg_num);
+    //     printf("read_cache_space[%d].size = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].size);
+        
+        
+    //  }
+   
     
 
 
-     printf("read joule: %Lf\n", st->read_joule);
-     printf("write joule: %Lf\n", st->write_joule);
-     printf("erase joule: %Lf\n", st->erase_joule);
-     printf("All joule: %Lf\n", st->joule);
+    //  printf("read joule: %Lf\n", st->read_joule);
+    //  printf("write joule: %Lf\n", st->write_joule);
+    //  printf("erase joule: %Lf\n", st->erase_joule);
+    //  printf("All joule: %Lf\n", st->joule);
 }
 
 static void bb_flip(FemuCtrl *n, NvmeCmd *cmd)
