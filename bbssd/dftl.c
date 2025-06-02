@@ -401,11 +401,11 @@ static void ssd_init_params(struct ssdparams *spp)
 {
     spp->secsz = 512;
     spp->secs_per_pg = 8;
-    spp->pgs_per_blk = 512;
-    spp->blks_per_pl = 512; /* 8GB */
+    spp->pgs_per_blk = 256;
+    spp->blks_per_pl = 1024; /* 8GB */
     spp->pls_per_lun = 1;
-    spp->luns_per_ch = 2;
-    spp->nchs = 4;
+    spp->luns_per_ch = 4;
+    spp->nchs = 8;
 
     spp->pg_rd_lat = NAND_READ_LATENCY;
     spp->pg_wr_lat = NAND_PROG_LATENCY;
@@ -445,9 +445,10 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->gc_thres_lines_high = (int)((1 - spp->gc_thres_pcent_high) * spp->tt_lines);
     spp->enable_gc_delay = true;
 
-    spp->ents_per_pg = 512;
+    spp->write_cache_size = spp->write_cache_size = 256*1024;//256KB大小的写缓存
+    spp->ents_per_pg = spp->pgs_per_blk;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = spp->tt_blks;
+    spp->tt_cmt_size = 262144;//设置4M大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针 4M/16=262144
 
     check_params(spp);
 }
@@ -1054,60 +1055,134 @@ static struct nand_lun *process_translation_page_read(struct ssd *ssd, NvmeReque
     return lunp;
 }
 
-static struct nand_lun *process_translation_page_write(struct ssd *ssd, NvmeRequest *req, uint64_t lpn)
-{
+static void process_translation_page_write(struct ssd *ssd, NvmeRequest *req, uint64_t tvpn) {
+    //  printf("%d\n",__LINE__);
     struct ssdparams *spp = &ssd->sp;
     struct ppa ppa;
+    uint64_t start_lpn;
     struct cmt_mgmt *cm = &ssd->cm;
-    // struct cmt_entry *cmt_entry;
-    uint64_t tvpn, ppn;
-    struct nand_lun *lunp;
+ 
+    struct cmt_entry *cmt_entry;
+    
+    FTL_Map*ftl_map = ssd->ftl_map;
+    Seg_LRU*seg_lru = ftl_map->seg_LRU;
+    G_map*g_map = ftl_map->g_map;
+    Write_Cache* write_cache = ftl_map->cache;
 
-    //get gtd mapping physical page
-    tvpn = lpn / spp->ents_per_pg;
-    ppa = get_gtd_ent(ssd, tvpn);
+    //printf("%d\n",__LINE__);
+    //ppa = get_gtd_ent_index(ssd, tvpn);
+    ppa = get_gtd_ent(ssd,tvpn);
 
-    /* if it is a new write, not an update */
-    if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
-        if (cm->used_cmt_entry_cnt < cm->tt_entries) {
-            insert_entry_to_cmt(ssd, lpn, UNMAPPED_PPA);
-        } else if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-            evict_entry_from_cmt(ssd);
-            insert_entry_to_cmt(ssd, lpn, UNMAPPED_PPA);
-        } else {
-            ftl_err("wrong! cmt used entries exceed total entries!");
-        }
-        return NULL;
-    }
-    //read latency
-    translation_page_read(ssd, req, &ppa);
-    lunp = get_lun(ssd, &ppa);
-    //get real lpn-ppn
-    ppa = get_maptbl_ent(ssd, lpn);
+    //先判断是否在读缓存中如果在读缓存中需要先从读缓存中把他给evict
 
-    if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
-        if (cm->used_cmt_entry_cnt < cm->tt_entries) {
-            insert_entry_to_cmt(ssd, lpn, UNMAPPED_PPA);
-        } else if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-            evict_entry_from_cmt(ssd);
-            insert_entry_to_cmt(ssd, lpn, UNMAPPED_PPA);
-        } else {
-            ftl_err("wrong! cmt used entries exceed total entries!");
+    start_lpn = tvpn*spp->ents_per_pg;
+    for(int offset =0;offset<spp->ents_per_pg;++offset){
+        
+        cmt_entry = find_hash_entry(&ssd->cm.ht, start_lpn);
+        if(cmt_entry){
+             if (!delete_cmt_hashnode(ht, cmt_entry)) {
+            printf("error, removed entry is not in hash table!");
+            }
+
+            /* insert evicted entry to free_entry_list */
+            QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
+            cmt_entry->dirty = CLEAN;
+            cmt_entry->lpn = INVALID_LPN;
+            cmt_entry->ppn = UNMAPPED_PPA;
+            QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
+            cm->free_cmt_entry_cnt++;
+            cm->used_cmt_entry_cnt--;
         }
-    } else {
-        ppn = ppa2pgidx(ssd, &ppa);
-        if (cm->used_cmt_entry_cnt < cm->tt_entries) {
-            insert_entry_to_cmt(ssd, lpn, ppn);
-        } else if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-            evict_entry_from_cmt(ssd);
-            insert_entry_to_cmt(ssd, lpn, ppn);
-        } else {
-            ftl_err("wrong! cmt used entries exceed total entries!");
-        }
+        start_lpn++;
     }
 
-    return lunp;
+    //从闪存中读取对应的映射表
+    if (mapped_ppa(&ppa) && valid_ppa(ssd, &ppa)) 
+    {
+        translation_page_read(ssd, req, &ppa);
+        g_map[tvpn].next_avail_time = get_lun(ssd, &ppa)->next_lun_avail_time;
+    }
+    
+
+    //找到空闲的位置
+//printf("%d\n",__LINE__);
+    if(write_cache->write_point==write_cache->write_table_capacity)
+    {
+        //需要驱逐
+         //printf("%d\n",__LINE__);
+        //驱逐的策略是驱逐最久未使用的table
+        //找到最久未使用的table
+        int victim_seg_idx = seg_lru[ ftl_map->write_cache_LRU_head].pre;
+        //获取在write_table中的位置
+        uint32_t table_idx = seg_lru[victim_seg_idx].pos_entry_number;
+        
+        //需要写回到flash中申请新页并更新GTD申请新页
+        struct ppa gtd_ppa;
+        gtd_ppa = get_gtd_ent(ssd, victim_seg_idx);
+        
+        if (!mapped_ppa(&gtd_ppa) || !valid_ppa(ssd, &gtd_ppa)) {
+            translation_page_new_write(ssd, victim_seg_idx);
+        } else {
+            
+            //update translation page and write
+            translation_page_write(ssd, &gtd_ppa);
+        }
+
+        //printf("%d\n",__LINE__);
+        Table* table = &(write_cache->write_table[table_idx]);
+       //从lru中删除
+        REMOVE_WRITE_CACHE_LRU(ftl_map,victim_seg_idx);
+        seg_lru[victim_seg_idx].pos_entry_number = INVALID_POS_ENTRY;
+        g_map[victim_seg_idx].table=*table;
+        //printf("victim_seg_idx: %d  table_idx:  %d tvpn:%lld\n",victim_seg_idx,table_idx,(long long)tvpn);
+        //printf("%d\n",__LINE__);
+        //将读取到的table插入到这个位置
+        write_cache->write_table[table_idx] = g_map[tvpn].table;
+        seg_lru[tvpn].pos_entry_number = table_idx;
+        //更新write_cache的LRU
+        ADD_WRITE_CACHE_LRU(ftl_map,tvpn);
+        //printf("%d\n",__LINE__);
+        start_lpn = victim_seg_idx*spp->ents_per_pg;
+         //写回到read_cache中
+         for(int offset =0;offset<spp->ents_per_pg;++offset){
+            if(table->bitmap[offset>>5] & (1<<(offset&31))){
+                //插入同时更新读缓存的LRU
+                //printf("%d\n",__LINE__);
+                cmt_entry = cmt_hit(ssd,start_lpn+offset);
+                uint64_t ppn = g_map[victim_seg_idx].table.l2p[offset];
+                if(cmt_entry)
+                {
+                    cmt_entry->ppn = ppn;
+                }
+                else
+                {
+                    if (cm->used_cmt_entry_cnt == cm->tt_entries) {
+                        evict_entry_from_cmt(ssd);
+                    }
+                    insert_entry_to_cmt(ssd,start_lpn+offset,ppn);
+                }
+            }
+         }
+
+        
+    }
+    else
+    {
+        // printf("%d\n",__LINE__);
+        //直接插入
+        write_cache->write_table[write_cache->write_point] = g_map[tvpn].table;
+        seg_lru[tvpn].pos_entry_number = write_cache->write_point;
+
+        //更新write_cache的LRU
+        ADD_WRITE_CACHE_LRU(ftl_map,tvpn);
+        // printf("%d\n",__LINE__);
+    }
+
+
 }
+
+
+
 
 static void gc_read_page(struct ssd *ssd, struct ppa *ppa)
 {
@@ -1231,6 +1306,10 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
     struct ppa new_ppa;
     uint64_t batch_update[spp->pgs_per_blk];
     int pos = 0, flag;
+    struct cmt_mgmt *cm = &ssd->cm;
+    FTL_Map*ftl_map = ssd->ftl_map;
+    Seg_LRU* seg_lru = ftl_map->seg_LRU;
+    G_map*g_map = ftl_map->g_map;
 
     for (int pg = 0; pg < spp->pgs_per_blk; pg++) {
         ppa->g.pg = pg;
@@ -1243,28 +1322,79 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
             if (ppa2pgidx(ssd, ppa) != ppa2pgidx(ssd, &ssd->maptbl[lpn])) {
                 printf("data block contains translation page!\n");
             } else {
-                /* delay the maptbl update until "write" happens */
+                 /* delay the maptbl update until "write" happens */
+                //printf("%d\n",__LINE__);
                 gc_write_page(ssd, ppa);
-                cmt_entry = find_hash_entry(&ssd->cm.ht, lpn);
-                if (cmt_entry) {
+                //cmt_entry = find_hash_entry(&ssd->cm.ht, lpn);
+                tvpn = lpn / spp->ents_per_pg;
+                //printf("%d\n",__LINE__);
+                if (seg_lru[tvpn].pos_entry_number==INVALID_POS_ENTRY) {
+                    //printf("%d\n",__LINE__);
+                    //说明不在写缓存中需要更新g_map
+                    int offset = lpn&0xff;
                     new_ppa = get_maptbl_ent(ssd, lpn);
-                    cmt_entry->ppn = ppa2pgidx(ssd, &new_ppa);
-                    cmt_entry->dirty = DIRTY;
-                } else {
+                    g_map[ tvpn].table.l2p[ offset] = ppa2pgidx(ssd, &new_ppa);
+                    g_map[ tvpn].table.bitmap[ offset>>5] |= (1<<(offset&31));
+
+                    
+                    uint64_t start_lpn = tvpn*spp->ents_per_pg;
+                    for(int offset =0;offset<spp->ents_per_pg;++offset){
+                        
+                        cmt_entry = find_hash_entry(&ssd->cm.ht, start_lpn);
+                        if(cmt_entry){
+                            if (!delete_cmt_hashnode(ht, cmt_entry)) {
+                            printf("error, removed entry is not in hash table!");
+                            }
+
+                            /* insert evicted entry to free_entry_list */
+                            QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
+                            cmt_entry->dirty = CLEAN;
+                            cmt_entry->lpn = INVALID_LPN;
+                            cmt_entry->ppn = UNMAPPED_PPA;
+                            QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
+                            cm->free_cmt_entry_cnt++;
+                            cm->used_cmt_entry_cnt--;
+                        }
+                        start_lpn++;
+                    }
+                   
+
                     flag = 0;
-                    tvpn = lpn / spp->ents_per_pg;
                     for (int i = 0; i < pos; i++) {
                         if (batch_update[i] == tvpn) {
                             flag = 1;
                             break;
                         }
                     }
+                    //printf("%d\n",__LINE__);
                     if (!flag) {
                         batch_update[pos++] = tvpn;
+
                         new_ppa = get_gtd_ent(ssd, tvpn);
+                        if(!mapped_ppa(&new_ppa)||!valid_ppa(ssd,&new_ppa))
+                        {
+                            //printf("error:%d tvpn:%lld\n",__LINE__,(long long)tvpn);
+                            exit(0);
+                        }
+                        //printf ("%d\n",__LINE__);
+
                         translation_page_read_no_req(ssd, &new_ppa);
+                        //printf ("%d\n",__LINE__);
                         translation_page_write(ssd, &new_ppa);
+                        //printf ("%d\n",__LINE__);
                     }
+                    //printf("%d\n",__LINE__);
+                } else {
+                    //printf("%d\n",__LINE__);
+                    //在写缓存中
+                    Table* table = &(ftl_map->cache->write_table[seg_lru[tvpn].pos_entry_number]);
+                    int offset = lpn&0xff;
+                    new_ppa = get_maptbl_ent(ssd, lpn);
+                    table->l2p[ offset] = ppa2pgidx(ssd, &new_ppa);
+                    table->bitmap[ offset>>5] |= (1<<(offset&31));
+                    //printf("%d\n",__LINE__);
+
+                    
                 }
             }
             cnt++;
@@ -1435,7 +1565,10 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     uint64_t lpn;
     uint64_t curlat = 0, maxlat = 0;
     int r;
-    struct cmt_entry *cmt_entry;
+    //struct cmt_entry *cmt_entry;
+    FTL_Map*ftl_map = ssd->ftl_map;
+    Seg_LRU* seg_lru = ftl_map->seg_LRU;
+    Write_Cache* write_cache = ftl_map->cache; 
     //struct statistics *st = &ssd->stat;
 
     ssd->stat.should_write_num+=end_lpn-start_lpn+1;
@@ -1453,20 +1586,24 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     }
 
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
-        //st->access_cnt++;
-        cmt_entry = cmt_hit(ssd, lpn);
-        if (cmt_entry) {
-            //st->cmt_hit_cnt++;
-        } else {
-            //st->cmt_miss_cnt++;
-            process_translation_page_write(ssd, req, lpn);
-        }
-        ppa = get_maptbl_ent(ssd, lpn);
 
-        cmt_entry = find_hash_entry(&ssd->cm.ht, lpn);
-        if (cmt_entry == NULL) {
-            ftl_err("after process translation page, there is still no entry in cmt");
+        int gtd_index = lpn/spp->ents_per_pg;
+        int offset = lpn&0xff;
+
+        if(seg_lru[gtd_index].pos_entry_number==INVALID_POS_ENTRY)
+        {//不在写缓存中要加入到写缓存中
+            process_translation_page_write(ssd,req,gtd_index);
         }
+
+        ppa = get_maptbl_ent(ssd, lpn);
+        Table* table = &(write_cache->write_table[seg_lru[gtd_index].pos_entry_number]);
+        // printf("%d\n",__LINE__);
+        if((table->bitmap[offset>>5] & (1<<(offset&31)))&&table->l2p[offset]!=ppa2pgidx(ssd,&ppa))
+        {
+            printf("error:%d lpn:%lld ftlvppn:%lld ,actual_vppn: %lld \n",__LINE__,(long long)lpn,(long long)table->l2p[offset],(long long)ppa2pgidx(ssd,&ppa));
+            exit(0);
+        }
+
 
         if (mapped_ppa(&ppa)) {
             /* update old page information first */
@@ -1479,8 +1616,16 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         /* update maptbl */
         set_maptbl_ent(ssd, lpn, &ppa);
         /* update cmt */
-        cmt_entry->ppn = ppa2pgidx(ssd, &ppa);
-        cmt_entry->dirty = DIRTY;
+        table = &(write_cache->write_table[seg_lru[gtd_index].pos_entry_number]);
+        //更新bitmap
+        table->bitmap[offset>>5] |= (1<<(offset&31));
+        table->l2p[offset] = ppa2pgidx(ssd,&ppa);
+
+        /更新write_cache的LRU
+        REMOVE_WRITE_CACHE_LRU(ftl_map,gtd_index);
+        //printf("write_SegTable2-1 0\n");
+        ADD_WRITE_CACHE_LRU(ftl_map,gtd_index);
+
         /* update rmap */
         set_rmap_ent(ssd, lpn, &ppa);
 

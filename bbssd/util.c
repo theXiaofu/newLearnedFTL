@@ -30,8 +30,8 @@
     
 // }
 
-
 /*
+
 static int findPos (uint32_t * a, int low, int high){
 	uint32_t val = a[low];
  
@@ -203,7 +203,7 @@ float predict(uint32_t x, float *w, float *b){
 */
 
 
-
+///*
 
 //------------------------------------------------------------------
 static int findPos (uint64_t * a, int low, int high){
@@ -328,7 +328,7 @@ float predict(uint64_t x, float *w, float *b){
 	return y;
 
 }
-
+// */
 
 
 //---------------------------

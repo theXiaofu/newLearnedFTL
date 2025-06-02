@@ -75,6 +75,7 @@ enum {
 #define PL_BITS     (8)
 #define LUN_BITS    (8)
 #define CH_BITS     (7)
+#define INVALID_POS_ENTRY 0xffffffff   //LRU无效标记表示没有被缓存到写缓存中
 
 /* describe a physical page addr */
 struct ppa {
@@ -131,6 +132,56 @@ struct ssd_channel {
     uint64_t gc_endtime;
 };
 
+//传统table结构体定义这里把l2p进行了修改因为我们的只用16bit而这个需要64bit
+typedef struct{
+    //uint32_t table_head;//用于反向索引
+    //每个block有256个page 256/8=32个bitmap
+    uint32_t bitmap[8];
+    
+    uint64_t l2p[256]; 
+}Table;
+
+//写缓存表
+typedef struct {
+
+    //写缓存 写指针达到write_table_capacity时写满了需要进行驱逐
+    uint32_t write_point;
+    //cache中用于存储写缓存可用于存储最大的table的数量
+    uint32_t write_table_capacity;
+    //写缓存
+    Table* write_table;
+
+}Write_Cache;
+
+typedef struct {
+    
+    // uint8_t seg_num;
+    Table table;
+    // Header_Seg header_seg;
+    uint64_t next_avail_time;
+}G_map;
+
+typedef struct  {
+
+    int pre;
+    int nex;
+
+    //所处的写空间的起始地址
+    uint32_t pos_entry_number;
+    // //段的数量
+    // uint8_t seg_num;
+
+}Seg_LRU;
+
+typedef struct{
+    Seg_LRU *seg_LRU;
+    // struct Pos_Entry* pos_entry;
+    Write_Cache* cache;
+    int write_cache_LRU_head;
+
+    G_map *g_map;
+} FTL_Map;
+
 struct ssdparams {
     int secsz;        /* sector size in bytes */
     int secs_per_pg;  /* # of sectors per page */
@@ -182,6 +233,8 @@ struct ssdparams {
     int ents_per_pg;
     int tt_cmt_size;
     int tt_gtd_size;
+
+    int write_cache_size;
     bool enable_request_prefetch;
     bool enable_select_prefetch;
 };
@@ -318,6 +371,9 @@ struct ssd {
 
     struct statistics stat;
     FILE *fpr, *fpw;
+
+    //modify------------------------
+    FTL_Map *ftl_map;//写缓存
 };
 
 void ssd_init(FemuCtrl *n);
@@ -343,5 +399,28 @@ void ssd_init(FemuCtrl *n);
 #else
 #define ftl_assert(expression)
 #endif
+
+#define ADD_WRITE_CACHE_LRU(ftl_map, pos) \
+do { \
+    Seg_LRU *_seg_LRU = (ftl_map)->seg_LRU; \
+    int _LRU_head = (ftl_map)->write_cache_LRU_head; \
+    int _nex = _seg_LRU[_LRU_head].nex; \
+    _seg_LRU[(pos)].nex = _nex; \
+    _seg_LRU[_nex].pre = (pos); \
+    _seg_LRU[_LRU_head].nex = (pos); \
+    _seg_LRU[(pos)].pre = _LRU_head; \
+    (ftl_map)->cache->write_point++; \
+} while(0)
+
+
+
+#define REMOVE_WRITE_CACHE_LRU(ftl_map, pos) \
+do { \
+    Seg_LRU *_seg_LRU = (ftl_map)->seg_LRU; \
+    (_seg_LRU)[(_seg_LRU)[(pos)].pre].nex = (_seg_LRU)[(pos)].nex; \
+    (_seg_LRU)[(_seg_LRU)[(pos)].nex].pre = (_seg_LRU)[(pos)].pre; \
+    (ftl_map)->cache->write_point--; \
+} while(0)
+
 
 #endif

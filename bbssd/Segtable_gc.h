@@ -86,7 +86,7 @@ enum {
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
 #define Gc_threshold  8   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
-#define WRITE_CACHE_RATIO 0.5
+
 
 
 // //表示没有对应任何的PPN无效的映射
@@ -114,6 +114,7 @@ enum {
 #define LRU_TABLE_FLAG 0xff
 #define WRITE_CACHE_SPACE 0xfe
 
+#define BLKS_PER_LINE 1024
 
 ////表示这个seg的段是无效段
 //const int NO_PPN_seg = 0x00ffffff;
@@ -413,6 +414,7 @@ struct ssdparams {
     int chn_per_pg;
     int chn_per_blk;
     
+    int write_cache_size;
     int tt_gtdwpp_cnt;
     
     //bool enable_request_prefetch;
@@ -515,8 +517,8 @@ struct statistics {
     uint64_t should_write_num;
     uint64_t erase_cnt;
     
-    uint64_t line_gc_times[1024];
-    uint64_t wp_victims[1024];
+    uint64_t line_gc_times[BLKS_PER_LINE];
+    uint64_t wp_victims[BLKS_PER_LINE];
     uint64_t trans_wp_gc_times;
     uint64_t line_wp_gc_times;
     

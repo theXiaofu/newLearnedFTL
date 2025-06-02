@@ -169,6 +169,7 @@ static Cache* init_cache(int cache_size,int write_cache_size){
     read_cache->max_seg_size = (sizeof(Table)-sizeof(uint32_t)) / sizeof(Seg);
     //下标映射从1开始
     read_cache->segsize2space = (uint32_t*)g_malloc0(sizeof(uint32_t)*(256+1));
+    //int seg_size[257];
 
     int total = 0;
     for (int i = 1; i <= read_cache->max_seg_size; ++i)
@@ -273,7 +274,7 @@ static Cache* init_cache(int cache_size,int write_cache_size){
 
 static FTL_Map* init_FTL_Map(FemuCtrl *n){
     FTL_Map*ftl_map = g_malloc0(sizeof(FTL_Map));
-    int cache_size = n->ssd->sp.tt_cmt_size;
+    int cache_size = n->ssd->sp.tt_cmt_size+n->ssd->sp.write_cache_size;
     int tt_blk = n->ssd->sp.tt_blks;
     //这里根据SSD配置设置使用的时候需要修改
     ftl_map->seg_LRU = init_seg_LRU(tt_blk+3);
@@ -283,7 +284,7 @@ static FTL_Map* init_FTL_Map(FemuCtrl *n){
 
     // ftl_map->pos_entry = init_pos_entry(1<<19);
     //ftl_map->cache = init_cache(1<<26,1<<20);
-    ftl_map->cache = init_cache(cache_size,cache_size*WRITE_CACHE_RATIO);
+    ftl_map->cache = init_cache(cache_size,n->ssd->sp.write_cache_size);
     ftl_map->g_map = g_malloc0(sizeof(G_map)*tt_blk);
     for(int i = 0;i<tt_blk;++i)
     {
@@ -1191,6 +1192,7 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->tt_gtdwpp_cnt = spp->tt_gtd_size/(spp->pgs_per_line);
     spp->tt_gtdwpp_cnt+= spp->tt_gtd_size%(spp->pgs_per_line) ? 1 : 0;
 
+    spp->write_cache_size = 256*1024;//256KB大小的写缓存
     spp->tt_cmt_size = 1<<21;/*4MB的空间 2MB用于lr_node 2MB用于cmt*/
     //spp->enable_request_prefetch = true;    /* cannot set false! */
     //spp->enable_select_prefetch = true;

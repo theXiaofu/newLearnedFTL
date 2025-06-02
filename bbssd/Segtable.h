@@ -86,7 +86,7 @@ enum {
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
 #define Gc_threshold  8   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
-#define WRITE_CACHE_RATIO 0.5
+
 
 
 // //表示没有对应任何的PPN无效的映射
@@ -114,6 +114,7 @@ enum {
 #define LRU_TABLE_FLAG 0xff
 #define WRITE_CACHE_SPACE 0xfe
 
+#define BLKS_PER_LINE 1024
 
 ////表示这个seg的段是无效段
 //const int NO_PPN_seg = 0x00ffffff;
@@ -149,12 +150,28 @@ typedef struct {
     VPPN ppn;      // 起始值（2字节）
 } Seg;
 
+// // bitmap段结构体定义
+// typedef struct {
+//     uint8_t slpn;  // 起始地址（1字节）
+//     //uint8_t elpn;  // 结束地址（1字节）
+//     VPPN ppn;      // 起始值（2字节）
+// } Segb;
+
+
+
 //带header的段结构体定义，用于写入到读缓存
 typedef struct{
     uint32_t header;//用于反向索引和dirty信息
     Seg seg[256];
 }Header_Seg;
 
+// //带bitmap header的段结构体定义，用于写入到读缓存
+// typedef struct{
+//     uint32_t header;//用于反向索引和dirty信息
+//     //每个block有256个page 256/8=32个bitmap
+//     uint32_t bitmap[8];
+//     Segb seg[256];
+// }Header_Seg_b;
 
 //传统table结构体定义
 typedef struct{
@@ -413,6 +430,7 @@ struct ssdparams {
     int chn_per_pg;
     int chn_per_blk;
     
+    int write_cache_size;
     int tt_gtdwpp_cnt;
     
     //bool enable_request_prefetch;
@@ -515,8 +533,8 @@ struct statistics {
     uint64_t should_write_num;
     uint64_t erase_cnt;
     
-    uint64_t line_gc_times[1024];
-    uint64_t wp_victims[1024];
+    uint64_t line_gc_times[BLKS_PER_LINE];
+    uint64_t wp_victims[BLKS_PER_LINE];
     uint64_t trans_wp_gc_times;
     uint64_t line_wp_gc_times;
     
