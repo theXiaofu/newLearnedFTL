@@ -308,6 +308,7 @@ struct statistics {
     uint64_t write_num;
     uint64_t should_write_num;
     uint64_t erase_cnt;
+    uint64_t write_cache_hit;
 
     long double read_joule;
     long double write_joule;
@@ -335,6 +336,7 @@ struct ssd {
     bool *dataplane_started_ptr;
     QemuThread ftl_thread;
 
+    FTL_Map*  ftl_map;
     struct statistics stat;
 };
 

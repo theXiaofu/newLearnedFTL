@@ -19,6 +19,58 @@
 
 static void *ftl_thread(void *arg);
 
+
+//不会用完因为SSD 假设容量为256G可用映射只有200多G
+static Seg_LRU* init_seg_LRU(int total_num){
+    Seg_LRU* seg_LRU = g_malloc0(sizeof(Seg_LRU)*(total_num));
+    for(int i = 0;i<total_num;++i)
+    {
+        //表示没有插入到任何的LRU中
+        seg_LRU[i].pos_entry_number = INVALID_POS_ENTRY;
+    }
+    //读写缓存LRU的头节点
+    seg_LRU[total_num-1].nex = seg_LRU[total_num-1].pre = total_num-1;
+    seg_LRU[total_num-2].nex = seg_LRU[total_num-2].pre = total_num-2;
+    return seg_LRU;
+}
+
+// Pos_Entry* init_pos_entry(int total_num){
+//     Pos_Entry* pos_entry = g_malloc0(sizeof(Pos_Entry)*(total_num));
+//     return pos_entry;
+// }
+
+
+
+static FTL_Map* init_FTL_Map(FemuCtrl *n){
+    FTL_Map*ftl_map = g_malloc0(sizeof(FTL_Map));
+    int cache_size = n->ssd->sp.write_cache_size;
+    int tt_blk = n->ssd->sp.tt_blks;
+    //这里根据SSD配置设置使用的时候需要修改
+    ftl_map->seg_LRU = init_seg_LRU(tt_blk+3);
+    ftl_map->write_cache_LRU_head = tt_blk+2;
+    
+
+    // ftl_map->pos_entry = init_pos_entry(1<<19);
+    //ftl_map->cache = init_cache(1<<26,1<<20);
+    
+    ftl_map->cache = g_malloc0(sizeof(Write_Cache));
+    Write_Cache* write_cache = ftl_map->cache;
+    write_cache->write_table_capacity = cache_size/sizeof(Table);
+    write_cache->write_table = g_malloc0(sizeof(Table)*(write_cache->write_table_capacity));
+    write_cache->write_point =0;
+    ftl_map->g_map = g_malloc0(sizeof(G_map)*tt_blk);
+    for(int i = 0;i<tt_blk;++i)
+    {
+        ftl_map->g_map[i].next_avail_time=0;
+        memset(ftl_map->g_map[i].table.bitmap,0,32);
+        
+    }
+
+
+    return ftl_map;
+}
+
+
 /* process hash */
 static inline uint64_t cmt_hash(uint64_t lpn)
 {
@@ -445,10 +497,10 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->gc_thres_lines_high = (int)((1 - spp->gc_thres_pcent_high) * spp->tt_lines);
     spp->enable_gc_delay = true;
 
-    spp->write_cache_size = spp->write_cache_size = 256*1024;//256KB大小的写缓存
+    spp->write_cache_size = 256*1024;//256KB大小的写缓存
     spp->ents_per_pg = spp->pgs_per_blk;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = 262144;//设置4M大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针 4M/16=262144
+    spp->tt_cmt_size = 262144;//设置4MB大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针 4MB/16B=262144
 
     check_params(spp);
 }
@@ -618,6 +670,7 @@ void ssd_init(FemuCtrl *n)
 
     ssd_init_statistics(ssd);
 
+    ssd->ftl_map = init_FTL_Map(n);
     qemu_thread_create(&ssd->ftl_thread, "FEMU-FTL-Thread", ftl_thread, n,
                        QEMU_THREAD_JOINABLE);
 }
@@ -1080,7 +1133,7 @@ static void process_translation_page_write(struct ssd *ssd, NvmeRequest *req, ui
         
         cmt_entry = find_hash_entry(&ssd->cm.ht, start_lpn);
         if(cmt_entry){
-             if (!delete_cmt_hashnode(ht, cmt_entry)) {
+             if (!delete_cmt_hashnode(&ssd->cm.ht, cmt_entry)) {
             printf("error, removed entry is not in hash table!");
             }
 
@@ -1342,7 +1395,7 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
                         
                         cmt_entry = find_hash_entry(&ssd->cm.ht, start_lpn);
                         if(cmt_entry){
-                            if (!delete_cmt_hashnode(ht, cmt_entry)) {
+                            if (!delete_cmt_hashnode(&ssd->cm.ht, cmt_entry)) {
                             printf("error, removed entry is not in hash table!");
                             }
 
@@ -1507,6 +1560,9 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
     uint64_t sublat, maxlat = 0;
     struct nand_lun *old_lun, *lun;
     struct statistics *st = &ssd->stat;
+    FTL_Map*ftl_map = ssd->ftl_map;
+    Seg_LRU* seg_lru = ftl_map->seg_LRU;
+
 
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
@@ -1515,6 +1571,36 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
     /* normal IO read path */
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
         st->access_cnt++;
+
+
+        uint64_t tvpn = lpn/spp->ents_per_pg;
+        if(seg_lru[tvpn].pos_entry_number!=INVALID_POS_ENTRY)
+        {
+            Table* table = &(ftl_map->cache->write_table[seg_lru[tvpn].pos_entry_number]);
+            
+             ssd->stat.write_cache_hit++;
+            ppa = get_maptbl_ent(ssd, lpn);
+            if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
+                //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
+                //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
+                //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
+                ssd->stat.access_cnt--;
+                ssd->stat.write_cache_hit--;
+                //ssd->stat.model_out_range++;
+                continue;
+            }
+            uint64_t ppn = table->l2p[lpn&0xff];
+            if(ppn!=ppa2pgidx(ssd,&ppa))
+            {
+                printf("error:%d ppn:%lld  actual ppn: %lld\n",__LINE__,(long long)ppn,(long long)ppa2pgidx(ssd,&ppa));
+                exit(0);
+            }
+            lun = get_lun(ssd, &ppa);
+            lun->next_lun_avail_time = (ftl_map->g_map[tvpn].next_avail_time > lun->next_lun_avail_time) ? \
+                            ftl_map->g_map[tvpn].next_avail_time : lun->next_lun_avail_time;
+            goto ssd_read_latency;
+        }
+
         if (cmt_hit(ssd, lpn)) {
             st->cmt_hit_cnt++;
             ppa = get_maptbl_ent(ssd, lpn);
@@ -1541,6 +1627,16 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
             lun = get_lun(ssd, &ppa);
             lun->next_lun_avail_time = (old_lun->next_lun_avail_time > lun->next_lun_avail_time) ? \
                                         old_lun->next_lun_avail_time : lun->next_lun_avail_time;
+        }
+
+
+        ssd_read_latency:
+        if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
+            ssd->stat.access_cnt--;
+            //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
+            //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
+            //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
+            continue;
         }
 
         struct nand_cmd srd;
@@ -1585,8 +1681,9 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             break;
     }
 
+    //printf("%d\n",__LINE__);
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
-
+        //printf("%d\n",__LINE__);
         int gtd_index = lpn/spp->ents_per_pg;
         int offset = lpn&0xff;
 
@@ -1594,7 +1691,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         {//不在写缓存中要加入到写缓存中
             process_translation_page_write(ssd,req,gtd_index);
         }
-
+        //printf("%d\n",__LINE__);
         ppa = get_maptbl_ent(ssd, lpn);
         Table* table = &(write_cache->write_table[seg_lru[gtd_index].pos_entry_number]);
         // printf("%d\n",__LINE__);
@@ -1603,14 +1700,14 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             printf("error:%d lpn:%lld ftlvppn:%lld ,actual_vppn: %lld \n",__LINE__,(long long)lpn,(long long)table->l2p[offset],(long long)ppa2pgidx(ssd,&ppa));
             exit(0);
         }
-
+        //printf("%d\n",__LINE__);
 
         if (mapped_ppa(&ppa)) {
             /* update old page information first */
             mark_page_invalid(ssd, &ppa);
             set_rmap_ent(ssd, INVALID_LPN, &ppa);
         }
-
+        //printf("%d\n",__LINE__);
         /* new write */
         ppa = get_new_page(ssd);
         /* update maptbl */
@@ -1620,12 +1717,12 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         //更新bitmap
         table->bitmap[offset>>5] |= (1<<(offset&31));
         table->l2p[offset] = ppa2pgidx(ssd,&ppa);
-
-        /更新write_cache的LRU
+        //printf("%d\n",__LINE__);
+        //更新write_cache的LRU
         REMOVE_WRITE_CACHE_LRU(ftl_map,gtd_index);
         //printf("write_SegTable2-1 0\n");
         ADD_WRITE_CACHE_LRU(ftl_map,gtd_index);
-
+        //printf("%d\n",__LINE__);
         /* update rmap */
         set_rmap_ent(ssd, lpn, &ppa);
 
@@ -1641,6 +1738,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         /* get latency statistics */
         curlat = ssd_advance_status(ssd, &ppa, &swr);
         maxlat = (curlat > maxlat) ? curlat : maxlat;
+        //printf("%d\n",__LINE__);
     }
 
     return maxlat;

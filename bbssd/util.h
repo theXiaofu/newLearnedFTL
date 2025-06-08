@@ -7,31 +7,31 @@
 // #include "lftl.h"
 // #include "learnedFTL.h"
 
-// float* regression(uint64_t *, uint64_t *, float, int, float *, float *);
+float* regression(uint64_t *, uint64_t *, float, int, float *, float *);
 
-// float batch_gradient_descent(uint32_t *, uint32_t *, int, float, float*, float*);
+float batch_gradient_descent(uint32_t *, uint32_t *, int, float, float*, float*);
 
-// float predict(uint32_t, float*, float *);
+float predict(uint32_t, float*, float *);
 
-// void quick_sort(uint32_t lpns[], int low, int high);
-// // void reclusiveRegression(uint64_t *x, uint64_t *y, int num, lr_node *wbs, int *total);
+void quick_sort(uint32_t lpns[], int low, int high);
+// void reclusiveRegression(uint64_t *x, uint64_t *y, int num, lr_node *wbs, int *total);
 
-// int least_square(uint32_t *x, uint32_t *y, uint32_t start, int num, float *w, float *b);
+int least_square(uint32_t *x, uint32_t *y, uint32_t start, int num, float *w, float *b);
 
-// int LeastSquareNew(uint32_t *x, uint32_t *y, int num, float *w, float *b);
+int LeastSquareNew(uint32_t *x, uint32_t *y, int num, float *w, float *b);
 
-// void LeastSquare(uint32_t *x, uint32_t *y, int num, float *w, float *b);
-
-
+void LeastSquare(uint32_t *x, uint32_t *y, int num, float *w, float *b);
 
 
 
-float batch_gradient_descent(uint64_t *, uint64_t *, int, float, float*, float*);
-float predict(uint64_t, float*, float *);
-void quick_sort(uint64_t lpns[], int low, int high);
-int least_square(uint64_t *x, uint64_t *y, uint64_t start, int num, float *w, float *b);
-int LeastSquareNew(uint64_t *x, uint64_t *y, int num, float *w, float *b);
-void LeastSquare(uint64_t *x, uint64_t *y, int num, float *w, float *b);
+
+
+// float batch_gradient_descent(uint64_t *, uint64_t *, int, float, float*, float*);
+// float predict(uint64_t, float*, float *);
+// void quick_sort(uint64_t lpns[], int low, int high);
+// int least_square(uint64_t *x, uint64_t *y, uint64_t start, int num, float *w, float *b);
+// int LeastSquareNew(uint64_t *x, uint64_t *y, int num, float *w, float *b);
+// void LeastSquare(uint64_t *x, uint64_t *y, int num, float *w, float *b);
 
 /**
  * @brief for cmt, create a simple hash table

@@ -546,7 +546,7 @@ static void ssd_init_params(struct ssdparams *spp)
 
     spp->ents_per_pg = spp->pgs_per_blk;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = 209715;//设置4M大小其中 一个entry的大小是 8字节lpn 8字节 ppn 和4字节指针 4M/20=209715
+    spp->tt_cmt_size = 209715;//设置4MB大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针 4MB/20B=209715
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
 
@@ -687,6 +687,7 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->cmt_miss_cnt = 0;
     st->cmt_hit_ratio = 0;
     st->access_cnt = 0;
+    st->write_cache_hit=0;
 
     st->write_num = 0;
     st->should_write_num = 0;
@@ -2004,14 +2005,14 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
         {
             Table* table = &(ftl_map->cache->write_table[seg_lru[tvpn].pos_entry_number]);
             
-             ssd->stat.cmt_hit_cnt++;
+             ssd->stat.write_cache_hit++;
             ppa = get_maptbl_ent(ssd, lpn);
             if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
                 //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
                 //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
                 //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
                 ssd->stat.access_cnt--;
-                ssd->stat.cmt_hit_cnt--;
+                ssd->stat.write_cache_hit--;
                 //ssd->stat.model_out_range++;
                 continue;
             }

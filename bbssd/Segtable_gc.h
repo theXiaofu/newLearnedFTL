@@ -150,12 +150,28 @@ typedef struct {
     VPPN ppn;      // 起始值（2字节）
 } Seg;
 
+// // bitmap段结构体定义
+// typedef struct {
+//     uint8_t slpn;  // 起始地址（1字节）
+//     //uint8_t elpn;  // 结束地址（1字节）
+//     VPPN ppn;      // 起始值（2字节）
+// } Segb;
+
+
+
 //带header的段结构体定义，用于写入到读缓存
 typedef struct{
     uint32_t header;//用于反向索引和dirty信息
     Seg seg[256];
 }Header_Seg;
 
+// //带bitmap header的段结构体定义，用于写入到读缓存
+// typedef struct{
+//     uint32_t header;//用于反向索引和dirty信息
+//     //每个block有256个page 256/8=32个bitmap
+//     uint32_t bitmap[8];
+//     Segb seg[256];
+// }Header_Seg_b;
 
 //传统table结构体定义
 typedef struct{
@@ -192,7 +208,7 @@ typedef struct  {
     uint32_t max_seg_num;//段的最大数量
     uint32_t min_seg_num;//段的最小数量
     uint32_t size;//每个seg的大小 加上header反向索引  也可能表示传统的table映射表的大小占用多少个字节
-    uint32_t num;//已存在的seg的数量 占用空间为seg_size*num
+    int32_t num;//已存在的seg的数量 占用空间为seg_size*num
     
 }Read_Cache_Space;
 
@@ -516,11 +532,14 @@ struct statistics {
     uint64_t write_num;
     uint64_t should_write_num;
     uint64_t erase_cnt;
-    
+    uint64_t write_cache_hit;
+
     uint64_t line_gc_times[BLKS_PER_LINE];
     uint64_t wp_victims[BLKS_PER_LINE];
     uint64_t trans_wp_gc_times;
     uint64_t line_wp_gc_times;
+
+
     
     long long calculate_time;
     long long sort_time;
@@ -538,6 +557,7 @@ struct statistics {
     long long insert_CMT_model_time;
     long long write_time;
     long long read_time;
+    
 
     long long model_training_nums;
     // uint64_t max_read_lpn;

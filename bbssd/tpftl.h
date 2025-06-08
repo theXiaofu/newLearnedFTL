@@ -343,6 +343,7 @@ struct statistics {
     uint64_t write_num;
     uint64_t should_write_num;
     uint64_t erase_cnt;
+    uint64_t write_cache_hit;
 
     long double read_joule;
     long double write_joule;

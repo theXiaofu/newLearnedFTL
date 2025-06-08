@@ -447,6 +447,18 @@ static inline void print_space_seg(struct ssd* ssd,int line){
             }
         }
     }
+    int read_head = ssd->ftl_map->read_cache_LRU_head;
+    int nex = seg_LRU[read_head].nex;
+    // while(nex!=read_head){
+
+    //     if(seg_LRU[nex].pos_entry_number==INVALID_POS_ENTRY||seg_LRU[nex].seg_num==WRITE_CACHE_SPACE){
+    //         printf("error: line: %d \n",line);
+    //         printf("seg_LRU[%d].pos_entry_number = %d\n",nex,seg_LRU[nex].pos_entry_number);
+    //         printf("seg_LRU[%d].seg_num = %d\n",nex,seg_LRU[nex].seg_num);
+    //         exit(0);
+    //     }
+    //     nex=seg_LRU[nex].nex;
+    // }
 }
 */
 
@@ -484,8 +496,22 @@ static inline void print_space(struct ssd* ssd,int line){
     }
 }
 */
-
-
+/*
+static inline void print_read_space(struct ssd* ssd,int line){ 
+         for(int i = 0;i<ssd->ftl_map->cache->read_cache->space_num;i++)
+     {
+        //输出space的各个参数
+        printf("read_cache_space[%d].st = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].st);
+        printf("read_cache_space[%d].end = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].end);
+        printf("read_cache_space[%d].max_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].max_seg_num);
+        printf("read_cache_space[%d].min_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].min_seg_num);
+        printf("read_cache_space[%d].size = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].size);
+        printf("read_cache_space[%d].num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].num);
+        
+        
+     }
+}
+*/
 
 
 
@@ -1689,11 +1715,11 @@ static uint64_t translation_write_page(struct ssd *ssd, uint64_t tvpn)
     set_gtd_ent(ssd, &new_gtd_ppa, tvpn);
     set_rmap_ent(ssd, tvpn, &new_gtd_ppa);
     mark_page_valid(ssd, &new_gtd_ppa);
-    // struct nand_cmd srd;
-    // srd.type = USER_IO;
-    // srd.cmd = NAND_WRITE;
-    // srd.stime = 0;  // req->stime?
-    // ssd_advance_status(ssd, &new_gtd_ppa, &srd);
+    struct nand_cmd srd;
+    srd.type = USER_IO;
+    srd.cmd = NAND_WRITE;
+    srd.stime = 0;  // req->stime?
+    ssd_advance_status(ssd, &new_gtd_ppa, &srd);
 
     //advance_line_write_pointer(ssd, &ssd->trans_wp);
 
@@ -1918,14 +1944,14 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
     {
         header = ((Table*)header_seg_table)->table_head;
     }
-
+    //printf("%d\n",__LINE__);
     seg_idx = header;
     // printf("seg_idx:%d\n",seg_idx);
     //将seg_idx插入到LRU中
     ADD_READ_CACHE_LRU(ftl_map,seg_idx);
 
   
-
+    //printf("%d\n",__LINE__);
     //判断对应的子空间能否向右边直接扩张
     if(space_idx+1<read_cache->space_num&&
     read_space[space_idx].end+read_space[space_idx].size<=read_space[space_idx+1].st)
@@ -1933,7 +1959,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
 
         // printf("line : %d space_idx: %d seg_num: %d\n",__LINE__,space_idx,seg_num);
         // print_seglru(ssd,__LINE__);
-        
+        //printf("%d\n",__LINE__);
         //可以直接扩张
         memcpy(cache+read_space[space_idx].end,header_seg_table,read_space[space_idx].size);
 
@@ -1941,33 +1967,38 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
         //更新LRU对应的位置  
         seg_lru[seg_idx].pos_entry_number = read_space[space_idx].end;
         seg_lru[seg_idx].seg_num  = seg_num;
-
+        //printf("%d\n",__LINE__);
         read_space[space_idx].end+=read_space[space_idx].size;
         read_space[space_idx].num++;
         //print_seglru(ssd,__LINE__);
         //print_space_seg(ssd,__LINE__);
-        
+        //printf("%d\n",__LINE__);
+
         return ;
     }
+    //printf("%d\n",__LINE__);
     //判断对应的子空间能否向左边直接扩张
     if(space_idx>0&&read_space[space_idx-1].end+read_space[space_idx].size<=read_space[space_idx].st)
     {
+        //printf("%d\n",__LINE__);
         //可以向左直接扩张
         read_space[space_idx].st-=read_space[space_idx].size;
         read_space[space_idx].num++;
 
-       
+       //printf("%d\n",__LINE__);
 
         memcpy(cache+read_space[space_idx].st,header_seg_table,read_space[space_idx].size);
         //print_seglru(ssd,__LINE__);
+        //printf("%d\n",__LINE__);
         //更新LRU对应的位置 
         seg_lru[seg_idx].pos_entry_number = read_space[space_idx].st;
         seg_lru[seg_idx].seg_num  = seg_num;
         //print_space_seg(ssd,__LINE__);
-       
+        //printf("%d\n",__LINE__);
+
         return ;
     }
-
+    //printf("%d\n",__LINE__);
     //扩张时可能会出现空间为0的情况这时我们不考虑认为这个空间至少有一个虽然会浪费部分内存但是最多有33
     //个空间最多浪费33*548=17.44k
     //向左向右直接扩张失败   那么向右间接扩张 扩充右边的区域获得更大的空间
@@ -1979,8 +2010,10 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
             break;    
         }
     }
+    //printf("%d\n",__LINE__);
     if(i+1<read_cache->space_num)
     {
+        //printf("%d\n",__LINE__);
         //可以向右间接扩张
         while(i>space_idx)
         {
@@ -1999,21 +2032,24 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
             read_space[i].end = read_space[i].end+read_space[i].size;
             i--;
         }
+        //printf("%d\n",__LINE__);
         //此时右边一定能够扩张
         memcpy(cache+read_space[i].end,header_seg_table,read_space[i].size);
         //print_seglru(ssd,__LINE__);
-
+        //printf("%d\n",__LINE__);
         //更新LRU对应的位置//更新LRU对应的位置
         header = *((uint32_t*)(header_seg_table));
         seg_lru[seg_idx].pos_entry_number = read_space[i].end;
         seg_lru[seg_idx].seg_num = seg_num;
-
+        //printf("%d\n",__LINE__);
         read_space[i].end = read_space[i].end+read_space[i].size;
         read_space[i].num++;
         //print_space_seg(ssd,__LINE__);
-        
+        //printf("%d\n",__LINE__);
+        //printf("%d\n",__LINE__);
         return ;
     }
+    //printf("%d\n",__LINE__);
      //向右不能间接扩张 则向左间接扩张
      //记录需要扩张的大小
      uint32_t nead_size[256];
@@ -2033,7 +2069,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
      {
         nead_size[pre] = read_space[pre].size;
      }
-
+     //printf("%d\n",__LINE__);
      for(i = space_idx-1;i>0;i=pre)
      {
         pre = i-1;
@@ -2042,19 +2078,22 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
             
             break;
         }
+        //printf("%d\n",__LINE__);
         //修改nead_size
         //这里先不修改
         nead_size[pre] = (nead_size[i]+read_space[pre].end-read_space[i].st);
         tmp = nead_size[pre]%read_space[pre].size;
         nead_size[pre] = tmp==0?nead_size[pre]:nead_size[pre]-tmp+read_space[pre].size;
+        //printf("%d\n",__LINE__);
      }
-
+     //printf("%d\n",__LINE__);
     uint32_t move_size,move_begin;
      if(i>0)
      {
         //可以向左间接扩张
         while(i<space_idx)
         {
+            //printf("%d\n",__LINE__);
             //把i空间右边的内容移到左边
             if(nead_size[i]+read_space[i].st>read_space[i].end)
             {
@@ -2075,6 +2114,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
             if(tmp>0)
             memcpy(cache+read_space[i].st,cache+move_begin,move_size);
             //print_seglru(ssd,__LINE__);
+            //printf("%d\n",__LINE__);
             //更新LRU对应的位置
             uint32_t nex_st = read_space[i].st;
             for(int j = 0;j<tmp;++j)
@@ -2083,80 +2123,124 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
                 seg_lru[header].pos_entry_number = nex_st;
                 nex_st+=read_space[i].size;
             }
+            //printf("%d\n",__LINE__);
             i++;
         }
 
+        //printf("%d\n",__LINE__);
         //插入到space_idx左边空间
         read_space[space_idx].st = read_space[space_idx].st-read_space[space_idx].size;
         memcpy(cache+read_space[space_idx].st,header_seg_table,read_space[space_idx].size);
         //print_seglru(ssd,__LINE__);
+        //printf("%d\n",__LINE__);
         read_space[space_idx].num++;
         //更新LRU对应的位置
         seg_lru[seg_idx].pos_entry_number = read_space[space_idx].st;
         seg_lru[seg_idx].seg_num  = seg_num;
-        
+        //printf("%d\n",__LINE__);
         //print_space_seg(ssd,__LINE__);
         return;
      }
+     //print_space_seg(ssd,__LINE__);
+//printf("%d\n",__LINE__);
+
+//printf("space_idx = %d\n",space_idx);
+
+// for(int i = space_idx;i>0;--i)
+// {
+//     printf(" nead_size[%d] = %d\n", i,nead_size[i]);
+// }
+
+//print_read_space(ssd,__LINE__);
 
 //如果空间不足那么使用LRU驱逐一直驱逐直到空间足够
 while(TRUE)
 {
-    uint32_t evict_size = read_cache->max_evict_size;
+    int32_t evict_size = read_cache->max_evict_size;
 
+    //printf("%d\n",__LINE__);
     while(evict_size>0)
     {
+        //printf("%d\n",__LINE__);
         //获取LRU中要被驱逐的受害者段
         int victim_seg_idx = seg_lru[ftl_map->read_cache_LRU_head].pre;
-    //获得子空间号
-        uint32_t victim_space_idx = read_cache->segsize2space[seg_lru[victim_seg_idx].seg_num];
         
+        
+        if(victim_seg_idx==ftl_map->read_cache_LRU_head){
+            //print_read_space(ssd,__LINE__);
+            //printf("max_evict_size = %d\n",read_cache->max_evict_size);
+            exit(0);
+        }
+        //获得子空间号
+        uint32_t victim_space_idx = read_cache->segsize2space[seg_lru[victim_seg_idx].seg_num];
+        //printf("victim_seg_idx = %d  victim_space_idx:%d\n",victim_seg_idx,victim_space_idx);
         move_begin = seg_lru[victim_seg_idx].pos_entry_number;
         //将victim_seg_idx设置为无效段
         //从LRU中删除
         REMOVE_READ_CACHE_LRU(ftl_map,victim_seg_idx);
         seg_lru[victim_seg_idx].pos_entry_number = INVALID_POS_ENTRY;
         ftl_map->g_map[victim_seg_idx].next_avail_time=0;
-        
+
+        //printf("%d\n",__LINE__);
         if(victim_space_idx>space_idx)
         {
+            //printf("%d\n",__LINE__);
+            // printf("movebegin:%d\n",move_begin);
+            // printf("victim _space_id:%d\n",victim_space_idx);
+            // printf("header:%d\n",header);
+            // printf("seg_index:%d\n",seg_idx);
+            //print_read_space(ssd,__LINE__);
             //在space中删除 如果不在左端将左端的seg移到这个位置
             if(move_begin>read_space[victim_space_idx].st)
             {
                 memcpy(cache+move_begin,cache+read_space[victim_space_idx].st,read_space[victim_space_idx].size);
                 //print_seglru(ssd,__LINE__);
                 //更新lru中的信息
+                
                 header = *((uint32_t*)(cache+move_begin));
                 seg_lru[header].pos_entry_number = move_begin;
             }
+            //printf("%d\n",__LINE__);
             //减小子空间中的段数量
             read_space[victim_space_idx].num--;
             read_space[victim_space_idx].st += read_space[victim_space_idx].size;
+            // if((int)read_space[victim_space_idx].num<0)
+            // {
+            //     printf("victim_space_idx:%d\n",victim_space_idx);
+            //     printf("victim_seg_idx:%d\n",victim_seg_idx);
+            //     exit(0);
+            // }
             //print_space_seg(ssd,__LINE__);
-
+            //printf("%d\n",__LINE__);
             evict_size -= read_space[victim_space_idx].size;
+            //printf("%d\n",__LINE__);
         }
         else
         if(victim_space_idx<space_idx)
         {
+            //printf("%d\n",__LINE__);
             //减小子空间中的段数量
             read_space[victim_space_idx].num--;
             read_space[victim_space_idx].end -= read_space[victim_space_idx].size;
+            //printf("%d\n",__LINE__);
             //说明需要删除一个段 如果不在右端将右端的段移到这个位置
             if(move_begin<read_space[victim_space_idx].end)
             {
+                //printf("%d\n",__LINE__);
                 memcpy(cache+move_begin,cache+read_space[victim_space_idx].end,read_space[victim_space_idx].size);
                 //print_seglru(ssd,__LINE__);
                 //更新lru中的信息
                 header = *((uint32_t*)(cache+move_begin));
                 seg_lru[header].pos_entry_number = move_begin;
             }
+            //printf("%d\n",__LINE__);
             //print_space_seg(ssd,__LINE__);
             evict_size -= read_space[victim_space_idx].size;
         }
         else
         if(victim_space_idx==space_idx)
         {
+            //printf("%d\n",__LINE__);
             //说明空间足够了直接插入到这个位置即可
             memcpy(cache+move_begin,header_seg_table,read_space[space_idx].size);
             //print_seglru(ssd,__LINE__);
@@ -2166,9 +2250,10 @@ while(TRUE)
             seg_lru[seg_idx].pos_entry_number = move_begin;
             seg_lru[seg_idx].seg_num = seg_num;
             //print_space_seg(ssd,__LINE__);
-
+           // printf("%d\n",__LINE__);
             return;
         }
+        //printf("evict_size: %d\n",evict_size);
     }
 
     // print_read_cache_LRU(ftl_map);
@@ -2176,32 +2261,35 @@ while(TRUE)
     //虽然两个函数可能更简单也更清晰但是我因为之前的逻辑是写在一起的 现在的evict的方式和之前不同
     //所以我就不分开写了
 
+    //printf("%d\n",__LINE__);
        //判断对应的子空间能否向右边直接扩张
     if(space_idx+1<read_cache->space_num&&
     read_space[space_idx].end+read_space[space_idx].size<=read_space[space_idx+1].st)
     {
 
+        //printf("%d\n",__LINE__);
         //可以直接扩张
         memcpy(cache+read_space[space_idx].end,header_seg_table,read_space[space_idx].size);
         //print_seglru(ssd,__LINE__);
         //更新LRU对应的位置  
         seg_lru[seg_idx].pos_entry_number = read_space[space_idx].end;
         seg_lru[seg_idx].seg_num  = seg_num;
-
+        //printf("%d\n",__LINE__);
         read_space[space_idx].end+=read_space[space_idx].size;
         read_space[space_idx].num++;
         //print_space_seg(ssd,__LINE__);
-        
+        //printf("%d\n",__LINE__);
         return ;
     }
     //判断对应的子空间能否向左边直接扩张
     if(space_idx>0&&read_space[space_idx-1].end+read_space[space_idx].size<=read_space[space_idx].st)
     {
+        //printf("%d\n",__LINE__);
         //可以向左直接扩张
         read_space[space_idx].st-=read_space[space_idx].size;
         read_space[space_idx].num++;
 
-       
+       //printf("%d\n",__LINE__);
 
         memcpy(cache+read_space[space_idx].st,header_seg_table,read_space[space_idx].size);
         //print_seglru(ssd,__LINE__);
@@ -2209,10 +2297,10 @@ while(TRUE)
         seg_lru[seg_idx].pos_entry_number = read_space[space_idx].st;
         seg_lru[seg_idx].seg_num  = seg_num;
         //print_space_seg(ssd,__LINE__);
-       
+       //printf("%d\n",__LINE__);
         return ;
     }
-
+    //printf("%d\n",__LINE__);
     //扩张时可能会出现空间为0的情况这时我们不考虑认为这个空间至少有一个虽然会浪费部分内存但是最多有33
     //个空间最多浪费33*548=17.44k
     //向左向右直接扩张失败   那么向右间接扩张 扩充右边的区域获得更大的空间
@@ -2226,6 +2314,7 @@ while(TRUE)
     }
     if(i+1<read_cache->space_num)
     {
+        //printf("%d\n",__LINE__);
         //可以向右间接扩张
         while(i>space_idx)
         {
@@ -2244,31 +2333,33 @@ while(TRUE)
             read_space[i].end += read_space[i].size;
             i--;
         }
+        //printf("%d\n",__LINE__);
         //此时右边一定能够扩张
         memcpy(cache+read_space[i].end,header_seg_table,read_space[i].size);
         //print_seglru(ssd,__LINE__);
-
+        //printf("%d\n",__LINE__);
         //更新LRU对应的位置//更新LRU对应的位置
         header = *((uint32_t*)(header_seg_table));
         seg_lru[seg_idx].pos_entry_number = read_space[i].end;
         seg_lru[seg_idx].seg_num = seg_num;
 
+        //printf("%d\n",__LINE__);
         read_space[i].end += read_space[i].size;
         read_space[i].num++;
         //print_space_seg(ssd,__LINE__);
-        
+        //printf("%d\n",__LINE__);
         return ;
     }
      //向右不能间接扩张 则向左间接扩张
      //记录需要扩张的大小
-
+    //printf("%d\n",__LINE__);
     pre=space_idx-1;
     nead_size[pre] = read_space[space_idx].size+read_space[pre].end-read_space[space_idx].st;
     //  print_read_cache_space_by_index(ftl_map,pre);
     //  print_read_cache_space_by_index(ftl_map,space_idx);
     //  printf("nead_size[%d] = %d\n",pre,nead_size[pre]);
 
-
+    //printf("%d\n",__LINE__);
      //因为扩充空间只能是space_size的整数倍
      if(nead_size[pre]>read_space[pre].size)
      {
@@ -2278,7 +2369,7 @@ while(TRUE)
      {
         nead_size[pre] = read_space[pre].size;
      }
-
+//printf("%d\n",__LINE__);
      for(i = space_idx-1;i>0;i=pre)
      {
         pre = i-1;
@@ -2305,10 +2396,12 @@ while(TRUE)
         //         printf("nead_size[%d] = %d\n",j,nead_size[j]);
         //     }
         // }
+        //printf("%d\n",__LINE__);
      }
 
      if(i>0)
      {
+        //printf("%d\n",__LINE__);
         //可以向左间接扩张
         while(i<space_idx)
         {
@@ -2327,6 +2420,7 @@ while(TRUE)
                 move_size = nead_size[i];
                 move_begin = read_space[i].end-nead_size[i];
             }
+            //printf("%d\n",__LINE__);
             read_space[i].st = read_space[i].st-nead_size[i];
             read_space[i].end = read_space[i].end-nead_size[i];
             if(tmp>0)
@@ -2334,7 +2428,7 @@ while(TRUE)
                 memcpy(cache+read_space[i].st,cache+move_begin,move_size);
                 //print_seglru(ssd,__LINE__);
             }
-            
+            //printf("%d\n",__LINE__);
             //更新LRU对应的位置
             uint32_t nex_st = read_space[i].st;
             for(int j = 0;j<tmp;++j)
@@ -2343,22 +2437,25 @@ while(TRUE)
                 seg_lru[header].pos_entry_number = nex_st;
                 nex_st+=read_space[i].size;
             }
+            //printf("%d\n",__LINE__);
             i++;
         }
-
+        //printf("%d\n",__LINE__);
         //插入到space_idx左边空间
         read_space[space_idx].st -= read_space[space_idx].size;
         memcpy(cache+read_space[space_idx].st,header_seg_table,read_space[space_idx].size);
         //print_seglru(ssd,__LINE__);
+        //printf("%d\n",__LINE__);
         read_space[space_idx].num++;
         //更新LRU对应的位置
         seg_lru[seg_idx].pos_entry_number = read_space[space_idx].st;
         seg_lru[seg_idx].seg_num  = seg_num;
         //print_space_seg(ssd,__LINE__);
-
+        //printf("%d\n",__LINE__);
         return;
      }
-
+    printf("%d\n",__LINE__);
+    exit(0);
 }
     
 }
@@ -2411,10 +2508,11 @@ static void insert_table_to_write_table(struct ssd*ssd,Table* table_st)
 
         //驱逐的策略是驱逐最久未使用的table
         //找到最久未使用的table
+        //printf("%d\n",__LINE__);
         int victim_seg_idx = seg_lru[ ftl_map->write_cache_LRU_head].pre;
         //获取在write_table中的位置
         uint32_t table_idx = seg_lru[victim_seg_idx].pos_entry_number;
-        
+        //printf("%d\n",__LINE__);
         //需要写回到flash中申请新页并更新GTD申请新页
         struct ppa gtd_ppa;
         gtd_ppa = get_gtd_ent(ssd, victim_seg_idx);
@@ -2425,8 +2523,9 @@ static void insert_table_to_write_table(struct ssd*ssd,Table* table_st)
             set_rmap_ent(ssd, INVALID_LPN, &gtd_ppa);
         }
         //printf("write page 000\n");
+        //printf("%d\n",__LINE__);
         translation_write_page(ssd, victim_seg_idx);
-
+        //printf("%d\n",__LINE__);
 
         Table* table = &(write_cache->write_table[table_idx]);
        //从lru中删除
@@ -2437,7 +2536,7 @@ static void insert_table_to_write_table(struct ssd*ssd,Table* table_st)
             exit(0);
         }
         ftl_map->g_map[victim_seg_idx].table=*table;
-
+        //printf("%d\n",__LINE__);
         //转换为seg
         int seg_num = table2seg(ftl_map->g_map[victim_seg_idx].header_seg.seg,table);
         ftl_map->g_map[victim_seg_idx].header_seg.header = table->table_head;
@@ -2447,32 +2546,36 @@ static void insert_table_to_write_table(struct ssd*ssd,Table* table_st)
         seg_lru[seg_idx].seg_num = WRITE_CACHE_SPACE;
         //更新write_cache的LRU
         ADD_WRITE_CACHE_LRU(ftl_map,seg_idx);
-
+        //printf("%d\n",__LINE__);
          //写回到闪存和read_cache中
         if(seg_num>ftl_map->cache->read_cache->max_seg_size)
         {
             ftl_map->g_map[victim_seg_idx].seg_num = LRU_TABLE_FLAG ;
-            
+            //printf("%d\n",__LINE__);
             //说明插入的是table
             insert_seg_to_read_cache(ssd,&(ftl_map->g_map[victim_seg_idx].table),LRU_TABLE_FLAG);
+            //printf("%d\n",__LINE__);
         }
         else
         {
+            //printf("%d\n",__LINE__);
             ftl_map->g_map[victim_seg_idx].seg_num = seg_num;
             //说明插入的是段
             insert_seg_to_read_cache(ssd,&(ftl_map->g_map[victim_seg_idx].header_seg),seg_num);
+            //printf("%d\n",__LINE__);
         }
         
     }
     else
     {
+        //printf("%d\n",__LINE__);
         //直接插入
         write_cache->write_table[write_cache->write_point] = *table_st;
         seg_lru[seg_idx].pos_entry_number = write_cache->write_point;
         seg_lru[seg_idx].seg_num = WRITE_CACHE_SPACE;
         //更新write_cache的LRU
         ADD_WRITE_CACHE_LRU(ftl_map,seg_idx);
-
+        //printf("%d\n",__LINE__);
     }
 
     
@@ -2494,6 +2597,8 @@ static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn,int
     if(seg_lru[gtd_idx].pos_entry_number==INVALID_POS_ENTRY)
     {
         //说明不在缓存中
+        ssd->stat.cmt_miss_cnt++;
+        ssd->stat.cmt_hit_cnt--;
         //从flash中读取
         G_map* g_map = &(ftl_map->g_map[gtd_idx]);
         //记录读延迟
@@ -2529,12 +2634,14 @@ static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn,int
         // print_space(ssd,__LINE__);
         // print_seglru(ssd,__LINE__);
         // print_space_seg(ssd,__LINE__);
+        ssd->stat.write_cache_hit++;
         return write_cache->write_table[seg_lru[gtd_idx].pos_entry_number].l2p[offset].vppn;
     }
     else
     {
         //说明在read_cache中
         //更新read_cache的LRU
+        ssd->stat.cmt_hit_cnt++;
         REMOVE_READ_CACHE_LRU(ftl_map,gtd_idx);
         ADD_READ_CACHE_LRU(ftl_map,gtd_idx);
         //从read_cache中读取
@@ -2591,6 +2698,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
     uint32_t pos_entry_number;
     G_map* g_map = ftl_map->g_map;
     //printf("write_SegTable\n");
+    //printf("%d\n",__LINE__);
     //查看是否在缓存中
     if(seg_lru[gtd_idx].pos_entry_number==INVALID_POS_ENTRY)
     {
@@ -2598,7 +2706,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
         //从flash中读取
         //先记录读闪存的时间
 
-        
+         //printf("%d\n",__LINE__);
         struct ppa ppa;
 
 
@@ -2612,7 +2720,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
             g_map[gtd_idx].next_avail_time = get_lun(ssd, &ppa)->next_lun_avail_time;
         }
 
-
+         //printf("%d\n",__LINE__);
         //插入到write_cache中
 
         for(int i = 0;i<num;++i)
@@ -2624,9 +2732,12 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
             g_map[gtd_idx].table.bitmap[offset>>5] |= (1<<(offset&31));
             g_map[gtd_idx].table.l2p[offset].vppn = ppn[i];
         }
+         //printf("%d\n",__LINE__);
         //printf("write_SegTable1\n");
         //将table插入到write_cache中
+         //printf("%d\n",__LINE__);
         insert_table_to_write_table(ssd,&(g_map[gtd_idx].table));
+         //printf("%d\n",__LINE__);
         //printf("write_SegTable01\n");
         return;
     }
@@ -2634,16 +2745,19 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
     {
         //printf("write_SegTable2-1\n");
         //说明在缓存中
+        
         if(seg_lru[gtd_idx].seg_num==WRITE_CACHE_SPACE)
         {
             //printf("write_SegTable2-1\n");
             //说明在write_cache中
             //直接修改
             //更新write_cache的LRU
+             //printf("%d\n",__LINE__);
             REMOVE_WRITE_CACHE_LRU(ftl_map,gtd_idx);
             //printf("write_SegTable2-1 0\n");
             ADD_WRITE_CACHE_LRU(ftl_map,gtd_idx);
             //printf("write_SegTable2-1 1\n");
+             //printf("%d\n",__LINE__);
             pos_entry_number = seg_lru[gtd_idx].pos_entry_number;
             for(int i = 0;i<num;++i)
             {
@@ -2653,6 +2767,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
                 //更新bitmap
                 write_cache->write_table[pos_entry_number].bitmap[offset>>5] |= (1<<(offset&31));
             }
+             //printf("%d\n",__LINE__);
             // for(int i = 0;i<num;++i)
             // {
             //     if(lpn[i]==8&&ppn[i]==8)
@@ -2674,6 +2789,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
 
             //printf("write_SegTable2-2\n");
             //获取到对应的段
+             //printf("%d\n",__LINE__);
             int seg_num = seg_lru[gtd_idx].seg_num;
             uint32_t seg_pos = seg_lru[gtd_idx].pos_entry_number;
             uint32_t space_idx = read_cache->segsize2space[seg_num];
@@ -2695,8 +2811,10 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
             //从read_cache中删除
             REMOVE_READ_CACHE_LRU(ftl_map,gtd_idx);
             seg_lru[gtd_idx].pos_entry_number = INVALID_POS_ENTRY;
+             //printf("%d\n",__LINE__);
             if(space_idx+1==read_cache->space_num)
             {
+                 //printf("%d\n",__LINE__);
                 //把左边的段移到这个位置
                 if(seg_pos>read_cache->read_cache_space[space_idx].st)
                 {
@@ -2707,6 +2825,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
                     seg_lru[header].pos_entry_number = seg_pos;
                     //print_seglru(ssd,__LINE__);
                 }
+                 //printf("%d\n",__LINE__);
                 read_cache_space[space_idx].st += read_cache_space[space_idx].size;
                 read_cache_space[space_idx].num--;
                 //print_space_seg(ssd,__LINE__);
@@ -2716,6 +2835,7 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
             else
             {
                 //把右边的段移到这个位置
+                 //printf("%d\n",__LINE__);
                 read_cache_space[space_idx].end -= read_cache_space[space_idx].size;
                 read_cache_space[space_idx].num--;
                 if(seg_pos<read_cache_space[space_idx].end)
@@ -2728,9 +2848,9 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
                     //print_seglru(ssd,__LINE__);
                 }
                 //print_space_seg(ssd,__LINE__);
-               
+                //printf("%d\n",__LINE__);
             }
-
+             //printf("%d\n",__LINE__);
             for(int i = 0;i<num;++i)
             {
                 offset = lpn[i]&0xff;
@@ -2738,10 +2858,12 @@ static void write_SegTable(struct ssd* ssd,NvmeRequest *req,uint32_t gtd_idx ,ui
                 g_map[gtd_idx].table.bitmap[offset>>5] |= (1<<(offset&31));
                 g_map[gtd_idx].table.l2p[offset].vppn = ppn[i];
             }
+            // printf("%d\n",__LINE__);
             //printf("write_SegTable2-2-1\n");
             //将table插入到write_cache中
             insert_table_to_write_table(ssd,&(g_map[gtd_idx].table));
             //printf("write_SegTable2-2-2\n");
+            // printf("%d\n",__LINE__);
             return;
         }
         return;
@@ -3832,6 +3954,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
 {
     // struct timespec time1, time2;
     //printf("write start\n");
+    //printf("%d\n",__LINE__);
     uint64_t lba = req->slba;
     struct ssdparams *spp = &ssd->sp;
 
@@ -3849,11 +3972,14 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     int cnt=0;
     ssd->stat.should_write_num +=end_lpn - start_lpn + 1;
     if (end_lpn >= spp->tt_pgs) {
+        printf("start_lpn=%lld,tt_pgs=%d\n", (long long)end_lpn, ssd->sp.tt_pgs);
+        exit(0);
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
     }
     
     while(start_lpn <=end_lpn)
     {
+        //printf("%d\n",__LINE__);
 
         uint64_t gtd_index = start_lpn/spp->ents_per_pg;
         uint64_t wp_index = gtd_index/spp->trans_per_line;
@@ -3862,8 +3988,11 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         {
             end_tmp_lpn = end_lpn;
         } 
+        
     //printf("write 1\n");
     for (lpn = start_lpn; lpn <= end_tmp_lpn; lpn++) {
+        //printf("%d\n",__LINE__);
+
             curlat = 0;
             ppa = get_maptbl_ent(ssd, lpn);
             //cmt_entry = find_hash_entry(&ssd->cm.ht, lpn);
@@ -3872,14 +4001,19 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
                 mark_page_invalid(ssd, &ppa);
                 set_rmap_ent(ssd, INVALID_LPN, &ppa);
             }
+            //printf("%d\n",__LINE__);
 
             struct write_pointer *lwp= &ssd->gtd_wps[wp_index];
             if (!lwp->curline) {
+                //printf("%d\n",__LINE__);
                 init_line_write_pointer(ssd, lwp, true);
+                //printf("%d\n",__LINE__);
             } else {
+                //printf("%d\n",__LINE__);
                 advance_line_write_pointer(ssd, lwp);
+                //printf("%d\n",__LINE__);
             }
-
+            //printf("%d\n",__LINE__);
             ppa = get_new_line_page(ssd, lwp);
             set_maptbl_ent(ssd, lpn, &ppa);
             //cmt_entry->ppn = ppa2pgidx(ssd, &ppa);
@@ -3888,7 +4022,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
 
             mark_page_valid(ssd, &ppa);
 
-            
+            //printf("%d\n",__LINE__);
             struct nand_cmd swr;
             swr.type = USER_IO;
             swr.cmd = NAND_WRITE;
@@ -3900,6 +4034,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         }
     
         cnt=0;
+        //printf("%d\n",__LINE__);
         for (lpn = start_lpn; lpn <= end_tmp_lpn; lpn++)
         {        
             ppa = get_maptbl_ent(ssd, lpn);
@@ -3907,13 +4042,17 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             vppns[cnt]=ppa2vppn(ssd,&ppa,wp_index);
             cnt++;
         }
-       // printf("write 2\n");
+        //printf("%d\n",__LINE__);
+       //printf("write 2\n");
         if(ssd->lr_nodes[gtd_index].u==1)
         {
             insert_lr_nodes(ssd,gtd_index,lpns,vppns,cnt);
         }
+        //printf("%d\n",__LINE__);
         //printf("write 3\n");
+        //printf("%d\n",__LINE__);
         write_SegTable(ssd,req,gtd_index,lpns,vppns,cnt);
+        //printf("%d\n",__LINE__);
         /*
         for(int i = 0;i<cnt;++i)
         {
@@ -3923,7 +4062,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         consist_seg_table(ssd,lpns,cnt,__LINE__);
         */
         
-       // printf("write 4\n");
+       //printf("write 4\n");
 
         start_lpn = end_tmp_lpn+1;
     }

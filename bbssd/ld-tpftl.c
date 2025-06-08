@@ -1013,7 +1013,7 @@ static void ssd_init_params(struct ssdparams *spp)
 
 
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = 104857;//设置4MB大小其中 但是2MB用于线性模型 一个entry的大小是 8字节lpn 8字节 ppn 和4字节指针 2M/20=209715
+    spp->tt_cmt_size = 104857;//设置4MB大小其中 但是2MB用于线性模型 一个entry的大小是 8字节lpn 8字节 ppn 和4字节指针 2MB/20B=13107
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
 
@@ -1584,11 +1584,11 @@ static uint64_t translation_write_page(struct ssd *ssd, uint64_t tvpn)
     set_gtd_ent(ssd, &new_gtd_ppa, index);
     set_rmap_ent(ssd, index, &new_gtd_ppa);
     mark_page_valid(ssd, &new_gtd_ppa);
-    // struct nand_cmd srd;
-    // srd.type = USER_IO;
-    // srd.cmd = NAND_WRITE;
-    // srd.stime = 0;  // req->stime?
-    // ssd_advance_status(ssd, &new_gtd_ppa, &srd);
+    struct nand_cmd srd;
+    srd.type = USER_IO;
+    srd.cmd = NAND_WRITE;
+    srd.stime = 0;  // req->stime?
+    ssd_advance_status(ssd, &new_gtd_ppa, &srd);
 
 
     //printf("translation_write_page done\n");
@@ -2900,7 +2900,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
     FTL_Map* ftl_map = ssd->ftl_map;
     Seg_LRU*seg_lru = ftl_map->seg_LRU;
     // struct timespec time1, time2;
-    
+
 
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
@@ -2911,20 +2911,23 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
         // clock_gettime(CLOCK_MONOTONIC, &time1);
         ssd->stat.access_cnt++;
         sublat = 0;
-       
+       if(lpn>ssd->stat.max_lpn){
+         ssd->stat.max_lpn=lpn;
+       }
         uint64_t tvpn = lpn/spp->ents_per_pg;
         if(seg_lru[tvpn].pos_entry_number!=INVALID_POS_ENTRY)
         {
             Table* table = &(ftl_map->cache->write_table[seg_lru[tvpn].pos_entry_number]);
             
-             ssd->stat.cmt_hit_cnt++;
+             //ssd->stat.cmt_hit_cnt++;
+             ssd->stat.write_cache_hit++;
             ppa = get_maptbl_ent(ssd, lpn);
             if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
                 //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
                 //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
                 //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
                 ssd->stat.access_cnt--;
-                ssd->stat.cmt_hit_cnt--;
+                ssd->stat.write_cache_hit--;
                 ssd->stat.model_out_range++;
                 continue;
             }
@@ -2939,7 +2942,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                             ftl_map->g_map[tvpn].next_avail_time : lun->next_lun_avail_time;
             goto ssd_read_latency;
         }
-        
+
         // 1.1. first look up in the cmt
         struct cmt_entry *cmt_entry = cmt_hit(ssd, lpn);
         if (cmt_entry) {
@@ -2996,7 +2999,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
             //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
             ssd->stat.access_cnt--;
             ssd->stat.cmt_miss_cnt--;
-            // ssd->stat.model_out_range++;
+            ssd->stat.model_out_range++;
             continue;
         }
         //after reading the translation page, data page can only begin to read
@@ -3010,6 +3013,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
 
         if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
             ssd->stat.access_cnt--;
+            ssd->stat.model_out_range++;
             //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
             //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
             //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
@@ -3049,6 +3053,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     //int sequence_cnt = 0;
 
     ssd->stat.should_write_num +=end_lpn - start_lpn + 1;
+
     //check_erro_victim_line(ssd,__LINE__);
 
 
@@ -3060,6 +3065,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         int gtd_index = lpn/spp->ents_per_pg;
         int wp_index = (int)(gtd_index/spp->trans_per_line);
         int offset = lpn&0xff;
+
         ftl_assert(wp_index == ssd->sp.tt_lines-1);
         //check_table_right(ssd,__LINE__);
         // * maintain the consistency of bitmap

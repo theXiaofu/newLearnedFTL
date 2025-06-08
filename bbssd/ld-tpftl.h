@@ -82,7 +82,7 @@ enum {
 
 // #define CMT_NUM 16*1024
 // #define CMT_NUM 4*1024
-#define MAX_INTERVALS 8         // ! 模型参数：一个模型中包含几个段
+#define MAX_INTERVALS 4         // ! 模型参数：一个模型中包含几个段 
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
 
@@ -434,6 +434,11 @@ struct statistics {
     long long read_time;
     long long model_training_nums;
     int gc_cnt;
+
+    uint64_t write_cache_hit;
+
+    //uint64_t max_lpn;
+
     // uint64_t max_read_lpn;
     // uint64_t min_read_lpn;
     // uint64_t max_write_lpn;
