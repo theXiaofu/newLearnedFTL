@@ -274,6 +274,7 @@ static Cache* init_cache(int cache_size,int write_cache_size){
 
 static FTL_Map* init_FTL_Map(FemuCtrl *n){
     FTL_Map*ftl_map = g_malloc0(sizeof(FTL_Map));
+
     int cache_size = n->ssd->sp.tt_cmt_size+n->ssd->sp.write_cache_size;
     int tt_blk = n->ssd->sp.tt_blks;
     //这里根据SSD配置设置使用的时候需要修改
@@ -296,7 +297,9 @@ static FTL_Map* init_FTL_Map(FemuCtrl *n){
         ftl_map->g_map[i].header_seg.header = i;
     }
 
-
+    ftl_map->size_migrate = g_malloc0(sizeof(uint64_t)*1000005);
+    ftl_map->nex_migrate = 0;
+ 
     return ftl_map;
 }
 
@@ -1914,6 +1917,17 @@ static int table2seg(Seg* seg_st, Table* table_st) {
     return segment_count;  // 返回生成的段数量
 }
 
+
+
+// static inline void add_migrate(FTL_Map* ftl_map,uint64_t size,bool add){
+    
+//     ftl_map->size_migrate[ftl_map->nex_migrate]+=size;
+//     if(add){
+//         ftl_map->nex_migrate++;
+//         ftl_map->nex_migrate%=1000000;
+//     }
+// }
+
 //写吐了
 
 //将段插入到readcache子空间中.注意这里的LRU的顺序在这里边被更新
@@ -1931,7 +1945,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
     uint32_t tmp = read_space[space_idx].max_seg_num;
     uint32_t header;
 
-
+    //ftl_map->size_migrate[ftl_map->nex_migrate] = 0;
 
 
     //说明传入的是seg如果等于256说明是table
@@ -1970,10 +1984,11 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
         //printf("%d\n",__LINE__);
         read_space[space_idx].end+=read_space[space_idx].size;
         read_space[space_idx].num++;
+        
         //print_seglru(ssd,__LINE__);
         //print_space_seg(ssd,__LINE__);
         //printf("%d\n",__LINE__);
-
+        //add_migrate(ftl_map,0,true);
         return ;
     }
     //printf("%d\n",__LINE__);
@@ -1995,7 +2010,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
         seg_lru[seg_idx].seg_num  = seg_num;
         //print_space_seg(ssd,__LINE__);
         //printf("%d\n",__LINE__);
-
+        //add_migrate(ftl_map,0,true);
         return ;
     }
     //printf("%d\n",__LINE__);
@@ -2026,6 +2041,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
                 header = *((uint32_t*)(cache+read_space[i].st));
                 //更新LRU对应的位置
                 seg_lru[header].pos_entry_number = read_space[i].end;
+                //add_migrate(ftl_map,read_space[i].size,false);
             }
             
             read_space[i].st = read_space[i].st+read_space[i].size;
@@ -2047,6 +2063,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
         //print_space_seg(ssd,__LINE__);
         //printf("%d\n",__LINE__);
         //printf("%d\n",__LINE__);
+        //add_migrate(ftl_map,0,true);
         return ;
     }
     //printf("%d\n",__LINE__);
@@ -2112,7 +2129,11 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
             read_space[i].st = read_space[i].st-nead_size[i];
             read_space[i].end = read_space[i].end-nead_size[i];
             if(tmp>0)
-            memcpy(cache+read_space[i].st,cache+move_begin,move_size);
+            {
+                memcpy(cache+read_space[i].st,cache+move_begin,move_size);
+                //add_migrate(ftl_map,move_size,false);
+            }
+            
             //print_seglru(ssd,__LINE__);
             //printf("%d\n",__LINE__);
             //更新LRU对应的位置
@@ -2139,6 +2160,7 @@ static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int
         seg_lru[seg_idx].seg_num  = seg_num;
         //printf("%d\n",__LINE__);
         //print_space_seg(ssd,__LINE__);
+        //add_migrate(ftl_map,0,true);
         return;
      }
      //print_space_seg(ssd,__LINE__);
@@ -2251,6 +2273,7 @@ while(TRUE)
             seg_lru[seg_idx].seg_num = seg_num;
             //print_space_seg(ssd,__LINE__);
            // printf("%d\n",__LINE__);
+           //add_migrate(ftl_map,0,true);
             return;
         }
         //printf("evict_size: %d\n",evict_size);
@@ -2277,8 +2300,10 @@ while(TRUE)
         //printf("%d\n",__LINE__);
         read_space[space_idx].end+=read_space[space_idx].size;
         read_space[space_idx].num++;
+        
         //print_space_seg(ssd,__LINE__);
         //printf("%d\n",__LINE__);
+        //add_migrate(ftl_map,0,true);
         return ;
     }
     //判断对应的子空间能否向左边直接扩张
@@ -2298,6 +2323,7 @@ while(TRUE)
         seg_lru[seg_idx].seg_num  = seg_num;
         //print_space_seg(ssd,__LINE__);
        //printf("%d\n",__LINE__);
+       //add_migrate(ftl_map,0,true);
         return ;
     }
     //printf("%d\n",__LINE__);
@@ -2327,6 +2353,7 @@ while(TRUE)
                 header = *((uint32_t*)(cache+read_space[i].st));
                 //更新LRU对应的位置
                 seg_lru[header].pos_entry_number = read_space[i].end;
+                //add_migrate(ftl_map,read_space[i].size,false);
             }
             
             read_space[i].st += read_space[i].size;
@@ -2348,6 +2375,7 @@ while(TRUE)
         read_space[i].num++;
         //print_space_seg(ssd,__LINE__);
         //printf("%d\n",__LINE__);
+        //add_migrate(ftl_map,0,true);
         return ;
     }
      //向右不能间接扩张 则向左间接扩张
@@ -2426,6 +2454,7 @@ while(TRUE)
             if(tmp>0)
             {
                 memcpy(cache+read_space[i].st,cache+move_begin,move_size);
+                //add_migrate(ftl_map,move_size,false);
                 //print_seglru(ssd,__LINE__);
             }
             //printf("%d\n",__LINE__);
@@ -2452,6 +2481,7 @@ while(TRUE)
         seg_lru[seg_idx].seg_num  = seg_num;
         //print_space_seg(ssd,__LINE__);
         //printf("%d\n",__LINE__);
+        //add_migrate(ftl_map,0,true);
         return;
      }
     printf("%d\n",__LINE__);
@@ -2593,6 +2623,7 @@ static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn,int
     uint32_t gtd_idx = lpn>>8;
     //获取lpn在GTD中的偏移
     uint32_t offset = lpn&0xFF;
+    // struct timespec time1, time2;
     //查看是否在缓存中
     if(seg_lru[gtd_idx].pos_entry_number==INVALID_POS_ENTRY)
     {
@@ -2613,12 +2644,22 @@ static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn,int
         //插入到read_cache中
         if(g_map->seg_num==LRU_TABLE_FLAG)
         {
+            // clock_gettime(CLOCK_MONOTONIC, &time1);
             //说明是table
             insert_seg_to_read_cache(ssd,(void*)&(g_map->table),g_map->seg_num);
+            // clock_gettime(CLOCK_MONOTONIC, &time2);
+            // ftl_map->size_migrate[ftl_map->nex_migrate]= (time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec);
+            // ftl_map->nex_migrate++;
+            // ftl_map->nex_migrate%=100000;
         }
         else
         {
+            // clock_gettime(CLOCK_MONOTONIC, &time1);
             insert_seg_to_read_cache(ssd,(void*)&(g_map->header_seg),g_map->seg_num);
+            // clock_gettime(CLOCK_MONOTONIC, &time2);
+            // ftl_map->size_migrate[ftl_map->nex_migrate]= (time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec);
+            // ftl_map->nex_migrate++;
+            // ftl_map->nex_migrate%=100000;
         }
     }
 

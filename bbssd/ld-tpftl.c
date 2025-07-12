@@ -1214,6 +1214,7 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->calculate_time = 0;
     st->sort_time = 0;
     st->model_training_nums = 0;
+    st->model_training_write=0;
 
     st->write_num = 0;
     st->should_write_num = 0;
@@ -2552,6 +2553,7 @@ static void model_training(struct ssd *ssd, struct write_pointer *wpp, uint64_t 
             struct ppa tmp_ppa;
             //check_erro_victim_line(ssd,__LINE__);
             gc_write_page_through_line_wp(ssd, group_gtd_lpns[i][pgi], &tmp_ppa, wpp);
+            ssd->stat.model_training_write++;
             //check_erro_victim_line(ssd,__LINE__);
             train_vppns[i][pgi] = ppa2vppn(ssd, &tmp_ppa);
         }

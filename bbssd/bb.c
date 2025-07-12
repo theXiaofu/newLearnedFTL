@@ -11,6 +11,28 @@ static void bb_init_ctrl_str(FemuCtrl *n)
     nvme_set_ctrl_name(n, vbbssd_mn, vbbssd_sn, &fsid_vbb);
 }
 
+// static void print2file(uint64_t* size_migrate){
+//     // 打开CSV文件
+//     FILE *file = fopen("/home/fxx/桌面/migrate_size.csv", "w");
+//     if (file == NULL) {
+//         fprintf(stderr, "无法创建文件\n");
+//         return ;
+//     }
+
+//     // 写入表头（可选）
+//     fprintf(file, "value\n");
+//     // 逐行写入数据
+//     for (int i = 0; i < 100000; i++) {
+//         fprintf(file, "%lld\n", (long long)size_migrate[i]);
+//     }
+
+//     fclose(file);
+
+//     printf("数据已成功输出到output.csv\n");
+//     return ;
+
+// }
+
 /* bb <=> black-box */
 static void bb_init(FemuCtrl *n, Error **errp)
 {
@@ -99,6 +121,8 @@ static void reset_stat(struct ssd *ssd)
     //  st->write_num = 0;
     //  st->should_write_num = 0;
     //  st->erase_cnt = 0;
+    //  st->model_training_nums=0;
+    //  st->model_training_write=0;
 
     //  st->model_hit_num = 0;
     //  st->model_use_num = 0;
@@ -167,6 +191,20 @@ static void reset_stat(struct ssd *ssd)
      st->joule = 0;
 }
 
+static long long total_table_num(struct ssd *ssd)
+{
+    FTL_Map *ftl_map = ssd->ftl_map;
+    int lru_head = (ftl_map)->read_cache_LRU_head;
+    Seg_LRU* seg_LRU = ftl_map->seg_LRU;
+    int nex = seg_LRU[lru_head].nex;
+    long long total = 0;
+    while (nex!=lru_head)
+    {
+        nex = seg_LRU[nex].nex;
+        total++;
+    }
+    return total;
+}
 static void print_stat(struct ssd *ssd)
 {
    struct statistics *st = &ssd->stat;
@@ -249,6 +287,9 @@ static void print_stat(struct ssd *ssd)
     //  printf("should_write cnt: %lld\n", (long long)ssd->stat.should_write_num);
     //  printf("erase cnt: %lld\n", (long long)ssd->stat.erase_cnt);
     // printf("write cache hit:%lld",(long long)ssd->stat.write_cache_hit );
+    // printf("model training num:%lld\n",(long long) ssd->stat.model_training_nums);
+    // printf("model training write:%lld\n",(long long) ssd->stat.model_training_write);
+
      
     //  printf("read joule: %Lf\n", st->read_joule);
     //  printf("write joule: %Lf\n", st->write_joule);
@@ -278,18 +319,21 @@ static void print_stat(struct ssd *ssd)
      printf("insert_CMT_model_time : %lld\n", (long long)ssd->stat.insert_CMT_model_time);
      printf("read_time : %lld\n", (long long)ssd->stat.read_time);
      printf("read_CMT_time : %lld\n", (long long)ssd->stat.read_CMT_time);
+     printf("total table num: %lld\n", total_table_num(ssd));
+     
+    //  print2file(ssd->ftl_map->size_migrate);
 
-     for(int i = 0;i<ssd->ftl_map->cache->read_cache->space_num;i++)
-     {
-        //输出space的各个参数
-        printf("read_cache_space[%d].st = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].st);
-        printf("read_cache_space[%d].end = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].end);
-        printf("read_cache_space[%d].max_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].max_seg_num);
-        printf("read_cache_space[%d].min_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].min_seg_num);
-        printf("read_cache_space[%d].size = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].size);
-        printf("read_cache_space[%d].num  = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].num);
+    //  for(int i = 0;i<ssd->ftl_map->cache->read_cache->space_num;i++)
+    //  {
+    //     //输出space的各个参数
+    //     printf("read_cache_space[%d].st = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].st);
+    //     printf("read_cache_space[%d].end = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].end);
+    //     printf("read_cache_space[%d].max_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].max_seg_num);
+    //     printf("read_cache_space[%d].min_seg_num = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].min_seg_num);
+    //     printf("read_cache_space[%d].size = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].size);
+    //     printf("read_cache_space[%d].num  = %d\n",i,ssd->ftl_map->cache->read_cache->read_cache_space[i].num);
         
-     }
+    //  }
    
     
 

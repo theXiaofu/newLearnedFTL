@@ -433,6 +433,7 @@ struct statistics {
     long long write_time;
     long long read_time;
     long long model_training_nums;
+    long long model_training_write;
     int gc_cnt;
 
     uint64_t write_cache_hit;
