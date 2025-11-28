@@ -16,14 +16,13 @@
 // #pragma GCC push_options
 // #pragma GCC optimize(0)
 
-#include "Segtable.h"
+#include "SegtableFMADLM.h"
 #include "util.h"
 #include"string.h"
 // static int hit_num = 0;
 // static int gc_num = 0;
 // static int gc_line_num = 0;
 static int free_line_threshold = 3;    // ! gc参数：当还剩多少未使用的free_line时开始GC
-// static int 
 //static int level_compress_threshold=20;//当每一个node节点的层级大于这个值时将进行压缩
 // static int train_num = 0;
 
@@ -1223,7 +1222,7 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->tt_gtdwpp_cnt+= spp->tt_gtd_size%(spp->pgs_per_line) ? 1 : 0;
 
     spp->write_cache_size = 256*1024;//256KB大小的写缓存
-    spp->tt_cmt_size =  (1<<21);/*4MB的空间 2MB用于lr_node 2MB用于cmt*/ // 2MB = 1<<21   1MB = 1<<20 6MB = 6*(1<<20)
+    spp->tt_cmt_size = 1<<21;/*4MB的空间 2MB用于lr_node 2MB用于cmt*/
     //spp->enable_request_prefetch = true;    /* cannot set false! */
     //spp->enable_select_prefetch = true;
 
@@ -1376,9 +1375,6 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->calculate_time = 0;
     st->model_training_nums = 0;
 
-    st->max_lpn = 0;
-    st->min_lpn = INVALID_LPN;
-
     st->all_count = 0;
     st->seg_count=0;
     st->sort_time = 0;
@@ -1387,16 +1383,11 @@ static void ssd_init_statistics(struct ssd *ssd)
     st->GC_write_time=0;
     st->GC_insert_time=0;
     st->GC_time=0;
-    // st->GC_insert_CMT_model_time =0;
-    // st->GC_insert_CMT_time = 0;
 
     st->write_time=0;
-    // st->insert_CMT_model_time=0;
-    // st->insert_CMT_time=0;
+    st->insert_CMT_model_time=0;
     st->read_time=0;
     st->read_CMT_time=0;
-    // memset(st->model_insert_time,0,sizeof(st->model_insert_time));
-    // st->model_insert_pos=0;
 
 
     st->write_num = 0;
@@ -3232,7 +3223,8 @@ static void batch_gtd_do_gc(struct ssd *ssd, bool force, struct write_pointer *w
     // cnt /= 2;
     
     // if(cnt<2)
-    cnt = 2;
+    // 把下边注释掉清除所有的块表明使用全部的块进行GC fullGc
+    //cnt = 2;
 
     for(int i = 0;i < cnt;++i)
     {
@@ -3668,7 +3660,8 @@ static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *w
     // cnt /= 2;
     
     // if(cnt<2)
-    cnt = 2;
+    // 把下边注释掉表示使用 full GC
+    // cnt = 2;
 
     for(int i = 0;i < cnt;++i)
     {
@@ -3743,7 +3736,7 @@ static int batch_line_do_gc(struct ssd* ssd, bool force, struct write_pointer *w
     model_training(ssd, wpp, group_gtd_lpns, group_gtd_index, start_gtd);
     /* update line status */
     
-    //printf("111222\n")
+    //printf("111222\n");
     return 0;
     
 }
@@ -4027,18 +4020,6 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
     }
     
-    if (end_lpn > ssd->stat.max_lpn)
-    {
-        ssd->stat.max_lpn = end_lpn;
-    }
-
-    if (start_lpn<ssd->stat.min_lpn)
-    {
-        ssd->stat.min_lpn = start_lpn;
-    }
-    
-    
-
     while(start_lpn <=end_lpn)
     {
         //printf("%d\n",__LINE__);
@@ -4108,13 +4089,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
        //printf("write 2\n");
         if(ssd->lr_nodes[gtd_index].u==1)
         {
-            // clock_gettime(CLOCK_MONOTONIC, &time1);
             insert_lr_nodes(ssd,gtd_index,lpns,vppns,cnt);
-            // clock_gettime(CLOCK_MONOTONIC, &time2);
-            // uint64_t time = ((time2.tv_sec - time1.tv_sec)*1000000000 + (time2.tv_nsec - time1.tv_nsec));
-
-            // ssd->stat.model_insert_time[ssd->stat.model_insert_pos%100000] = time;
-            // ssd->stat.model_insert_pos++;
         }
         //printf("%d\n",__LINE__);
         //printf("write 3\n");

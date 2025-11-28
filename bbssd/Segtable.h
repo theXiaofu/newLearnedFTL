@@ -12,8 +12,7 @@
 
 #define Se_HASH_SIZE (24593ULL)
 #define ENT_PER_TP (2048ULL)
-#define GC_THRESH 9
-
+// #define GC_THRESH 3 //GC阈值 当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个如果设置为
 
 enum {
     NAND_READ =  0,
@@ -85,7 +84,7 @@ enum {
 #define MAX_INTERVALS 16         // ! 模型参数：一个模型中包含几个段
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
-#define Gc_threshold  3   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
+#define Gc_threshold  8   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过8个就需要进行GC最多存在8个
 
 
 
@@ -556,10 +555,13 @@ struct statistics {
     long long GC_insert_time;
     long long GC_time;
 
+
     long long read_CMT_time;
-    long long insert_CMT_model_time;
+    long long insert_CMT_time;
     long long write_time;
     long long read_time;
+    // uint64_t model_insert_time[100000];
+    // int model_insert_pos;
     
 
     long long model_training_nums;
@@ -687,21 +689,34 @@ do { \
 } while(0)
 
 
-
-
-
 // //打印一下read_cache_LRU链表
 // static void print_read_cache_LRU(FTL_Map* ftl_map)
 // {
 //     Seg_LRU *seg_LRU = ftl_map->seg_LRU;
 //     int nex = ftl_map->read_cache_LRU_head; 
-//     printf("read_cache_LRU_head:%d\n", seg_LRU[nex].nex);
-//     printf("read_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
+//     // printf("read_cache_LRU_head:%d\n", seg_LRU[nex].nex);
+//     // printf("read_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
+
+//     uint64_t count = 0;
+//     double size =0;
 //     do{
-//         printf("pos:%d\n", nex);
+//         // printf("pos:%d\n", nex);
 //         nex = seg_LRU[nex].nex;
+//         if (nex !=ftl_map->read_cache_LRU_head)
+//         {
+//             count++;
+//         }
+        
 //     }while(nex!=ftl_map->read_cache_LRU_head);
+//     printf("read_cache_LRU_count:%lld\n", (long long)count);
+//     for(int i =0;i<ftl_map->ftl_map->cache->read_cache->space_num;++i)
+//     {
+//         size += ftl_map->ftl_map->cache->read_cache->read_cache_space[i].end - ftl_map->ftl_map->cache->read_cache->read_cache_space[i].st;
+//     }
+//     printf("read_cache_LRU_size:%lf B\n", size);
+//     printf("read_cache_LRU_size average size:%lf B\n", size/count);
 // }
+
 
 // //打印一下write_cache_LRU链表
 // static void print_write_cache_LRU(FTL_Map* ftl_map)

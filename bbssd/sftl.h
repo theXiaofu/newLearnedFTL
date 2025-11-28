@@ -1,48 +1,27 @@
+#ifndef __FEMU_DFTL_H
+#define __FEMU_DFTL_H
 
-#ifndef _L_FEMU_FTL_H
-#define _L_FEMU_FTL_H
 #include "../nvme.h"
-
 
 #define INVALID_PPA     (~(0ULL))
 #define INVALID_LPN     (~(0ULL))
 #define UNMAPPED_PPA    (~(0ULL))
 
-
 #define CMT_HASH_SIZE (24593ULL)
-#define TP_HASH_SIZE (24593ULL)
-#define ENT_PER_TP (2048ULL)
-// #define GC_THRESH 3
-
+#define INVALID_POS_ENTRY 0xffffffff   //LRU无效标记表示没有被缓存到写缓存中
 enum {
     NAND_READ =  0,
     NAND_WRITE = 1,
     NAND_ERASE = 2,
 
     NAND_READ_LATENCY = 40000,
-    NAND_PROG_LATENCY =  200000,
+    NAND_PROG_LATENCY = 200000,
     NAND_ERASE_LATENCY = 2000000,
-};
-
-enum {
-    CLEAN = 0,
-    DIRTY = 1
-};
-
-enum {
-    HEAD = 0,
-    TAIL = 1
 };
 
 enum {
     USER_IO = 0,
     GC_IO = 1,
-};
-
-enum {
-    GTD = 0,
-    DATA = 1,
-    UNUSED = 2,
 };
 
 enum {
@@ -65,12 +44,21 @@ enum {
     FEMU_RESET_ACCT = 5,
     FEMU_ENABLE_LOG = 6,
     FEMU_DISABLE_LOG = 7,
+
     FEMU_RESET_STAT = 8,
     FEMU_PRINT_STAT = 9,
-    FEMU_MODEL = 10,
-    FEMU_MODEL_UNUSE = 11
 };
 
+enum {
+    CLEAN = 0,
+    DIRTY = 1
+};
+
+enum {
+    NONE = 0,
+    DATA = 1,
+    TRANS = 2
+};
 
 #define BLK_BITS    (16)
 #define PG_BITS     (16)
@@ -78,125 +66,6 @@ enum {
 #define PL_BITS     (8)
 #define LUN_BITS    (8)
 #define CH_BITS     (7)
-
-// #define CMT_NUM 16*1024
-// #define CMT_NUM 4*1024
-#define MAX_INTERVALS 4         // ! 模型参数：一个模型中包含几个段 
-#define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
-#define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
-
-
-#define INVALID_POS_ENTRY 0xffffffff   //LRU无效标记表示没有被缓存到写缓存中
-
-typedef struct lr_breakpoint {
-    float w;
-    float b;
-    int key;
-    int valid_cnt;
-}lr_breakpoint;
-
-typedef struct lr_node {
-
-    lr_breakpoint brks[MAX_INTERVALS];
-    uint64_t start_lpn;
-    uint64_t start_ppa;
-    uint8_t u;
-    uint8_t less;
-    float success_ratio;
-}lr_node;
-
-typedef struct cmt_entry {
-    uint64_t lpn;
-    uint64_t ppn;
-    int dirty;
-    // int hotness;
-    QTAILQ_ENTRY(cmt_entry) entry;
-    bool prefetch;
-    uint64_t next_avail_time;
-    struct cmt_entry *next;    /* for hash */
-} cmt_entry;
-
-typedef struct TPnode {
-    uint64_t tvpn;
-    int cmt_entry_cnt;
-    // double hotness;  /* The paper didn't explain how to operate and set hotness */
-    QTAILQ_ENTRY(TPnode) entry;
-    //QTAIQ_HEAD 为热度最低的
-    QTAILQ_HEAD(cmt_entry_list, cmt_entry) cmt_entry_list;
-    struct TPnode *next;   /* for hash */
-    short exist_ent[ENT_PER_TP];
-} TPnode;
-
-
-typedef struct hash_table {
-    cmt_entry *cmt_table[CMT_HASH_SIZE];
-    TPnode *tp_table[TP_HASH_SIZE];
-}hash_table;
-
-//传统table结构体定义这里把l2p进行了修改因为我们的只用16bit而这个需要64bit
-typedef struct{
-    //uint32_t table_head;//用于反向索引
-    //每个block有256个page 256/8=32个bitmap
-    uint32_t bitmap[8];
-    
-    uint64_t l2p[256]; 
-}Table;
-
-//写缓存表
-typedef struct {
-
-    //写缓存 写指针达到write_table_capacity时写满了需要进行驱逐
-    uint32_t write_point;
-    //cache中用于存储写缓存可用于存储最大的table的数量
-    uint32_t write_table_capacity;
-    //写缓存
-    Table* write_table;
-
-}Write_Cache;
-
-typedef struct {
-    
-    // uint8_t seg_num;
-    Table table;
-    // Header_Seg header_seg;
-    uint64_t next_avail_time;
-}G_map;
-
-typedef struct  {
-
-    int pre;
-    int nex;
-
-    //所处的写空间的起始地址
-    uint32_t pos_entry_number;
-    // //段的数量
-    // uint8_t seg_num;
-
-}Seg_LRU;
-
-typedef struct{
-    Seg_LRU *seg_LRU;
-    // struct Pos_Entry* pos_entry;
-    Write_Cache* cache;
-    int write_cache_LRU_head;
-
-    G_map *g_map;
-} FTL_Map;
-
-
-struct cmt_mgmt {
-    cmt_entry *cmt_entries;
-    QTAILQ_HEAD(free_cmt_entry_list, cmt_entry) free_cmt_entry_list;
-    //QTAIQ_HEAD 为热度最高的
-    QTAILQ_HEAD(TPnode_list, TPnode) TPnode_list;
-    int tt_TPnodes;
-    int tt_entries;
-    int free_cmt_entry_cnt;
-    int used_cmt_entry_cnt;
-    // use for selective prefetching;
-    int counter;
-    struct hash_table ht;
-};
 
 /* describe a physical page addr */
 struct ppa {
@@ -253,6 +122,57 @@ struct ssd_channel {
     uint64_t gc_endtime;
 };
 
+//传统table结构体定义这里把l2p进行了修改因为我们的只用16bit而这个需要64bit
+typedef struct{
+    //uint32_t table_head;//用于反向索引
+    //每个block有256个page 256/8=32个bitmap
+    uint32_t bitmap[8];
+    
+    uint64_t l2p[256]; 
+}Table;
+
+//写缓存表
+typedef struct {
+
+    //写缓存 写指针达到write_table_capacity时写满了需要进行驱逐
+    uint32_t write_point;
+    //cache中用于存储写缓存可用于存储最大的table的数量
+    uint32_t write_table_capacity;
+    //写缓存
+    Table* write_table;
+
+}Write_Cache;
+
+typedef struct {
+    
+    // uint8_t seg_num;
+    Table table;
+    // Header_Seg header_seg;
+    uint64_t next_avail_time;
+}G_map;
+
+typedef struct  {
+
+    int pre;
+    int nex;
+
+    //所处的写空间的起始地址
+    uint32_t pos_entry_number;
+    // //段的数量
+    // uint8_t seg_num;
+
+}Seg_LRU;
+
+typedef struct{
+    Seg_LRU *seg_LRU;
+    // struct Pos_Entry* pos_entry;
+    Write_Cache* cache;
+    int write_cache_LRU_head;
+
+    G_map *g_map;
+} FTL_Map;
+
+
 struct ssdparams {
     int secsz;        /* sector size in bytes */
     int secs_per_pg;  /* # of sectors per page */
@@ -301,72 +221,40 @@ struct ssdparams {
 
     int tt_luns;      /* total # of LUNs in the SSD */
 
-
-    //==================modified====================
-    int pg_size;
-    int addr_size;
-    int addr_per_pg;
-    int tt_trans_pgs; 
-    int tt_line_wps;
-    int trans_per_line;
-
+    int write_cache_size;
     int ents_per_pg;
     int tt_cmt_size;
     int tt_gtd_size;
-    int write_cache_size;
-
-    // * the virtual ppn params
-    int chn_per_lun;
-    int chn_per_pl;
-    int chn_per_pg;
-    int chn_per_blk;
-
-    int tt_gtdwpp_cnt;
-
-    bool enable_request_prefetch;
-    bool enable_select_prefetch;
-
 };
 
 typedef struct line {
     int id;  /* line id, the same as corresponding block id */
     int ipc; /* invalid page count in this line */
     int vpc; /* valid page count in this line */
-    int type;
-
-    // * identify how many entries remain in this line
-    int rest;
-    
     QTAILQ_ENTRY(line) entry; /* in either {free,victim,full} list */
     /* position in the priority queue for victim lines */
     size_t                  pos;
+    int type;
 } line;
-
-// *  modify ====================
-struct wp_lines{
-    struct line *line;
-    struct wp_lines *next;
-};
 
 /* wp: record next write addr */
 struct write_pointer {
     struct line *curline;
-    struct wp_lines *wpl;
-    int vic_cnt;
     int ch;
     int lun;
     int pg;
     int blk;
     int pl;
-    int id;
-    int write_point_type;//-1表示为data line的指针否则表示翻译页的指针
-
-    // TODO: how many lines this wpp invade
-    int invade_lines;
 };
 
-struct line_statistic {
-    int rest;
+/* wp: record next translation page write addr */
+struct trans_write_pointer {
+    struct line *curline;
+    int ch;
+    int lun;
+    int pg;
+    int blk;
+    int pl;
 };
 
 struct line_mgmt {
@@ -376,7 +264,6 @@ struct line_mgmt {
     pqueue_t *victim_line_pq;
     //QTAILQ_HEAD(victim_line_list, line) victim_line_list;
     QTAILQ_HEAD(full_line_list, line) full_line_list;
-    QTAILQ_HEAD(victim_list, line) victim_list;
     int tt_lines;
     int free_line_cnt;
     int victim_line_cnt;
@@ -390,16 +277,34 @@ struct nand_cmd {
 };
 
 
-// a simple hash table for DFTL
-struct ht {
-    int max_depth;
-    int left_num;
-    int global_version;
-    struct ppa *entry;
-    uint64_t *lpns;
-    uint32_t *version;
-    uint8_t *dirty;
+//这里变得lpn ppn都是没有任何意义的为了偷懒我就不删除了只有seg_size是有意义的
+typedef struct cmt_entry {
+    uint64_t lpn;
+    uint64_t ppn;
+    int dirty;
+    //仅仅只是为了方便测试我只需记录一个大小就行判断是否超过了内存，别的无需关心
+    uint32_t seg_size;
+    QTAILQ_ENTRY(cmt_entry) entry;
+    struct cmt_entry *next;    /* for hash */
+} cmt_entry;
 
+typedef struct hash_table {
+    cmt_entry *cmt_table[CMT_HASH_SIZE];
+}hash_table;
+
+struct cmt_mgmt {
+    cmt_entry *cmt_entries;
+    QTAILQ_HEAD(free_cmt_entry_list, cmt_entry) free_cmt_entry_list;
+    //QTAIQ_HEAD 为热度最高的
+    QTAILQ_HEAD(cmt_entry_list, cmt_entry) cmt_entry_list;
+    //这个记录缓存映射表的总容量
+    int tt_entries;
+
+    //这个没在S-FTL中记录总的blk的数目也就是缓存所有映射表需要多少个cmt_entry
+    int free_cmt_entry_cnt;
+    //这个记录缓存映射表的使用容量
+    int used_cmt_entry_cnt;
+    struct hash_table ht;
 };
 
 struct statistics {
@@ -407,46 +312,20 @@ struct statistics {
     uint64_t cmt_miss_cnt;
     double cmt_hit_ratio;
     uint64_t access_cnt;
-    uint64_t model_hit_num;
-    uint64_t model_use_num;
-    uint64_t model_out_range;
-    uint64_t max_lpn;
-    uint64_t min_lpn;
-    uint64_t req_num;
-    long double average_lat;
-    uint64_t gc_times;
 
     uint64_t write_num;
     uint64_t should_write_num;
     uint64_t erase_cnt;
-    
-    //如果修改ssd参数的话这个记得要改一下
-    uint64_t line_gc_times[1024];
-    uint64_t wp_victims[1024];
-    uint64_t trans_wp_gc_times;
-    uint64_t line_wp_gc_times;
-    long long calculate_time;
-    long long sort_time;
-    long long predict_time;
-    long long GC_time;
-    long long write_time;
-    long long read_time;
-    long long model_training_nums;
-    long long model_training_write;
-    int gc_cnt;
-
     uint64_t write_cache_hit;
 
-    //uint64_t max_lpn;
-
-    // uint64_t max_read_lpn;
-    // uint64_t min_read_lpn;
-    // uint64_t max_write_lpn;
-    // uint64_t min_write_lpn;
     long double read_joule;
     long double write_joule;
     long double erase_joule;
     long double joule;
+
+    uint64_t write_process_count;
+    uint64_t write_process_read_count;
+    
 };
 
 struct ssd {
@@ -455,46 +334,26 @@ struct ssd {
     struct ssd_channel *ch;
     struct ppa *maptbl; /* page level mapping table */
     uint64_t *rmap;     /* reverse mapptbl, assume it's stored in OOB */
-    uint8_t *bitmaps;
-
+    struct write_pointer wp;
     struct line_mgmt lm;
 
-    //===============modified=======================
-    struct ppa *gtd;    // global translation blocks
-    struct write_pointer *gtd_wps;  // for every 32 translation pags, there is a write pointer
-    uint64_t *gtd_usage;
-
-    // * the cmt management
     struct cmt_mgmt cm;
-
-    FTL_Map *ftl_map;//写缓存
-    struct write_pointer* trans_wp; // the write pointer for writing translation pages
-    struct lr_node *lr_nodes;  // the linear regression model
-    struct ht cmt;    // current mapping table
-    uint64_t num_trans_write;
-    uint64_t num_data_write;
-    uint64_t num_data_read;
+    struct ppa *gtd;
+    struct trans_write_pointer twp;
 
     /* lockless ring for communication with NVMe IO thread */
     struct rte_ring **to_ftl;
     struct rte_ring **to_poller;
     bool *dataplane_started_ptr;
-    
-    bool model_used;
-    uint8_t *valid_lines;
-
-    struct statistics stat;
     QemuThread ftl_thread;
 
-    // * the line-write_pointer mapping
-    struct write_pointer **line2write_pointer;
-
+    FTL_Map*  ftl_map;
+    struct statistics stat;
 };
 
+
+
 void ssd_init(FemuCtrl *n);
-void count_segments(struct ssd* ssd);
-
-
 
 #ifdef FEMU_DEBUG_FTL
 #define ftl_debug(fmt, ...) \
@@ -518,6 +377,7 @@ void count_segments(struct ssd* ssd);
 #define ftl_assert(expression)
 #endif
 
+
 #define ADD_WRITE_CACHE_LRU(ftl_map, pos) \
 do { \
     Seg_LRU *_seg_LRU = (ftl_map)->seg_LRU; \
@@ -539,6 +399,7 @@ do { \
     (_seg_LRU)[(_seg_LRU)[(pos)].nex].pre = (_seg_LRU)[(pos)].pre; \
     (ftl_map)->cache->write_point--; \
 } while(0)
+
 
 
 #endif

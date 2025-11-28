@@ -1013,7 +1013,7 @@ static void ssd_init_params(struct ssdparams *spp)
 
 
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = 104857;//设置4MB大小其中 但是2MB用于线性模型 一个entry的大小是 8字节lpn 8字节 ppn 和4字节指针 2MB/20B=13107
+    spp->tt_cmt_size = 104857;//设置4MB大小其中 但是2MB用于线性模型 一个entry的大小是 8字节lpn 8字节 ppn 和4字节指针 2MB/20B=104857 1MB/20B=52428 6MB/20B=314572
     spp->enable_request_prefetch = true;    /* cannot set false! */
     spp->enable_select_prefetch = true;
 

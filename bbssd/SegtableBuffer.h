@@ -4,15 +4,17 @@
 #include "../nvme.h"
 
 
+
 #define INVALID_PPA     (~(0ULL))
 #define INVALID_LPN     (~(0ULL))
 #define UNMAPPED_PPA    (~(0ULL))
 
 
-#define CMT_HASH_SIZE (24593ULL)
-#define TP_HASH_SIZE (24593ULL)
+#define Se_HASH_SIZE (24593ULL)
 #define ENT_PER_TP (2048ULL)
-// #define GC_THRESH 3
+#define GC_THRESH 9
+#define SORT_BUFFER_SIZE (0*1024*1024)
+
 
 enum {
     NAND_READ =  0,
@@ -81,66 +83,113 @@ enum {
 
 // #define CMT_NUM 16*1024
 // #define CMT_NUM 4*1024
-#define MAX_INTERVALS 4         // ! 模型参数：一个模型中包含几个段 
+#define MAX_INTERVALS 16         // ! 模型参数：一个模型中包含几个段
 #define INTERVAL_NUM 60         // ! 模型参数：忘了，没啥用应该，后面没用到
 #define TRAIN_THRESHOLD 30      // ! 模型参数：对于整个模型，当有多少有效数据时进行模型训练
+#define Gc_threshold  3   // ! gc参数：当一个gtd_wp使用了多少个Line时开始GC说明超过4个就需要进行GC最多存在4个
 
 
-#define INVALID_POS_ENTRY 0xffffffff   //LRU无效标记表示没有被缓存到写缓存中
 
-typedef struct lr_breakpoint {
-    float w;
-    float b;
-    int key;
-    int valid_cnt;
-}lr_breakpoint;
+// //表示没有对应任何的PPN无效的映射
+// extern const uint8_t NO_PPN ;
+// extern const uint32_t INVALID_POS_ENTRY ;
+// //表示无效的段
+// extern const uint32_t INVALID_SEG;
+// //读写缓存空间判断高5位全为1表示位于写缓存中 否则位于读缓存中 
+// // 这是为了区分INVALID_POS_ENTRY不过两者不存在冲突
+// extern const uint8_t WRITE_CACHE_SPACE;
+// //dirty信息
+// extern const uint32_t DIRTY_INFO;
 
-typedef struct lr_node {
+// extern const uint8_t LRU_TABLE_FLAG;
 
-    lr_breakpoint brks[MAX_INTERVALS];
-    uint64_t start_lpn;
-    uint64_t start_ppa;
-    uint8_t u;
-    uint8_t less;
-    float success_ratio;
-}lr_node;
+// //反向索引
+// extern const uint32_t REVERSE_INDEX;
 
-typedef struct cmt_entry {
-    uint64_t lpn;
-    uint64_t ppn;
-    int dirty;
-    // int hotness;
-    QTAILQ_ENTRY(cmt_entry) entry;
-    bool prefetch;
-    uint64_t next_avail_time;
-    struct cmt_entry *next;    /* for hash */
-} cmt_entry;
-
-typedef struct TPnode {
-    uint64_t tvpn;
-    int cmt_entry_cnt;
-    // double hotness;  /* The paper didn't explain how to operate and set hotness */
-    QTAILQ_ENTRY(TPnode) entry;
-    //QTAIQ_HEAD 为热度最低的
-    QTAILQ_HEAD(cmt_entry_list, cmt_entry) cmt_entry_list;
-    struct TPnode *next;   /* for hash */
-    short exist_ent[ENT_PER_TP];
-} TPnode;
+//把上边的const转换为宏
+#define NO_PPN 0xff
+#define INVALID_POS_ENTRY 0xffffffff
+#define INVALID_SEG 0x0000ffff
 
 
-typedef struct hash_table {
-    cmt_entry *cmt_table[CMT_HASH_SIZE];
-    TPnode *tp_table[TP_HASH_SIZE];
-}hash_table;
+#define LRU_TABLE_FLAG 0xff
+#define WRITE_CACHE_SPACE 0xfe
 
-//传统table结构体定义这里把l2p进行了修改因为我们的只用16bit而这个需要64bit
+#define BLKS_PER_LINE 1024
+
+////表示这个seg的段是无效段
+//const int NO_PPN_seg = 0x00ffffff;
+//cache中用于存储写的空间
+
+//LRU结构
+// #pragma pack(1)
+typedef struct  {
+
+    int pre;
+    int nex;
+
+    //所处的空间subspace的起始地址
+    uint32_t pos_entry_number;
+    //段的数量
+    uint8_t seg_num;
+
+}Seg_LRU;
+// #pragma pack()
+
+
+
+// 4字节数据类型（1字节slpn，1字节elpn，2字节ppn）
+typedef struct {
+
+    uint16_t vppn;
+} VPPN;
+
+// 段结构体定义
+typedef struct {
+    uint8_t slpn;  // 起始地址（1字节）
+    uint8_t elpn;  // 结束地址（1字节）
+    VPPN ppn;      // 起始值（2字节）
+} Seg;
+
+// // bitmap段结构体定义
+// typedef struct {
+//     uint8_t slpn;  // 起始地址（1字节）
+//     //uint8_t elpn;  // 结束地址（1字节）
+//     VPPN ppn;      // 起始值（2字节）
+// } Segb;
+
+
+
+//带header的段结构体定义，用于写入到读缓存
 typedef struct{
-    //uint32_t table_head;//用于反向索引
+    uint32_t header;//用于反向索引和dirty信息
+    Seg seg[256];
+}Header_Seg;
+
+// //带bitmap header的段结构体定义，用于写入到读缓存
+// typedef struct{
+//     uint32_t header;//用于反向索引和dirty信息
+//     //每个block有256个page 256/8=32个bitmap
+//     uint32_t bitmap[8];
+//     Segb seg[256];
+// }Header_Seg_b;
+
+//传统table结构体定义
+typedef struct{
+    uint32_t table_head;//用于反向索引
     //每个block有256个page 256/8=32个bitmap
     uint32_t bitmap[8];
-    
-    uint64_t l2p[256]; 
+    VPPN l2p[256]; 
 }Table;
+
+typedef struct {
+    
+    uint8_t seg_num;
+    Table table;
+    Header_Seg header_seg;
+    uint64_t next_avail_time;
+}G_map;
+
 
 //写缓存表
 typedef struct {
@@ -154,49 +203,113 @@ typedef struct {
 
 }Write_Cache;
 
-typedef struct {
-    
-    // uint8_t seg_num;
-    Table table;
-    // Header_Seg header_seg;
-    uint64_t next_avail_time;
-}G_map;
-
 typedef struct  {
+    uint32_t st;//左边界
+    uint32_t end;// 右边界 end=seg_size*num +st
+    uint32_t max_seg_num;//段的最大数量
+    uint32_t min_seg_num;//段的最小数量
+    uint32_t size;//每个seg的大小 加上header反向索引  也可能表示传统的table映射表的大小占用多少个字节
+    int32_t num;//已存在的seg的数量 占用空间为seg_size*num
+    
+}Read_Cache_Space;
 
-    int pre;
-    int nex;
 
-    //所处的写空间的起始地址
-    uint32_t pos_entry_number;
-    // //段的数量
-    // uint8_t seg_num;
+//读缓存结构体定义
+typedef struct{
 
-}Seg_LRU;
+    //read cache的利用率不能低于这个值
+    float cache_ratio;
+    //读缓存空间
+    uint8_t* read_cache;
+    //读缓存空间大小占用多少字节
+    uint32_t cache_size;
+        //可用空间大小是多少
+    uint32_t free_size;
+    //读缓存划分空间数量
+    uint32_t space_num;
+    //读缓存划分空间
+    Read_Cache_Space*  read_cache_space;
+    
+    //将对应的段大小 段可能有256个映射到对应的空间的下标
+    uint32_t* segsize2space;
+
+    uint32_t max_seg_size;//如果大于这个值那么seg将会被转换为table的形式
+
+    //读缓存淘汰的最大空间
+    uint32_t max_evict_size;
+
+}Read_Cache;
+
+
+
+//缓存结构体定义
+typedef struct{
+    
+    //缓存大小
+    uint32_t cache_size;
+    //写缓存大小
+    uint32_t writeCacheSize;
+    //读缓存大小
+    uint32_t readCacheSize;
+    //缓存
+    uint8_t* cache;
+    //写缓存
+    Write_Cache* write_cache;
+    //读缓存
+    Read_Cache* read_cache;
+    uint32_t table_size;
+    uint32_t seg_size;
+    uint32_t header_size;
+
+
+}Cache;
+
+
+
 
 typedef struct{
     Seg_LRU *seg_LRU;
     // struct Pos_Entry* pos_entry;
-    Write_Cache* cache;
+    Cache* cache;
     int write_cache_LRU_head;
-
+    int read_cache_LRU_head;
     G_map *g_map;
+    uint64_t* size_migrate;
+    uint64_t nex_migrate;
+
 } FTL_Map;
 
 
-struct cmt_mgmt {
-    cmt_entry *cmt_entries;
-    QTAILQ_HEAD(free_cmt_entry_list, cmt_entry) free_cmt_entry_list;
-    //QTAIQ_HEAD 为热度最高的
-    QTAILQ_HEAD(TPnode_list, TPnode) TPnode_list;
-    int tt_TPnodes;
-    int tt_entries;
-    int free_cmt_entry_cnt;
-    int used_cmt_entry_cnt;
-    // use for selective prefetching;
-    int counter;
-    struct hash_table ht;
-};
+
+
+
+// static FTL_Map* init_FTL_Map(FemuCtrl *n);
+// static void free_FTL_Map(FTL_Map* ftl_map);
+// static void seg2table(Seg* seg_st,int max_size, Table* l2p);
+// static int table2seg(Seg* seg_st, Table* l2p);
+// static void insert_seg_to_read_cache(struct ssd* ssd, void* header_seg_table,int seg_num);
+// static void insert_table_to_write_table(struct ssd*ssd,Table* table_st);
+// static uint16_t read_SegTable(struct ssd *ssd, NvmeRequest *req,uint32_t lpn);
+// static void write_SegTable(struct ssd* ssd,NvmeRequest *req ,uint32_t* lpn,uint16_t* ppn,int num);
+
+// static void print_read_cache_space_by_index(FTL_Map* ftl_map,int i);
+// static void print_read_cache_space(FTL_Map* ftl_map);
+
+
+
+
+
+
+typedef struct lr_breakpoint {
+    uint16_t b;
+    uint16_t bitmap;
+}lr_breakpoint;
+
+typedef struct lr_node {
+    lr_breakpoint brks[MAX_INTERVALS];//4*16=64个字节
+    uint8_t u;
+}lr_node;
+
 
 /* describe a physical page addr */
 struct ppa {
@@ -210,7 +323,7 @@ struct ppa {
             uint64_t ch  : CH_BITS;
             uint64_t rsv : 1;
         } g;
-
+        
         uint64_t ppa;
     };
 };
@@ -268,7 +381,7 @@ struct ssdparams {
     int ch_xfer_lat;  /* channel transfer latency for one page in nanoseconds
                        * this defines the channel bandwith
                        */
-
+    
     double gc_thres_pcent;
     int gc_thres_lines;
     double gc_thres_pcent_high;
@@ -313,18 +426,19 @@ struct ssdparams {
     int ents_per_pg;
     int tt_cmt_size;
     int tt_gtd_size;
-    int write_cache_size;
+    int interval_size;
 
     // * the virtual ppn params
     int chn_per_lun;
     int chn_per_pl;
     int chn_per_pg;
     int chn_per_blk;
-
+    
+    int write_cache_size;
     int tt_gtdwpp_cnt;
-
-    bool enable_request_prefetch;
-    bool enable_select_prefetch;
+    
+    //bool enable_request_prefetch;
+    //bool enable_select_prefetch;
 
 };
 
@@ -344,23 +458,26 @@ typedef struct line {
 
 // *  modify ====================
 struct wp_lines{
+    
     struct line *line;
     struct wp_lines *next;
 };
 
 /* wp: record next write addr */
 struct write_pointer {
+    struct line *line_id[Gc_threshold];//This indicates the group number of the physical block group applied for by this logical block group ；Since Gc_threshold-1=4, it can be represented as 2bits
     struct line *curline;
-    struct wp_lines *wpl;
-    int vic_cnt;
+    struct wp_lines *wpl;//使用这个来代替lr_node中的write_pos.
+    int vic_cnt;//也表示line_id中的数目
     int ch;
     int lun;
     int pg;
     int blk;
     int pl;
     int id;
-    int write_point_type;//-1表示为data line的指针否则表示翻译页的指针
 
+    int write_point_type;//-1表示为data line的指针否则表示翻译页的指针
+    int curline_pos;
     // TODO: how many lines this wpp invade
     int invade_lines;
 };
@@ -419,26 +536,34 @@ struct statistics {
     uint64_t write_num;
     uint64_t should_write_num;
     uint64_t erase_cnt;
-    
-    //如果修改ssd参数的话这个记得要改一下
-    uint64_t line_gc_times[1024];
-    uint64_t wp_victims[1024];
+    uint64_t write_cache_hit;
+
+    uint64_t line_gc_times[BLKS_PER_LINE];
+    uint64_t wp_victims[BLKS_PER_LINE];
     uint64_t trans_wp_gc_times;
     uint64_t line_wp_gc_times;
+
+
+    
     long long calculate_time;
     long long sort_time;
     long long predict_time;
+
+    long long all_count;
+    long long seg_count;
+    long long GC_erase_time;
+    long long GC_write_time;
+    long long GC_read_time;
+    long long GC_insert_time;
     long long GC_time;
+
+    long long read_CMT_time;
+    long long insert_CMT_model_time;
     long long write_time;
     long long read_time;
+    
+
     long long model_training_nums;
-    long long model_training_write;
-    int gc_cnt;
-
-    uint64_t write_cache_hit;
-
-    //uint64_t max_lpn;
-
     // uint64_t max_read_lpn;
     // uint64_t min_read_lpn;
     // uint64_t max_write_lpn;
@@ -455,22 +580,24 @@ struct ssd {
     struct ssd_channel *ch;
     struct ppa *maptbl; /* page level mapping table */
     uint64_t *rmap;     /* reverse mapptbl, assume it's stored in OOB */
-    uint8_t *bitmaps;
-
+    int bitmap_table[256];//8位bitcount表
+    bool*seg_bitmaps;
+    uint32_t buffer_lpns[4300];
+    int buffer_cnt;
+ 
     struct line_mgmt lm;
 
     //===============modified=======================
     struct ppa *gtd;    // global translation blocks
     struct write_pointer *gtd_wps;  // for every 32 translation pags, there is a write pointer
-    uint64_t *gtd_usage;
+   FTL_Map  *ftl_map;
 
-    // * the cmt management
-    struct cmt_mgmt cm;
+ 
 
-    FTL_Map *ftl_map;//写缓存
+
     struct write_pointer* trans_wp; // the write pointer for writing translation pages
     struct lr_node *lr_nodes;  // the linear regression model
-    struct ht cmt;    // current mapping table
+
     uint64_t num_trans_write;
     uint64_t num_data_write;
     uint64_t num_data_read;
@@ -518,6 +645,10 @@ void count_segments(struct ssd* ssd);
 #define ftl_assert(expression)
 #endif
 
+
+
+
+
 #define ADD_WRITE_CACHE_LRU(ftl_map, pos) \
 do { \
     Seg_LRU *_seg_LRU = (ftl_map)->seg_LRU; \
@@ -527,7 +658,7 @@ do { \
     _seg_LRU[_nex].pre = (pos); \
     _seg_LRU[_LRU_head].nex = (pos); \
     _seg_LRU[(pos)].pre = _LRU_head; \
-    (ftl_map)->cache->write_point++; \
+    (ftl_map)->cache->write_cache->write_point++; \
 } while(0)
 
 
@@ -537,8 +668,78 @@ do { \
     Seg_LRU *_seg_LRU = (ftl_map)->seg_LRU; \
     (_seg_LRU)[(_seg_LRU)[(pos)].pre].nex = (_seg_LRU)[(pos)].nex; \
     (_seg_LRU)[(_seg_LRU)[(pos)].nex].pre = (_seg_LRU)[(pos)].pre; \
-    (ftl_map)->cache->write_point--; \
+    (ftl_map)->cache->write_cache->write_point--; \
 } while(0)
+
+#define ADD_READ_CACHE_LRU(ftl_map, pos) \
+do { \
+    Seg_LRU *_seg_LRU = (ftl_map)->seg_LRU; \
+    int _LRU_head = (ftl_map)->read_cache_LRU_head; \
+    int _nex = (_seg_LRU)[_LRU_head].nex; \
+    (_seg_LRU)[(pos)].nex = _nex; \
+    (_seg_LRU)[_nex].pre = (pos); \
+    (_seg_LRU)[_LRU_head].nex = (pos); \
+    (_seg_LRU)[(pos)].pre = _LRU_head; \
+} while(0)
+
+#define REMOVE_READ_CACHE_LRU(ftl_map, pos) \
+do { \
+    Seg_LRU *_seg_LRU = (ftl_map)->seg_LRU; \
+    (_seg_LRU)[(_seg_LRU)[(pos)].pre].nex = (_seg_LRU)[(pos)].nex; \
+    (_seg_LRU)[(_seg_LRU)[(pos)].nex].pre = (_seg_LRU)[(pos)].pre; \
+} while(0)
+
+
+// //打印一下read_cache_LRU链表
+// static void print_read_cache_LRU(FTL_Map* ftl_map)
+// {
+//     Seg_LRU *seg_LRU = ftl_map->seg_LRU;
+//     int nex = ftl_map->read_cache_LRU_head; 
+//     // printf("read_cache_LRU_head:%d\n", seg_LRU[nex].nex);
+//     // printf("read_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
+
+//     uint64_t count = 0;
+//     double size =0;
+//     do{
+//         // printf("pos:%d\n", nex);
+//         nex = seg_LRU[nex].nex;
+//         if (nex !=ftl_map->read_cache_LRU_head)
+//         {
+//             count++;
+//         }
+        
+//     }while(nex!=ftl_map->read_cache_LRU_head);
+//     printf("read_cache_LRU_count:%lld\n", (long long)count);
+//     for(int i =0;i<ftl_map->ftl_map->cache->read_cache->space_num;++i)
+//     {
+//         size += ftl_map->ftl_map->cache->read_cache->read_cache_space[i].end - ftl_map->ftl_map->cache->read_cache->read_cache_space[i].st;
+//     }
+//     printf("read_cache_LRU_size:%lf B\n", size);
+//     printf("read_cache_LRU_size average size:%lf B\n", size/count);
+// }
+
+
+// //打印一下write_cache_LRU链表
+// static void print_write_cache_LRU(FTL_Map* ftl_map)
+// {
+//     Seg_LRU *seg_LRU = ftl_map->seg_LRU;
+//     int nex = ftl_map->write_cache_LRU_head; 
+//     printf("write_point:%d\n", ftl_map->cache->write_cache->write_point);
+//     printf("write_cache_LRU_head:%d\n", seg_LRU[nex].nex);
+//     printf("write_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
+//     do{
+//         printf("pos:%d\n", nex);
+//         nex = seg_LRU[nex].nex;
+//     }while(nex!=ftl_map->write_cache_LRU_head);
+// }
+
+
+
+
+
+
+
+
 
 
 #endif

@@ -500,7 +500,7 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->write_cache_size = 256*1024;//256KB大小的写缓存
     spp->ents_per_pg = spp->pgs_per_blk;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = 262144;//设置4MB大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针 4MB/16B=262144
+    spp->tt_cmt_size = 262144;//设置4MB大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针 4MB/16B=262144 3MB/16=196608 8MB/16 = 524288
 
     check_params(spp);
 }

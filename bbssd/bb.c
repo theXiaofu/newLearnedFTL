@@ -1,5 +1,11 @@
 #include "../nvme.h"
 #include "./Segtable.h"
+// #include "./SegtableBuffer.h"
+// #include "./ld-tpftl.h"
+// #include "./sftl.h"
+// #include "./ld-tpftl.h"
+// #include "./tpftl.h"
+// #include "./dftl.h"
 
 
 static void bb_init_ctrl_str(FemuCtrl *n)
@@ -32,6 +38,30 @@ static void bb_init_ctrl_str(FemuCtrl *n)
 //     return ;
 
 // }
+
+// static void print2file_model_insert_time(uint64_t* model_insert_time){
+//     // 打开CSV文件
+//     FILE *file = fopen("/home/fxx/桌面/model_insert_time.csv", "w");
+//     if (file == NULL) {
+//         fprintf(stderr, "无法创建文件\n");
+//         return ;
+//     }
+//     printf("开始写入model_insert_time.csv\n");
+
+//     // 写入表头（可选）
+//     fprintf(file, "value\n");
+//     // 逐行写入数据
+//     for (int i = 0; i < 100000; i++) {
+//         fprintf(file, "%lld\n", (long long)model_insert_time[i]);
+//     }
+
+//     fclose(file);
+
+//     printf("数据已成功输出到model_insert_time.csv\n");
+//     return ;
+
+// }
+
 
 /* bb <=> black-box */
 static void bb_init(FemuCtrl *n, Error **errp)
@@ -79,6 +109,24 @@ static void reset_stat(struct ssd *ssd)
     //  st->write_joule = 0;
     //  st->erase_joule = 0;
     //  st->joule = 0;
+
+    /*SFTL */
+    //  st->cmt_hit_cnt = 0;
+    //  st->cmt_miss_cnt = 0;
+    //  st->cmt_hit_ratio = 0;
+    //  st->access_cnt = 0;
+
+    //  st->write_num = 0;
+    //  st->should_write_num = 0;
+    //  st->erase_cnt = 0;
+
+
+    //  st->read_joule = 0;
+    //  st->write_joule = 0;
+    //  st->erase_joule = 0;
+    //  st->joule = 0;
+    //  st->write_process_count=0;
+    //  st->write_process_read_count=0;
 
 
     /*TPFTL*/
@@ -169,6 +217,8 @@ static void reset_stat(struct ssd *ssd)
      st->write_num = 0;
      st->should_write_num = 0;
      st->erase_cnt = 0;
+     st->max_lpn = 0;
+     st->min_lpn = INVALID_LPN;
     
     st->sort_time = 0;
     st->GC_erase_time=0;
@@ -178,7 +228,6 @@ static void reset_stat(struct ssd *ssd)
     st->GC_time=0;
 
     st->write_time=0;
-    st->insert_CMT_model_time=0;
     st->read_time=0;
     st->read_CMT_time=0;
     
@@ -191,20 +240,64 @@ static void reset_stat(struct ssd *ssd)
      st->joule = 0;
 }
 
-static long long total_table_num(struct ssd *ssd)
-{
-    FTL_Map *ftl_map = ssd->ftl_map;
-    int lru_head = (ftl_map)->read_cache_LRU_head;
-    Seg_LRU* seg_LRU = ftl_map->seg_LRU;
-    int nex = seg_LRU[lru_head].nex;
-    long long total = 0;
-    while (nex!=lru_head)
-    {
-        nex = seg_LRU[nex].nex;
-        total++;
-    }
-    return total;
-}
+//SFTL
+//获取平均表中的段的数目
+// static void get_cmt_seg_average_size(struct ssd *ssd){
+//     int count = ssd->sp.tt_blks - ssd->cm.free_cmt_entry_cnt;
+//     double total_size = (double)1.0*ssd->cm.used_cmt_entry_cnt;
+//     if(count ==0){
+//         printf("cmt is empty\n");
+//         return;
+//     }
+//     printf("total seg size:%lf\n", total_size);
+//     printf("total seg count:%d\n", count);
+//     printf("average seg size:%lf\n", total_size/(double)count);
+//     //return total_size/(double)count;
+// }
+
+
+// static long long total_table_num(struct ssd *ssd)
+// {
+//     FTL_Map *ftl_map = ssd->ftl_map;
+//     int lru_head = (ftl_map)->read_cache_LRU_head;
+//     Seg_LRU* seg_LRU = ftl_map->seg_LRU;
+//     int nex = seg_LRU[lru_head].nex;
+//     long long total = 0;
+//     while (nex!=lru_head)
+//     {
+//         nex = seg_LRU[nex].nex;
+//         total++;
+//    }
+//     return total;
+// }
+
+ //S+MFTL打印一下平均大小
+// static void print_read_cache_LRU(FTL_Map* ftl_map)
+// {
+//     Seg_LRU *seg_LRU = ftl_map->seg_LRU;
+//     int nex = ftl_map->read_cache_LRU_head; 
+//     // printf("read_cache_LRU_head:%d\n", seg_LRU[nex].nex);
+//     // printf("read_cache_LRU_tail:%d\n", seg_LRU[nex].pre);
+
+//     uint64_t count = 0;
+//     double size =0;
+//     do{
+//         // printf("pos:%d\n", nex);
+//         nex = seg_LRU[nex].nex;
+//         if (nex !=ftl_map->read_cache_LRU_head)
+//         {
+//             count++;
+//         }
+        
+//     }while(nex!=ftl_map->read_cache_LRU_head);
+//     printf("read_cache_LRU_count:%lld\n", (long long)count);
+//     for(int i =0;i<ftl_map->cache->read_cache->space_num;++i)
+//     {
+//         size += ftl_map->cache->read_cache->read_cache_space[i].end - ftl_map->cache->read_cache->read_cache_space[i].st;
+//     }
+//     printf("read_cache_LRU_size:%lf B\n", size);
+//     printf("read_cache_LRU_size average size:%lf B\n", size/count);
+// }
 static void print_stat(struct ssd *ssd)
 {
    struct statistics *st = &ssd->stat;
@@ -239,6 +332,29 @@ static void print_stat(struct ssd *ssd)
     // printf("erase joule: %Lf\n", st->erase_joule);
     // printf("All joule: %Lf\n", st->joule);
 
+    /*SFLT*/
+
+    // if (st->access_cnt == 0) {
+    //     st->cmt_hit_ratio = 0;
+    // } else {
+    //     st->cmt_hit_ratio = (double)st->cmt_hit_cnt / st->access_cnt;
+    // }
+    // st->joule = st->read_joule + st->write_joule + st->erase_joule;
+    // printf("CMT hit count: %lu\n", st->cmt_hit_cnt);
+    // printf("CMT miss count: %lu\n", st->cmt_miss_cnt);
+    // printf("CMT access count: %lu\n", st->access_cnt);
+    // printf("CMT hit ratio: %lf\n", st->cmt_hit_ratio);
+    // printf("write cnt: %lld\n", (long long)ssd->stat.write_num);
+    // printf("should_write cnt: %lld\n", (long long)ssd->stat.should_write_num);
+    // printf("erase cnt: %lld\n", (long long)ssd->stat.erase_cnt);
+    // printf("read joule: %Lf\n", st->read_joule);
+    // printf("write joule: %Lf\n", st->write_joule);
+    // printf("erase joule: %Lf\n", st->erase_joule);
+    // printf("All joule: %Lf\n", st->joule);
+    // printf("write process count: %lu\n", st->write_process_count);
+    // printf("write process read count: %lu\n", st->write_process_read_count);
+    // get_cmt_seg_average_size(ssd);
+    
 
     /*tpftl*/
     // if (st->access_cnt == 0) {
@@ -306,6 +422,8 @@ static void print_stat(struct ssd *ssd)
      printf("should_write cnt: %lld\n", (long long)ssd->stat.should_write_num);
      printf("erase cnt: %lld\n", (long long)ssd->stat.erase_cnt);
     printf("write cache hit:%lld\n",(long long)ssd->stat.write_cache_hit );
+    printf("max lpn: %llu\n",(unsigned long long)ssd->stat.max_lpn );
+    printf("min lpn: %llu\n",(unsigned long long)ssd->stat.min_lpn );
      
      printf("all_count : %lld\n", (long long)ssd->stat.all_count);
      printf("seg_count : %lld\n", (long long)ssd->stat.seg_count);
@@ -315,13 +433,22 @@ static void print_stat(struct ssd *ssd)
      printf("GC_write_time : %lld\n", (long long)ssd->stat.GC_write_time);
      printf("GC_insert_time : %lld\n", (long long)ssd->stat.GC_insert_time);
      printf("GC_time : %lld\n", (long long)ssd->stat.GC_time);
+
      printf("write_time : %lld\n", (long long)ssd->stat.write_time);
-     printf("insert_CMT_model_time : %lld\n", (long long)ssd->stat.insert_CMT_model_time);
+
      printf("read_time : %lld\n", (long long)ssd->stat.read_time);
      printf("read_CMT_time : %lld\n", (long long)ssd->stat.read_CMT_time);
-     printf("total table num: %lld\n", total_table_num(ssd));
      
-    //  print2file(ssd->ftl_map->size_migrate);
+
+
+
+    //  printf("total table num: %lld\n", total_table_num(ssd));
+
+
+    //  print_read_cache_LRU(ssd->ftl_map);
+     
+    // //  print2file(ssd->ftl_map->size_migrate);
+    // printf("model_insert_pos:%d\n", ssd->stat.model_insert_pos);
 
     //  for(int i = 0;i<ssd->ftl_map->cache->read_cache->space_num;i++)
     //  {

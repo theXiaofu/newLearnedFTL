@@ -1,11 +1,11 @@
 /**
- * Filename: tpftl.c
+ * Filename: dftl.c
  * Author: Zihang Lin
  * Date Created: 2022-05
  * Version: 1.0
  *
  * Brief Description:
- *     This file implementing the main function of TPFTL (EuroSys' 15).
+ *     This file implementing the main function of DFTL (ASPLOS' 09).
  *
  * Copyright Notice:
  *     Copyright (C) 2023 Zihang Lin. All rights reserved.
@@ -13,7 +13,7 @@
  *
  */
 
-#include "tpftl.h"
+#include "sftl.h"
 
 //#define FEMU_DEBUG_FTL
 
@@ -33,6 +33,73 @@ static Seg_LRU* init_seg_LRU(int total_num){
     seg_LRU[total_num-2].nex = seg_LRU[total_num-2].pre = total_num-2;
     return seg_LRU;
 }
+
+
+/**
+ * @brief 计算Table中的段（Segment）数目。
+ * * "段"的定义与 table2seg 函数中的逻辑相同：
+ * 1. 由 bitmap 标记为有效的条目。
+ * 2. 连续的有效条目，其 l2p 值也必须是连续递增的 (例如 l2p[i+1] == l2p[i] + 1)。
+ * * @param table_st 指向 Table 结构体的指针。
+ * @return int Table 中包含的段的总数。
+ */
+static int count_segments_in_table(Table* table_st) {
+    int segment_count = 0;
+    int start_idx = -1;     // 段的起始索引。-1 表示当前不在任何段内。
+    uint64_t prev_val = 0;  // 用于比较L2P值连续性的前一个值。
+
+    // 循环遍历所有 256 个条目
+    for (int i = 0; i <= 255; i++) {
+        
+        // 1. 检查当前 VPPN (索引 i) 的有效性
+        // (i >> 5) 等效于 i / 32，用于定位到 bitmap 数组中的哪个 uint32_t
+        // (i & 31) 等效于 i % 32，用于定位到该 uint32_t 中的哪一位
+        if ((table_st->bitmap[i >> 5] & (1 << (i & 31))) == 0) {
+            // --- 当前条目无效 ---
+
+            if (start_idx != -1) {
+                // 如果在遇到无效条目之前我们正处于一个段中，
+                // 那么这个无效条目意味着前一个段的结束。
+                segment_count++;
+                start_idx = -1; // 重置状态，表示已不在段内
+            }
+            // 如果 start_idx 本来就是 -1 (不在段内)，则什么也不做，继续检查下一个
+            continue;
+        }
+
+        // --- 当前条目有效 ---
+        
+        // 2. 获取当前 L2P 值 (注意：这里直接使用 uint64_t)
+        uint64_t current_val = table_st->l2p[i];
+
+        if (start_idx == -1) {
+            // 如果我们之前不在一个段内，那么这个有效条目将开启一个新段
+            start_idx = i;
+            prev_val = current_val;
+        
+        } else if (current_val == prev_val + 1) {
+            // 如果我们已在段内，且当前L2P值是连续的，则扩展该段
+            prev_val = current_val; // 更新 prev_val 以供下一次比较
+        
+        } else {
+            // 如果我们已在段内，但 L2P 值不连续 (序列中断)
+            // 1. 关闭前一个段
+            segment_count++;
+            // 2. 在当前位置 'i' 立即开始一个新段
+            start_idx = i;
+            prev_val = current_val;
+        }
+    }
+
+    // 3. 处理循环结束时可能还未关闭的最后一个段
+    // (例如，如果从某个索引一直连续到 255)
+    if (start_idx != -1) {
+        segment_count++;
+    }
+
+    return segment_count*8+32; // 返回所需的空间大小，每一个段需要8个字节的ppn和32字节的bitmap
+}
+
 
 // Pos_Entry* init_pos_entry(int total_num){
 //     Pos_Entry* pos_entry = g_malloc0(sizeof(Pos_Entry)*(total_num));
@@ -77,11 +144,6 @@ static inline uint64_t cmt_hash(uint64_t lpn)
     return lpn % CMT_HASH_SIZE;
 }
 
-static inline uint64_t tp_hash(uint64_t tvpn)
-{
-    return tvpn % TP_HASH_SIZE;
-}
-
 static struct cmt_entry* find_hash_entry(hash_table *ht, uint64_t lpn)
 {
     uint64_t pos = cmt_hash(lpn);
@@ -92,28 +154,11 @@ static struct cmt_entry* find_hash_entry(hash_table *ht, uint64_t lpn)
     return entry;
 }
 
-static struct TPnode* find_hash_tpnode(hash_table *ht, uint64_t tvpn)
-{
-    uint64_t pos = tp_hash(tvpn);
-    TPnode *tpnode = ht->tp_table[pos];
-    while (tpnode != NULL && tpnode->tvpn != tvpn) {
-        tpnode = tpnode->next;
-    }
-    return tpnode;
-}
-
 static void insert_cmt_hashtable(hash_table *ht, cmt_entry *entry) 
 {
     uint64_t pos = cmt_hash(entry->lpn);
     entry->next = ht->cmt_table[pos];
     ht->cmt_table[pos] = entry;
-}
-
-static void insert_tp_hashtable(hash_table *ht, TPnode *tpnode) 
-{
-    uint64_t pos = tp_hash(tpnode->tvpn);
-    tpnode->next = ht->tp_table[pos];
-    ht->tp_table[pos] = tpnode;
 }
 
 static bool delete_cmt_hashnode(hash_table *ht, cmt_entry *entry)
@@ -134,28 +179,6 @@ static bool delete_cmt_hashnode(hash_table *ht, cmt_entry *entry)
             return false;
         pre_entry->next = tmp_entry->next;
         tmp_entry->next = NULL;
-    }
-    return true;
-}
-
-static bool delete_tp_hashnode(hash_table *ht, TPnode *tpnode)
-{
-    uint64_t pos = tp_hash(tpnode->tvpn);
-    TPnode *tmp_tp = ht->tp_table[pos], *pre_tp;
-    if (tmp_tp == tpnode) {
-        ht->tp_table[pos] = tmp_tp->next;
-        tmp_tp->next = NULL;
-    } else {
-        pre_tp = tmp_tp;
-        tmp_tp = tmp_tp->next;
-        while (tmp_tp != NULL && tmp_tp != tpnode) {
-            pre_tp = tmp_tp;
-            tmp_tp = tmp_tp->next;
-        }
-        if (tmp_tp == NULL)
-            return false;
-        pre_tp->next = tmp_tp->next;
-        tmp_tp->next = NULL;
     }
     return true;
 }
@@ -192,7 +215,7 @@ static inline void set_gtd_ent(struct ssd *ssd, uint64_t tvpn, struct ppa *ppa)
     ssd->gtd[tvpn] = *ppa;
 }
 
-static inline uint64_t ppa2pgidx(struct ssd *ssd, struct ppa *ppa)
+static uint64_t ppa2pgidx(struct ssd *ssd, struct ppa *ppa)
 {
     struct ssdparams *spp = &ssd->sp;
     uint64_t pgidx;
@@ -271,7 +294,6 @@ static void ssd_init_lines(struct ssd *ssd)
         line->ipc = 0;
         line->vpc = 0;
         line->pos = 0;
-        line->type = NONE;
         /* initialize all the lines as free lines */
         QTAILQ_INSERT_TAIL(&lm->free_line_list, line, entry);
         lm->free_line_cnt++;
@@ -501,8 +523,8 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->pgs_per_blk = 256;
     spp->blks_per_pl = 1024; /* 8GB */
     spp->pls_per_lun = 1;
-    spp->luns_per_ch = 4;   /* default 8 */
-    spp->nchs = 8;          /* default 8 */
+    spp->luns_per_ch = 4;
+    spp->nchs = 8;
 
     spp->pg_rd_lat = NAND_READ_LATENCY;
     spp->pg_wr_lat = NAND_PROG_LATENCY;
@@ -543,13 +565,10 @@ static void ssd_init_params(struct ssdparams *spp)
     spp->enable_gc_delay = true;
 
     spp->write_cache_size = 256*1024;//256KB大小的写缓存
-
     spp->ents_per_pg = spp->pgs_per_blk;
     spp->tt_gtd_size = spp->tt_pgs / spp->ents_per_pg;
-    spp->tt_cmt_size = 209715;//设置4MB大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针指针大小为4字节 4MB/20B=209715 3MB/20B=157286 8MB/20B=419430
-    spp->enable_request_prefetch = true;    /* cannot set false! */
-    spp->enable_select_prefetch = true;
-
+    //spp->tt_cmt_size = 262144;//设置4MB大小其中 一个entry的大小是 8字节lpn 8字节 ppn 这个不需要指针tpFTL需要指针 4MB/16B=262144
+    spp->tt_cmt_size = 4*1024*1024;//4MB 8MB 8*1024*1024 3MB 3*1024*1024
     check_params(spp);
 }
 
@@ -645,37 +664,28 @@ static void ssd_init_cmt(struct ssd *ssd)
     struct hash_table *ht = &cm->ht;
 
     cm->tt_entries = spp->tt_cmt_size;
-    cm->tt_TPnodes = 0;
-    cm->free_cmt_entry_cnt = 0;
+    cm->free_cmt_entry_cnt = spp->tt_blks;//预留和块数一样多的缓存条目能够缓存所有的表
     cm->used_cmt_entry_cnt = 0;
-    cm->counter = 0;
 
-    cm->cmt_entries = g_malloc0(sizeof(struct cmt_entry) * cm->tt_entries);
+    cm->cmt_entries = g_malloc0(sizeof(struct cmt_entry) * cm->free_cmt_entry_cnt);
     QTAILQ_INIT(&cm->free_cmt_entry_list);
-    QTAILQ_INIT(&cm->TPnode_list);
+    QTAILQ_INIT(&cm->cmt_entry_list);
 
-    for (int i = 0; i < spp->tt_cmt_size; i++) {
+    for (int i = 0; i < spp->tt_blks; i++) {
         cmt_entry = &cm->cmt_entries[i];
         cmt_entry->dirty = CLEAN;
         cmt_entry->lpn = INVALID_LPN;
         cmt_entry->ppn = UNMAPPED_PPA;
-        /* deal with prefetching */
-        cmt_entry->prefetch = false;
-        cmt_entry->next_avail_time = 0;
         /* hash table */
         cmt_entry->next = NULL;
 
         QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
-        cm->free_cmt_entry_cnt++;
+        //cm->free_cmt_entry_cnt++;
     }
-    ftl_assert(cm->free_cmt_entry_cnt == cm->tt_entries);
-
+    //ftl_assert(cm->free_cmt_entry_cnt == cm->tt_entries);
+    // cm->free_cmt_entry_cnt = cm->tt_entries;
     for (int i = 0; i < CMT_HASH_SIZE; i++) {
         ht->cmt_table[i] = NULL;
-    }
-
-    for (int i = 0; i < TP_HASH_SIZE; i++) {
-        ht->tp_table[i] = NULL;
     }
 }
 
@@ -683,15 +693,16 @@ static void ssd_init_statistics(struct ssd *ssd)
 {
     struct statistics *st = &ssd->stat;
 
+    st->write_num = 0;
+    st->should_write_num = 0;
+    st->erase_cnt = 0;
+
     st->cmt_hit_cnt = 0;
     st->cmt_miss_cnt = 0;
     st->cmt_hit_ratio = 0;
     st->access_cnt = 0;
-    st->write_cache_hit=0;
-
-    st->write_num = 0;
-    st->should_write_num = 0;
-    st->erase_cnt = 0;
+    st->write_process_count = 0;
+    st->write_process_read_count = 0;
 }
 
 void ssd_init(FemuCtrl *n)
@@ -729,9 +740,6 @@ void ssd_init(FemuCtrl *n)
     ssd_init_statistics(ssd);
 
     ssd->ftl_map = init_FTL_Map(n);
-    ssd->fpr = fopen("/home/astl/lzh/read.txt", "w");
-    ssd->fpw = fopen("/home/astl/lzh/write.txt", "w");
-
     qemu_thread_create(&ssd->ftl_thread, "FEMU-FTL-Thread", ftl_thread, n,
                        QEMU_THREAD_JOINABLE);
 }
@@ -817,6 +825,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
         lun->next_lun_avail_time = nand_stime + spp->pg_rd_lat;
         lat = lun->next_lun_avail_time - cmd_stime;
         ssd->stat.read_joule += 3.5;
+
 #if 0
         lun->next_lun_avail_time = nand_stime + spp->pg_rd_lat;
 
@@ -865,6 +874,7 @@ static uint64_t ssd_advance_status(struct ssd *ssd, struct ppa *ppa, struct
 
         lat = lun->next_lun_avail_time - cmd_stime;
         ssd->stat.erase_joule += 132;
+
         break;
 
     default:
@@ -955,7 +965,6 @@ static void mark_block_free(struct ssd *ssd, struct ppa *ppa)
         pg = &blk->pg[i];
         ftl_assert(pg->nsecs == spp->secs_per_pg);
         pg->status = PG_FREE;
-        // set rmap_ent UNMAPPED_LPN
     }
 
     /* reset block status */
@@ -965,80 +974,24 @@ static void mark_block_free(struct ssd *ssd, struct ppa *ppa)
     blk->erase_cnt++;
 }
 
+//这里会将cmt中的lpn转换为对应的tlpn
 static struct cmt_entry *cmt_hit(struct ssd *ssd, uint64_t lpn)
 {
-    struct ssdparams *spp = &ssd->sp;
     struct cmt_mgmt *cm = &ssd->cm;
-    uint64_t tvpn = lpn / spp->ents_per_pg;
-    struct TPnode *curTP = NULL;
     struct cmt_entry *cmt_entry = NULL;
     struct hash_table *ht = &cm->ht;
+    uint64_t tlpn = lpn / ssd->sp.ents_per_pg;
 
-    // QTAILQ_FOREACH(curTP, &cm->TPnode_list, entry) {
-    //     if (curTP->tvpn == tvpn) {
-    //         QTAILQ_FOREACH(cmt_entry, &curTP->cmt_entry_list, entry) {
-    //             if (cmt_entry->lpn == lpn) break;
-    //         }
-    //         if (cmt_entry != NULL) {
-    //             QTAILQ_REMOVE(&curTP->cmt_entry_list, cmt_entry, entry);
-    //             QTAILQ_INSERT_HEAD(&curTP->cmt_entry_list, cmt_entry, entry);
-    //         }
-    //         break;
-    //     }
-    // }
-    // /* even if cmt_entry not hits, pretreat TPnode to avoid traversing repeatedly */
-    // if (curTP != NULL) {
-    //     QTAILQ_REMOVE(&cm->TPnode_list, curTP, entry);
-    //     QTAILQ_INSERT_HEAD(&cm->TPnode_list, curTP, entry);
-    // }
-
-    curTP = find_hash_tpnode(ht, tvpn);
-    cmt_entry = find_hash_entry(ht, lpn);
-    if (curTP != NULL) {
-        QTAILQ_REMOVE(&cm->TPnode_list, curTP, entry);
-        QTAILQ_INSERT_HEAD(&cm->TPnode_list, curTP, entry);
-    }
+    cmt_entry = find_hash_entry(ht, tlpn);
     if (cmt_entry != NULL) {
-        QTAILQ_REMOVE(&curTP->cmt_entry_list, cmt_entry, entry);
-        QTAILQ_INSERT_HEAD(&curTP->cmt_entry_list, cmt_entry, entry);
+        QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
+        QTAILQ_INSERT_HEAD(&cm->cmt_entry_list, cmt_entry, entry);
     }
 
     return cmt_entry;
 }
 
-static struct cmt_entry *cmt_hit_no_move(struct ssd *ssd, uint64_t lpn)
-{
-    // struct ssdparams *spp = &ssd->sp;
-    // struct cmt_mgmt *cm = &ssd->cm;
-    // uint64_t tvpn = lpn / spp->ents_per_pg;
-    // struct TPnode *curTP = NULL;
-    struct cmt_entry *cmt_entry = NULL;
-    struct hash_table *ht = &ssd->cm.ht;
-
-    cmt_entry = find_hash_entry(ht, lpn);
-
-    // QTAILQ_FOREACH(curTP, &cm->TPnode_list, entry) {
-    //     if (curTP->tvpn == tvpn) {
-    //         QTAILQ_FOREACH(cmt_entry, &curTP->cmt_entry_list, entry) {
-    //             if (cmt_entry->lpn == lpn) break;
-    //         }
-    //         break;
-    //     }
-    // }
-
-    // curTP = QTAILQ_FIRST(&cm->TPnode_list);
-    // if (curTP->tvpn == tvpn) {
-    //     QTAILQ_FOREACH(cmt_entry, &curTP->cmt_entry_list, entry) {
-    //         if (cmt_entry->lpn == lpn) break;
-    //     }
-    // } else {
-    //     printf("error in cmt_hit_no_move! TPnode not in the first\n");
-    // }
-
-    return cmt_entry;
-}
-
-static uint64_t translation_read_page(struct ssd *ssd, NvmeRequest *req, struct ppa *ppa)
+static uint64_t translation_page_read(struct ssd *ssd, NvmeRequest *req, struct ppa *ppa)
 {
     uint64_t lat = 0;
     struct nand_cmd trd;
@@ -1050,7 +1003,7 @@ static uint64_t translation_read_page(struct ssd *ssd, NvmeRequest *req, struct 
     return lat;
 }
 
-static inline uint64_t translation_read_page_no_req(struct ssd *ssd, struct ppa *ppa)
+static inline uint64_t translation_page_read_no_req(struct ssd *ssd, struct ppa *ppa)
 {
     uint64_t lat = 0;
     struct nand_cmd trd;
@@ -1062,7 +1015,7 @@ static inline uint64_t translation_read_page_no_req(struct ssd *ssd, struct ppa 
     return lat;
 }
 
-static uint64_t translation_write_page(struct ssd *ssd, struct ppa *old_ppa)
+static uint64_t translation_page_write(struct ssd *ssd, struct ppa *old_ppa)
 {
     struct ppa new_ppa;
     // struct nand_lun *new_lun, *old_lun;
@@ -1075,7 +1028,6 @@ static uint64_t translation_write_page(struct ssd *ssd, struct ppa *old_ppa)
         set_rmap_ent(ssd, INVALID_LPN, old_ppa);
     }
     new_ppa = get_new_trans_page(ssd);
-
     /* after reading the translation page, new translation page can begin to write */
     // old_lun = get_lun(ssd, old_ppa);
     // new_lun = get_lun(ssd, &new_ppa);
@@ -1100,7 +1052,7 @@ static uint64_t translation_write_page(struct ssd *ssd, struct ppa *old_ppa)
     return lat;
 }
 
-static uint64_t translation_write_new_page(struct ssd *ssd, uint64_t tvpn)
+static uint64_t translation_page_new_write(struct ssd *ssd, uint64_t tvpn)
 {
     struct ppa new_ppa;
     uint64_t lat = 0;
@@ -1125,393 +1077,126 @@ static uint64_t translation_write_new_page(struct ssd *ssd, uint64_t tvpn)
     return lat;
 }
 
-static void insert_entry_to_cmt(struct ssd *ssd, uint64_t lpn, uint64_t ppn, int pos, bool prefetch, uint64_t next_avail_time)
+static void insert_entry_to_cmt(struct ssd *ssd, uint64_t lpn, uint64_t ppn)
 {
-    struct ssdparams *spp = &ssd->sp;
     struct cmt_mgmt *cm = &ssd->cm;
     struct hash_table *ht = &cm->ht;
-    struct TPnode *tpnode;
     struct cmt_entry *cmt_entry;
-    uint64_t tvpn = lpn / spp->ents_per_pg;
+    uint64_t tlpn = lpn/ssd->sp.ents_per_pg;
 
     cmt_entry = QTAILQ_FIRST(&cm->free_cmt_entry_list);
     if (cmt_entry == NULL) {
-        ftl_err("no cmt_entry in free cmt entry list");
+        ftl_err("no cmt entry in free cmt entry list!");
     }
     QTAILQ_REMOVE(&cm->free_cmt_entry_list, cmt_entry, entry);
     cm->free_cmt_entry_cnt--;
-    cmt_entry->lpn = lpn;
+    cmt_entry->lpn = tlpn;
     cmt_entry->ppn = ppn;
     cmt_entry->dirty = CLEAN;
-    cmt_entry->prefetch = prefetch;
-    cmt_entry->next_avail_time = next_avail_time;
     cmt_entry->next = NULL;
+    //count_segments_in_table(Table* table_st)
+    cmt_entry->seg_size = count_segments_in_table(&((ssd->ftl_map->g_map)[tlpn].table));
 
-    //find tpnode
-    // QTAILQ_FOREACH(tpnode, &cm->TPnode_list, entry) {
-    //     if (tpnode->tvpn == tvpn) {
-    //         //insert entry
-    //         if (pos == HEAD) {
-    //             QTAILQ_INSERT_HEAD(&tpnode->cmt_entry_list, cmt_entry, entry);
-    //         } else {
-    //             QTAILQ_INSERT_TAIL(&tpnode->cmt_entry_list, cmt_entry, entry);
-    //         }
-    //         tpnode->cmt_entry_cnt++;
-    //         break;
-    //     }
-    // }
-    /* already pretreat TPnode position */
-    tpnode = QTAILQ_FIRST(&cm->TPnode_list);
-    if (tpnode == NULL || tpnode->tvpn != tvpn) {
-        //create and insert tpnode to TPnode_list
-        tpnode = g_malloc0(sizeof(struct TPnode));
-        tpnode->tvpn = tvpn;
-        tpnode->cmt_entry_cnt = 1;
-        tpnode->next = NULL;
+    QTAILQ_INSERT_HEAD(&cm->cmt_entry_list, cmt_entry, entry);
 
-        QTAILQ_INIT(&tpnode->cmt_entry_list);
-        QTAILQ_INSERT_HEAD(&tpnode->cmt_entry_list, cmt_entry, entry);
-        // if (pos == HEAD)
-        QTAILQ_INSERT_HEAD(&cm->TPnode_list, tpnode, entry);
-        // else
-        //     QTAILQ_INSERT_TAIL(&cm->TPnode_list, tpnode, entry);
-
-        insert_tp_hashtable(ht, tpnode);
-
-        cm->tt_TPnodes++;
-        cm->counter++;
-        if (cm->counter == 3) {
-            cm->counter = 0;
-            spp->enable_select_prefetch = false;
-        }
-    } else {
-        //insert entry
-        if (pos == HEAD) {
-            QTAILQ_INSERT_HEAD(&tpnode->cmt_entry_list, cmt_entry, entry);
-        } else {
-            QTAILQ_INSERT_TAIL(&tpnode->cmt_entry_list, cmt_entry, entry);
-        }
-        tpnode->cmt_entry_cnt++;
-    }
-    //if tpnode exist, change it's priority
-    // if (tpnode != NULL) {
-    //     if (pos == HEAD && tpnode != QTAILQ_FIRST(&cm->TPnode_list)) {
-    //         QTAILQ_REMOVE(&cm->TPnode_list, tpnode, entry);
-    //         QTAILQ_INSERT_HEAD(&cm->TPnode_list, tpnode, entry);
-    //     }
-    // } else {
-    //     //create and insert tpnode to TPnode_list
-    //     tpnode = g_malloc0(sizeof(struct TPnode));
-    //     tpnode->tvpn = tvpn;
-    //     tpnode->cmt_entry_cnt = 1;
-    //     QTAILQ_INIT(&tpnode->cmt_entry_list);
-    //     QTAILQ_INSERT_HEAD(&tpnode->cmt_entry_list, cmt_entry, entry);
-    //     // if (pos == HEAD)
-    //     QTAILQ_INSERT_HEAD(&cm->TPnode_list, tpnode, entry);
-    //     // else
-    //     //     QTAILQ_INSERT_TAIL(&cm->TPnode_list, tpnode, entry);
-    //     cm->tt_TPnodes++;
-    //     cm->counter++;
-    //     if (cm->counter == 3) {
-    //         cm->counter = 0;
-    //         spp->enable_select_prefetch = false;
-    //     }
-    // }
-    tpnode->exist_ent[lpn % spp->ents_per_pg] = 1;
-    cm->used_cmt_entry_cnt++;
+    //需要获取到对应的SSD中使用的CMT的总容量
+    cm->used_cmt_entry_cnt+=cmt_entry->seg_size;
     insert_cmt_hashtable(ht, cmt_entry);
 }
 
-static int evict_entry_from_cmt(struct ssd *ssd)
+static void evict_entry_from_cmt(struct ssd *ssd)
 {
     struct ssdparams *spp = &ssd->sp;
     struct cmt_mgmt *cm = &ssd->cm;
-    struct TPnode *tpnode;
-    struct cmt_entry *cmt_entry, *tmp_entry;
+    struct cmt_entry *cmt_entry;
     uint64_t tvpn;
     struct ppa ppa;
-    int tpnode_evict_flag = 0;
     struct hash_table *ht = &cm->ht;
 
-    //find coldest tpnode
-    tpnode = QTAILQ_LAST(&cm->TPnode_list);
-    if (tpnode->cmt_entry_cnt == 0)
-        ftl_err("tpnode cannot be empty!");
-    //find coldest clean entry
-    QTAILQ_FOREACH_REVERSE(cmt_entry, &tpnode->cmt_entry_list, entry) {
-        if (cmt_entry->dirty == CLEAN) break;
-    }
-    //if no clean entry exists, find first dirty entry
-    if (cmt_entry == NULL) {
-        cmt_entry = QTAILQ_LAST(&tpnode->cmt_entry_list);
-    }
-    //evict entry in tpnode
-    QTAILQ_REMOVE(&tpnode->cmt_entry_list, cmt_entry, entry);
-    tpnode->cmt_entry_cnt--;
-
-    tpnode->exist_ent[cmt_entry->lpn % spp->ents_per_pg] = 0;
+    cmt_entry = QTAILQ_LAST(&cm->cmt_entry_list);
+    /* evict entry in CMT */
+    QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
 
     if (cmt_entry->dirty == DIRTY) {
+        //这个是不会发生的不用考虑
         tvpn = cmt_entry->lpn / spp->ents_per_pg;
         ppa = get_gtd_ent(ssd, tvpn);
+        /* if no correspond translation page, write new page, else, 
+        read old translation page and then write new page */
         if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
-            translation_write_new_page(ssd, tvpn);
+            translation_page_new_write(ssd, tvpn);
         } else {
-            //old translation page read
-            translation_read_page_no_req(ssd, &ppa);
-            //update translation page and write
-            translation_write_page(ssd, &ppa);
-        }
-        //all dirty entry in TPnode update and write to a new translation page
-        QTAILQ_FOREACH(tmp_entry, &tpnode->cmt_entry_list, entry) {
-            if (tmp_entry->dirty == DIRTY)
-                tmp_entry->dirty = CLEAN;
+            /* old translation page read */
+            translation_page_read_no_req(ssd, &ppa);
+            /* update translation page and write */
+            /* delay the GTD update until "write" happens */
+            translation_page_write(ssd, &ppa);
         }
     }
 
-    delete_cmt_hashnode(ht, cmt_entry);
+    if (!delete_cmt_hashnode(ht, cmt_entry)) {
+        printf("error, removed entry is not in hash table!");
+    }
 
-    //insert evicted entry to free_entry_list
+    /* insert evicted entry to free_entry_list */
     cmt_entry->dirty = CLEAN;
     cmt_entry->lpn = INVALID_LPN;
     cmt_entry->ppn = UNMAPPED_PPA;
-    cmt_entry->prefetch = false;
-    cmt_entry->next_avail_time = 0;
-
     QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
     cm->free_cmt_entry_cnt++;
-    cm->used_cmt_entry_cnt--;
-    //if no entry in tpnode, evict tpnode
-    if (tpnode->cmt_entry_cnt == 0) {
-        QTAILQ_REMOVE(&cm->TPnode_list, tpnode, entry);
-
-        delete_tp_hashnode(ht, tpnode);
-
-        cm->tt_TPnodes--;
-        g_free(tpnode);
-        tpnode = NULL;
-        tpnode_evict_flag = 1;
-        cm->counter--;
-        if (cm->counter == -3) {
-            cm->counter = 0;
-            spp->enable_select_prefetch = true;
-        }
-    }
-
-    return tpnode_evict_flag;
+    cm->used_cmt_entry_cnt-=cmt_entry->seg_size;
 }
 
-/**
- * @brief cmt未命中时访问translation page（设置读取延迟）将其插入cmt中，并判断
- * cmt的LRU列表是否已满，若未满则直接插入列表，插入时要判断TPnode是否存在，存在时直接
- * 插入当前TPnode的头部，不存在要新建TPnode并将其插入，若LRU已满要逐出列表，逐出列表的
- * 同时选择第一个非dirty的，直接修改即可，若选择到了dirty的，则需要修改相应的translation page，
- * 读取脏页的translation page（设置延迟），再找新页写入（设置延迟），写入的同时将同一个TPnode
- * 中的脏页都设为clean状态（都已在新的translation page中修改），要预取时，预取的数量为当前请求
- * 访问的同一个tvpn中剩余的数量或TPnode中entry数量的较小值，有一个先到则预取结束，预取操作与上述
- * 步骤相同，除了无需访问lpn对应的translation page
- */
-static struct nand_lun *process_translation_page_read(struct ssd *ssd, NvmeRequest *req, uint64_t start_lpn, uint64_t end_lpn)
+static struct nand_lun *process_translation_page_read(struct ssd *ssd, NvmeRequest *req, uint64_t lpn)
 {
     struct ssdparams *spp = &ssd->sp;
-    struct ppa ppa, new_ppa;
-    uint64_t lpn = start_lpn, new_lpn = start_lpn + 1, last_lpn, ppn, new_ppn;
+    struct ppa ppa;
     struct cmt_mgmt *cm = &ssd->cm;
-    struct TPnode *tpnode;
-    // struct cmt_entry *cmt_entry;
-    uint64_t tvpn;
-    int terminate_flag = 0;
-    struct nand_lun *old_lun;
+    uint64_t tvpn, ppn;
+    struct nand_lun *lunp;
 
-    // struct timespec t3, t4;
-    // double alltime;
-    // clock_gettime(CLOCK_MONOTONIC, &t3);
-
-    // struct timespec t1, t2;
-    // double time;
-    // clock_gettime(CLOCK_MONOTONIC, &t1);
-
-    //get gtd mapping physical page
     tvpn = lpn / spp->ents_per_pg;
     ppa = get_gtd_ent(ssd, tvpn);
     if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
         //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
         //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
         //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
-
-        // clock_gettime(CLOCK_MONOTONIC, &t4);
-        // alltime = (t4.tv_sec - t3.tv_sec)*1000000000 + (t4.tv_nsec - t3.tv_nsec);
-        // fprintf(ssd->fpr, "translation page read inside no gtd: %lf\n", alltime);
-        // fflush(ssd->fpr);
-
         return NULL;
     }
-    //read latency
-    translation_read_page(ssd, req, &ppa);
-    old_lun = get_lun(ssd, &ppa);
+    //translation page read latency
+    translation_page_read(ssd, req, &ppa);
+    lunp = get_lun(ssd, &ppa);
     //get real lpn-ppn
     ppa = get_maptbl_ent(ssd, lpn);
     if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
-
-        // clock_gettime(CLOCK_MONOTONIC, &t4);
-        // alltime = (t4.tv_sec - t3.tv_sec)*1000000000 + (t4.tv_nsec - t3.tv_nsec);
-        // fprintf(ssd->fpr, "translation page read inside no map: %lf\n", alltime);
-        // fflush(ssd->fpr);
-
         return NULL;
     } else {
         ppn = ppa2pgidx(ssd, &ppa);
-
         if (cm->used_cmt_entry_cnt < cm->tt_entries) {
-            insert_entry_to_cmt(ssd, lpn, ppn, HEAD, false, 0);
-        } else if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-            terminate_flag = evict_entry_from_cmt(ssd);
-            insert_entry_to_cmt(ssd, lpn, ppn, HEAD, false, 0);
+            insert_entry_to_cmt(ssd, lpn, ppn);
+        } else if (cm->used_cmt_entry_cnt >= cm->tt_entries) {
+            while (cm->used_cmt_entry_cnt >= cm->tt_entries)
+            {
+                evict_entry_from_cmt(ssd);
+            }
+            
+            insert_entry_to_cmt(ssd, lpn, ppn);
         } else {
             ftl_err("wrong! cmt used entries exceed total entries!");
         }
     }
 
-    // clock_gettime(CLOCK_MONOTONIC, &t2);
-    // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-    // fprintf(ssd->fpr, "basic operation: %lf\n", time);
-    // fflush(ssd->fpr);
-
-    // clock_gettime(CLOCK_MONOTONIC, &t1);
-
-    /* when tpnode has not been evicted, execute request-level prefetching, 
-       end_lpn is the end of translation page or end of request, when evict
-       a TPnode or at the end of translation page/request, stop */
-    if (spp->enable_request_prefetch && !terminate_flag) {
-        for (new_lpn = start_lpn + 1; new_lpn <= end_lpn; new_lpn++) {
-            if (cmt_hit_no_move(ssd, new_lpn)) continue;
-
-            new_ppa = get_maptbl_ent(ssd, new_lpn);
-
-            if (!mapped_ppa(&new_ppa) || !valid_ppa(ssd, &new_ppa)) {
-                //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
-                //printf("Invalid ppa,ch:%d,lun:%d,blk:%d,pl:%d,pg:%d,sec:%d\n",
-                //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
-                continue;
-            }
-
-            new_ppn = ppa2pgidx(ssd, &new_ppa);
-
-            if (cm->used_cmt_entry_cnt < cm->tt_entries) {
-                insert_entry_to_cmt(ssd, new_lpn, new_ppn, TAIL, true, old_lun->next_lun_avail_time);
-            } else if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-                terminate_flag = evict_entry_from_cmt(ssd);
-                insert_entry_to_cmt(ssd, new_lpn, new_ppn, TAIL, true, old_lun->next_lun_avail_time);
-            } else {
-                ftl_err("wrong! cmt used entries exceed total entries!");
-            }
-
-            if (terminate_flag) break;
-        }
-    }
-
-    // clock_gettime(CLOCK_MONOTONIC, &t2);
-    // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-    // fprintf(ssd->fpr, "request prefetch: %lf\n", time);
-    // fflush(ssd->fpr);
-
-    /* when tpnode has not been evicted, execute selective prefetching 
-       when at the end of a translation page or a TPnode is evicted, stop */
-    if (spp->enable_select_prefetch && !terminate_flag) {
-
-        // clock_gettime(CLOCK_MONOTONIC, &t1);
-
-        last_lpn = (lpn / spp->ents_per_pg + 1) * spp->ents_per_pg - 1;
-        /* last requeset lpn still small than the end of translation page */
-        if (new_lpn <= last_lpn) {
-            // int exist_ent[spp->ents_per_pg], 
-            int index = lpn % spp->ents_per_pg - 1, cnt = 0;
-            // for (int i = 0; i < spp->ents_per_pg; i++) {
-            //     exist_ent[i] = 0;
-            // }
-            // QTAILQ_FOREACH(tpnode, &cm->TPnode_list, entry) {
-            //     if (tpnode->tvpn == tvpn) {
-            //         QTAILQ_FOREACH(cmt_entry, &tpnode->cmt_entry_list, entry) {
-            //             exist_ent[cmt_entry->lpn % spp->ents_per_pg] = 1;
-            //         }
-            //         while (index >= 0 && exist_ent[index] == 1) {
-            //             index--;
-            //             cnt++;
-            //         }
-            //         break;
-            //     }
-            // }
-            tpnode = QTAILQ_FIRST(&cm->TPnode_list);
-            if (tpnode->tvpn == tvpn) {
-                // QTAILQ_FOREACH(cmt_entry, &tpnode->cmt_entry_list, entry) {
-                //     exist_ent[cmt_entry->lpn % spp->ents_per_pg] = 1;
-                // }
-                while (index >= 0 && tpnode->exist_ent[index] == 1) {
-                    index--;
-                    cnt++;
-                }
-            } else {
-                printf("error! tpnode is not in the first of list\n");
-            }
-
-            if (lpn + cnt >= new_lpn) {
-                last_lpn = (lpn + cnt) > last_lpn ? last_lpn : (lpn + cnt);
-                for (; new_lpn <= last_lpn; new_lpn++) {
-                    // if (cnt == 0) break;
-                    // cnt--;
-                    if (cmt_hit_no_move(ssd, new_lpn)) continue;
-
-                    new_ppa = get_maptbl_ent(ssd, new_lpn);
-
-                    if (!mapped_ppa(&new_ppa) || !valid_ppa(ssd, &new_ppa)) {
-                        if (cm->used_cmt_entry_cnt < cm->tt_entries) {
-                            insert_entry_to_cmt(ssd, new_lpn, UNMAPPED_PPA, TAIL, true, old_lun->next_lun_avail_time);
-                        } else if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-                            terminate_flag = evict_entry_from_cmt(ssd);
-                            insert_entry_to_cmt(ssd, new_lpn, UNMAPPED_PPA, TAIL, true, old_lun->next_lun_avail_time);
-                        } else {
-                            ftl_err("wrong! cmt used entries exceed total entries!");
-                        }
-                    } else {
-                        new_ppn = ppa2pgidx(ssd, &new_ppa);
-                        if (cm->used_cmt_entry_cnt < cm->tt_entries) {
-                            insert_entry_to_cmt(ssd, new_lpn, new_ppn, TAIL, true, old_lun->next_lun_avail_time);
-                        } else if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-                            terminate_flag = evict_entry_from_cmt(ssd);
-                            insert_entry_to_cmt(ssd, new_lpn, new_ppn, TAIL, true, old_lun->next_lun_avail_time);
-                        } else {
-                            ftl_err("wrong! cmt used entries exceed total entries!");
-                        }
-                    }
-
-                    if (terminate_flag) break;
-                }
-            }
-        }
-
-        // clock_gettime(CLOCK_MONOTONIC, &t2);
-        // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-        // fprintf(ssd->fpr, "selective prefetch: %lf\n", time);
-        // fflush(ssd->fpr);
-
-    }
-
-    // clock_gettime(CLOCK_MONOTONIC, &t4);
-    // alltime = (t4.tv_sec - t3.tv_sec)*1000000000 + (t4.tv_nsec - t3.tv_nsec);
-    // fprintf(ssd->fpr, "translation page read inside: %lf\n", alltime);
-    // fflush(ssd->fpr);
-
-    return old_lun;
+    return lunp;
 }
 
- static void process_translation_page_write(struct ssd *ssd, NvmeRequest *req, uint64_t tvpn) {
+static void process_translation_page_write(struct ssd *ssd, NvmeRequest *req, uint64_t tvpn) {
     //  printf("%d\n",__LINE__);
     struct ssdparams *spp = &ssd->sp;
     struct ppa ppa;
     uint64_t start_lpn;
     struct cmt_mgmt *cm = &ssd->cm;
  
-    // struct cmt_entry *cmt_entry;
+    struct cmt_entry *cmt_entry = NULL;
     
     FTL_Map*ftl_map = ssd->ftl_map;
     Seg_LRU*seg_lru = ftl_map->seg_LRU;
@@ -1523,38 +1208,54 @@ static struct nand_lun *process_translation_page_read(struct ssd *ssd, NvmeReque
     ppa = get_gtd_ent(ssd,tvpn);
 
     //先判断是否在读缓存中如果在读缓存中需要先从读缓存中把他给evict
-    struct TPnode *curTP = NULL;
-    struct hash_table *ht = &cm->ht;
 
- //printf("%d\n",__LINE__);
-    int cnt = 0;
-    curTP = find_hash_tpnode(ht, tvpn);
-    if (curTP != NULL) {
-        cnt=curTP->cmt_entry_cnt;
-    }
-    //printf("%d\n",__LINE__);
-    // printf("cnt: %d\n",cnt);
-    // printf("tpnode: %p\n",curTP);
-    do{
-        curTP = find_hash_tpnode(ht, tvpn);
-        if (curTP != NULL) {
-            QTAILQ_REMOVE(&cm->TPnode_list, curTP, entry);
-            QTAILQ_INSERT_TAIL(&cm->TPnode_list, curTP, entry);
-            cnt--;
-            evict_entry_from_cmt(ssd);
+    start_lpn = tvpn*spp->ents_per_pg;
+    cmt_entry = find_hash_entry(&ssd->cm.ht, tvpn);
+    ssd->stat.write_process_count++;
+    if(cmt_entry){
+        ssd->stat.write_process_read_count++;
+            if (!delete_cmt_hashnode(&ssd->cm.ht, cmt_entry)) {
+        printf("error, removed entry is not in hash table!");
         }
-        
-    }while(curTP);
-//printf("%d\n",__LINE__);
-    if(cnt!=0)
-    {
-        printf("error:%d cnt:%d\n",__LINE__,cnt);
+
+        /* insert evicted entry to free_entry_list */
+        QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
+        cmt_entry->dirty = CLEAN;
+        cmt_entry->lpn = INVALID_LPN;
+        cmt_entry->ppn = UNMAPPED_PPA;
+        QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
+        cm->free_cmt_entry_cnt++;
+        cm->used_cmt_entry_cnt-=cmt_entry->seg_size;
     }
-//printf("%d\n",__LINE__);
+
+    // for(int offset =0;offset<spp->ents_per_pg;++offset){
+        
+    //     cmt_entry = find_hash_entry(&ssd->cm.ht, tvpn);
+    //     if(cmt_entry){
+    //          if (!delete_cmt_hashnode(&ssd->cm.ht, cmt_entry)) {
+    //         printf("error, removed entry is not in hash table!");
+    //         }
+
+    //         /* insert evicted entry to free_entry_list */
+    //         QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
+    //         cmt_entry->dirty = CLEAN;
+    //         cmt_entry->lpn = INVALID_LPN;
+    //         cmt_entry->ppn = UNMAPPED_PPA;
+    //         QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
+    //         cm->free_cmt_entry_cnt++;
+    //         cm->used_cmt_entry_cnt--;
+    //     }
+    //     start_lpn++;
+    // }
+
     //从闪存中读取对应的映射表
     if (mapped_ppa(&ppa) && valid_ppa(ssd, &ppa)) 
     {
-        translation_read_page(ssd, req, &ppa);
+        if(cmt_entry==NULL)
+        {
+            //不在读缓存中需要从读取闪存翻译页
+            translation_page_read(ssd, req, &ppa);
+        }
         g_map[tvpn].next_avail_time = get_lun(ssd, &ppa)->next_lun_avail_time;
     }
     
@@ -1576,11 +1277,11 @@ static struct nand_lun *process_translation_page_read(struct ssd *ssd, NvmeReque
         gtd_ppa = get_gtd_ent(ssd, victim_seg_idx);
         
         if (!mapped_ppa(&gtd_ppa) || !valid_ppa(ssd, &gtd_ppa)) {
-            translation_write_new_page(ssd, victim_seg_idx);
+            translation_page_new_write(ssd, victim_seg_idx);
         } else {
             
             //update translation page and write
-            translation_write_page(ssd, &gtd_ppa);
+            translation_page_write(ssd, &gtd_ppa);
         }
 
         //printf("%d\n",__LINE__);
@@ -1599,30 +1300,38 @@ static struct nand_lun *process_translation_page_read(struct ssd *ssd, NvmeReque
         //printf("%d\n",__LINE__);
         start_lpn = victim_seg_idx*spp->ents_per_pg;
          //写回到read_cache中
-         for(int offset =0;offset<spp->ents_per_pg;++offset){
-            if(table->bitmap[offset>>5] & (1<<(offset&31))){
-                //插入同时更新读缓存的LRU
-                //printf("%d\n",__LINE__);
-                struct cmt_entry* cmt_entry = cmt_hit(ssd,start_lpn+offset);
-                uint64_t ppn = g_map[victim_seg_idx].table.l2p[offset];
-                if(cmt_entry)
+         cmt_entry = cmt_hit(ssd,start_lpn);
+         if(!cmt_entry){
+            if (cm->used_cmt_entry_cnt >= cm->tt_entries) {
+                while (cm->used_cmt_entry_cnt >= cm->tt_entries)
                 {
-                    cmt_entry->ppn = ppn;
+                    evict_entry_from_cmt(ssd);
                 }
-                else
-                {
-                    //printf("%d\n",__LINE__);
-                    if (cm->used_cmt_entry_cnt == cm->tt_entries) {
-                        evict_entry_from_cmt(ssd);
-                    }
-                    insert_entry_to_cmt(ssd,start_lpn+offset,ppn,HEAD,false,g_map[victim_seg_idx].next_avail_time);
-                    //printf("%d\n",__LINE__);
-                }
-            //    printf("%d\n",__LINE__);
             }
+            insert_entry_to_cmt(ssd,start_lpn,g_map[victim_seg_idx].table.l2p[0]);
          }
-        // printf("%d\n",__LINE__);
-        
+        //  for(int offset =0;offset<spp->ents_per_pg;++offset){
+        //     if(table->bitmap[offset>>5] & (1<<(offset&31))){
+        //         //插入同时更新读缓存的LRU
+        //         //printf("%d\n",__LINE__);
+        //         cmt_entry = cmt_hit(ssd,start_lpn+offset);
+        //         uint64_t ppn = g_map[victim_seg_idx].table.l2p[offset];
+        //         if(cmt_entry)
+        //         {
+        //             cmt_entry->ppn = ppn;
+        //         }
+        //         else
+        //         {
+        //             if (cm->used_cmt_entry_cnt >= cm->tt_entries) {
+        //                 while (cm->used_cmt_entry_cnt >= cm->tt_entries)
+        //                 {
+        //                     evict_entry_from_cmt(ssd);
+        //                 }
+        //             }
+        //             insert_entry_to_cmt(ssd,start_lpn+offset,ppn);
+        //         }
+        //     }
+        //  }
     }
     else
     {
@@ -1640,44 +1349,7 @@ static struct nand_lun *process_translation_page_read(struct ssd *ssd, NvmeReque
 }
 
 
-/* move valid page data (already in DRAM) from victim line to a new page */
-static uint64_t gc_translation_write_page(struct ssd *ssd, struct ppa *old_ppa)
-{
-    struct ppa new_ppa;
-    struct nand_lun *new_lun;
-    uint64_t tvpn = get_rmap_ent(ssd, old_ppa);
 
-    ftl_assert(valid_lpn(ssd, tvpn));
-    new_ppa = get_new_trans_page(ssd);
-    /* update GTD */
-    set_gtd_ent(ssd, tvpn, &new_ppa);
-    /* update rmap */
-    set_rmap_ent(ssd, tvpn, &new_ppa);
-
-    mark_page_valid(ssd, &new_ppa);
-
-    /* need to advance the write pointer here */
-    ssd_advance_trans_write_pointer(ssd);
-
-    if (ssd->sp.enable_gc_delay) {
-        struct nand_cmd gcw;
-        gcw.type = GC_IO;
-        gcw.cmd = NAND_WRITE;
-        gcw.stime = 0;
-        ssd_advance_status(ssd, &new_ppa, &gcw);
-    }
-
-    /* advance per-ch gc_endtime as well */
-#if 0
-    new_ch = get_ch(ssd, &new_ppa);
-    new_ch->gc_endtime = new_ch->next_ch_avail_time;
-#endif
-
-    new_lun = get_lun(ssd, &new_ppa);
-    new_lun->gc_endtime = new_lun->next_lun_avail_time;
-
-    return 0;
-}
 
 static void gc_read_page(struct ssd *ssd, struct ppa *ppa)
 {
@@ -1730,6 +1402,44 @@ static uint64_t gc_write_page(struct ssd *ssd, struct ppa *old_ppa)
     return 0;
 }
 
+static uint64_t gc_translation_page_write(struct ssd *ssd, struct ppa *old_ppa)
+{
+    struct ppa new_ppa;
+    struct nand_lun *new_lun;
+    uint64_t tvpn = get_rmap_ent(ssd, old_ppa);
+
+    ftl_assert(valid_lpn(ssd, tvpn));
+    new_ppa = get_new_trans_page(ssd);
+    /* update GTD */
+    set_gtd_ent(ssd, tvpn, &new_ppa);
+    /* update rmap */
+    set_rmap_ent(ssd, tvpn, &new_ppa);
+
+    mark_page_valid(ssd, &new_ppa);
+
+    /* need to advance the write pointer here */
+    ssd_advance_trans_write_pointer(ssd);
+
+    if (ssd->sp.enable_gc_delay) {
+        struct nand_cmd gcw;
+        gcw.type = GC_IO;
+        gcw.cmd = NAND_WRITE;
+        gcw.stime = 0;
+        ssd_advance_status(ssd, &new_ppa, &gcw);
+    }
+
+    /* advance per-ch gc_endtime as well */
+#if 0
+    new_ch = get_ch(ssd, &new_ppa);
+    new_ch->gc_endtime = new_ch->next_ch_avail_time;
+#endif
+
+    new_lun = get_lun(ssd, &new_ppa);
+    new_lun->gc_endtime = new_lun->next_lun_avail_time;
+
+    return 0;
+}
+
 static struct line *select_victim_line(struct ssd *ssd, bool force)
 {
     struct line_mgmt *lm = &ssd->lm;
@@ -1759,6 +1469,7 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
     struct nand_page *pg_iter = NULL;
     int cnt = 0;
     uint64_t lpn, tvpn;
+    struct cmt_entry *cmt_entry;
     struct ppa new_ppa;
     uint64_t batch_update[spp->pgs_per_blk];
     int pos = 0, flag;
@@ -1767,13 +1478,9 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
     Seg_LRU* seg_lru = ftl_map->seg_LRU;
     G_map*g_map = ftl_map->g_map;
 
-    struct nand_block *blk = get_blk(ssd, ppa);
-    //printf("%d\n",__LINE__);
     for (int pg = 0; pg < spp->pgs_per_blk; pg++) {
         ppa->g.pg = pg;
-        // pg_iter = get_pg(ssd, ppa);
-        pg_iter = &blk->pg[pg];
-
+        pg_iter = get_pg(ssd, ppa);
         /* there shouldn't be any free page in victim blocks */
         ftl_assert(pg_iter->status != PG_FREE);
         if (pg_iter->status == PG_VALID) {
@@ -1782,7 +1489,7 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
             if (ppa2pgidx(ssd, ppa) != ppa2pgidx(ssd, &ssd->maptbl[lpn])) {
                 printf("data block contains translation page!\n");
             } else {
-                /* delay the maptbl update until "write" happens */
+                 /* delay the maptbl update until "write" happens */
                 //printf("%d\n",__LINE__);
                 gc_write_page(ssd, ppa);
                 //cmt_entry = find_hash_entry(&ssd->cm.ht, lpn);
@@ -1796,32 +1503,43 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
                     g_map[ tvpn].table.l2p[ offset] = ppa2pgidx(ssd, &new_ppa);
                     g_map[ tvpn].table.bitmap[ offset>>5] |= (1<<(offset&31));
 
-                    //check_table_right(ssd,__LINE__);
-                    struct TPnode *curTP = NULL;
-                    struct hash_table *ht = &cm->ht;
-                    //printf("%d\n",__LINE__);
-                    int cnt = 0;
-                    curTP = find_hash_tpnode(ht, tvpn);
-                    if (curTP != NULL) {
-                        cnt=curTP->cmt_entry_cnt;
-                    }
-                    //check_table_right(ssd,__LINE__);
-                    do{
-                        curTP = find_hash_tpnode(ht, tvpn);
-                        if (curTP != NULL) {
-                            QTAILQ_REMOVE(&cm->TPnode_list, curTP, entry);
-                            QTAILQ_INSERT_TAIL(&cm->TPnode_list, curTP, entry);
-                            cnt--;
-                            evict_entry_from_cmt(ssd);
+                    cmt_entry = find_hash_entry(&ssd->cm.ht, tvpn);
+                    if(cmt_entry){
+                        if (!delete_cmt_hashnode(&ssd->cm.ht, cmt_entry)) {
+                        printf("error, removed entry is not in hash table!");
                         }
-                        
-                    }while(curTP);
-                    //printf("%d\n",__LINE__);
-                    //check_table_right(ssd,__LINE__);
-                    if(cnt!=0)
-                    {
-                        printf("error:%d cnt:%d\n",__LINE__,cnt);
+
+                        /* insert evicted entry to free_entry_list */
+                        QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
+                        cmt_entry->dirty = CLEAN;
+                        cmt_entry->lpn = INVALID_LPN;
+                        cmt_entry->ppn = UNMAPPED_PPA;
+                        QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
+                        cm->free_cmt_entry_cnt++;
+                        cm->used_cmt_entry_cnt-=cmt_entry->seg_size;
                     }
+                    
+                    // uint64_t start_lpn = tvpn*spp->ents_per_pg;
+                    // for(int offset =0;offset<spp->ents_per_pg;++offset){
+                        
+                    //     cmt_entry = find_hash_entry(&ssd->cm.ht, start_lpn);
+                    //     if(cmt_entry){
+                    //         if (!delete_cmt_hashnode(&ssd->cm.ht, cmt_entry)) {
+                    //         printf("error, removed entry is not in hash table!");
+                    //         }
+
+                    //         /* insert evicted entry to free_entry_list */
+                    //         QTAILQ_REMOVE(&cm->cmt_entry_list, cmt_entry, entry);
+                    //         cmt_entry->dirty = CLEAN;
+                    //         cmt_entry->lpn = INVALID_LPN;
+                    //         cmt_entry->ppn = UNMAPPED_PPA;
+                    //         QTAILQ_INSERT_TAIL(&cm->free_cmt_entry_list, cmt_entry, entry);
+                    //         cm->free_cmt_entry_cnt++;
+                    //         cm->used_cmt_entry_cnt--;
+                    //     }
+                    //     start_lpn++;
+                    // }
+                   
 
                     flag = 0;
                     for (int i = 0; i < pos; i++) {
@@ -1837,14 +1555,14 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
                         new_ppa = get_gtd_ent(ssd, tvpn);
                         if(!mapped_ppa(&new_ppa)||!valid_ppa(ssd,&new_ppa))
                         {
-                            //printf("error:%d tvpn:%lld\n",__LINE__,(long long)tvpn);
+                            printf("error:%d tvpn:%lld\n",__LINE__,(long long)tvpn);
                             exit(0);
                         }
                         //printf ("%d\n",__LINE__);
 
-                        translation_read_page_no_req(ssd, &new_ppa);
+                        translation_page_read_no_req(ssd, &new_ppa);
                         //printf ("%d\n",__LINE__);
-                        translation_write_page(ssd, &new_ppa);
+                        translation_page_write(ssd, &new_ppa);
                         //printf ("%d\n",__LINE__);
                     }
                     //printf("%d\n",__LINE__);
@@ -1864,6 +1582,7 @@ static void clean_one_data_block(struct ssd *ssd, struct ppa *ppa)
             cnt++;
         }
     }
+
     ftl_assert(get_blk(ssd, ppa)->vpc == cnt);
 }
 
@@ -1874,26 +1593,23 @@ static void clean_one_trans_block(struct ssd *ssd, struct ppa *ppa)
     int cnt = 0;
     uint64_t lpn;
 
-    struct nand_block *blk = get_blk(ssd, ppa);
-
     for (int pg = 0; pg < spp->pgs_per_blk; pg++) {
         ppa->g.pg = pg;
-        // pg_iter = get_pg(ssd, ppa);
-        pg_iter = &blk->pg[pg];
-
+        pg_iter = get_pg(ssd, ppa);
         /* there shouldn't be any free page in victim blocks */
         ftl_assert(pg_iter->status != PG_FREE);
         if (pg_iter->status == PG_VALID) {
             gc_read_page(ssd, ppa);
             lpn = get_rmap_ent(ssd, ppa);
             if (ppa2pgidx(ssd, ppa) != ppa2pgidx(ssd, &ssd->maptbl[lpn])) {
-                gc_translation_write_page(ssd, ppa);
+                gc_translation_page_write(ssd, ppa);
             } else {
                 printf("translation block contains data page!\n");
             }
             cnt++;
         }
     }
+
     ftl_assert(get_blk(ssd, ppa)->vpc == cnt);
 }
 
@@ -1916,7 +1632,7 @@ static int do_gc(struct ssd *ssd, bool force)
     struct nand_lun *lunp;
     struct ppa ppa;
     int ch, lun;
-    
+
     victim_line = select_victim_line(ssd, force);
     if (!victim_line) {
         return -1;
@@ -1969,16 +1685,13 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
     struct ppa ppa;
     uint64_t start_lpn = lba / spp->secs_per_pg;
     uint64_t end_lpn = (lba + nsecs - 1) / spp->secs_per_pg;
-    uint64_t lpn, last_lpn;
+    uint64_t lpn;
     uint64_t sublat, maxlat = 0;
     struct nand_lun *old_lun, *lun;
-    struct cmt_entry *cmt_entry;
     struct statistics *st = &ssd->stat;
-    FTL_Map* ftl_map = ssd->ftl_map;
-    Seg_LRU*seg_lru = ftl_map->seg_LRU;
+    FTL_Map*ftl_map = ssd->ftl_map;
+    Seg_LRU* seg_lru = ftl_map->seg_LRU;
 
-    // struct timespec t1, t2;
-    // double time;
 
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
@@ -1986,19 +1699,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
 
     /* normal IO read path */
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
-        /**
-         * @brief 判断cmt是否命中，若命中直接取ppa，若不命中则访问translation page（设置读取延迟）
-         * 将其插入cmt中，并判断cmt的LRU列表是否已满，若未满则直接插入列表，插入时要判断TPnode是否存在，
-         * 存在时直接插入当前TPnode的头部，不存在要新建TPnode并将其插入，若LRU已满要逐出列表，逐出列表的
-         * 同时选择第一个非dirty的，直接修改即可，若选择到了dirty的，则需要修改相应的translation page，
-         * 读取脏页的translation page（设置延迟），再找新页写入（设置延迟），写入的同时将同一个TPnode
-         * 中的脏页都设为clean状态（都已在新的translation page中修改），要预取时，预取的数量为当前请求
-         * 访问的同一个tvpn中剩余的数量或TPnode中entry数量的较小值，有一个先到则预取结束，预取操作与上述
-         * 步骤相同，除了无需访问lpn对应的translation page
-         */
-
-        // clock_gettime(CLOCK_MONOTONIC, &t1);
         st->access_cnt++;
+
 
         uint64_t tvpn = lpn/spp->ents_per_pg;
         if(seg_lru[tvpn].pos_entry_number!=INVALID_POS_ENTRY)
@@ -2027,15 +1729,8 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                             ftl_map->g_map[tvpn].next_avail_time : lun->next_lun_avail_time;
             goto ssd_read_latency;
         }
-        
-        cmt_entry = cmt_hit(ssd, lpn);
 
-        // clock_gettime(CLOCK_MONOTONIC, &t2);
-        // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-        // fprintf(ssd->fpr, "cmt search: %lf\n", time);
-        // fflush(ssd->fpr);
-
-        if (cmt_entry) {
+        if (cmt_hit(ssd, lpn)) {
             st->cmt_hit_cnt++;
             ppa = get_maptbl_ent(ssd, lpn);
             if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
@@ -2046,29 +1741,9 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 ssd->stat.cmt_hit_cnt--;
                 continue;
             }
-            
-            if (cmt_entry->prefetch) {
-                lun = get_lun(ssd, &ppa);
-                lun->next_lun_avail_time = (cmt_entry->next_avail_time > lun->next_lun_avail_time) ? \
-                            cmt_entry->next_avail_time : lun->next_lun_avail_time;
-            }
         } else {
             st->cmt_miss_cnt++;
-            // pretreat future request
-            last_lpn = (lpn / spp->ents_per_pg + 1) * spp->ents_per_pg - 1;
-            last_lpn = (last_lpn < end_lpn) ? last_lpn : end_lpn;
-            
-
-            // clock_gettime(CLOCK_MONOTONIC, &t1);
-
-            old_lun = process_translation_page_read(ssd, req, lpn, last_lpn);
-
-            // clock_gettime(CLOCK_MONOTONIC, &t2);
-            // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-            // fprintf(ssd->fpr, "translation read process outside: %lf\n", time);
-            // fflush(ssd->fpr);
-
-
+            old_lun = process_translation_page_read(ssd, req, lpn);
             ppa = get_maptbl_ent(ssd, lpn);
             if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
                 //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
@@ -2078,14 +1753,13 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
                 ssd->stat.cmt_miss_cnt--;
                 continue;
             }
-            //after reading the translation page, data page can only begin to read
             lun = get_lun(ssd, &ppa);
             lun->next_lun_avail_time = (old_lun->next_lun_avail_time > lun->next_lun_avail_time) ? \
                                         old_lun->next_lun_avail_time : lun->next_lun_avail_time;
         }
 
-    ssd_read_latency:
 
+        ssd_read_latency:
         if (!mapped_ppa(&ppa) || !valid_ppa(ssd, &ppa)) {
             ssd->stat.access_cnt--;
             //printf("%s,lpn(%" PRId64 ") not mapped to valid ppa\n", ssd->ssdname, lpn);
@@ -2093,6 +1767,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
             //ppa.g.ch, ppa.g.lun, ppa.g.blk, ppa.g.pl, ppa.g.pg, ppa.g.sec);
             continue;
         }
+
         struct nand_cmd srd;
         srd.type = USER_IO;
         srd.cmd = NAND_READ;
@@ -2103,8 +1778,7 @@ static uint64_t ssd_read(struct ssd *ssd, NvmeRequest *req)
 
     return maxlat;
 }
-// #pragma GCC push_options
-// #pragma GCC optimize (0)
+
 static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
 {
     uint64_t lba = req->slba;
@@ -2116,22 +1790,19 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
     uint64_t lpn;
     uint64_t curlat = 0, maxlat = 0;
     int r;
+    //struct cmt_entry *cmt_entry;
     FTL_Map*ftl_map = ssd->ftl_map;
     Seg_LRU* seg_lru = ftl_map->seg_LRU;
     Write_Cache* write_cache = ftl_map->cache; 
-    // struct timespec t1, t2;
-    // double time;
-
-
     //struct statistics *st = &ssd->stat;
-    // struct nand_lun *old_lun, *new_lun;
-    //printf("%d\n",__LINE__);
-    ssd->stat.should_write_num +=end_lpn-start_lpn+1;
+
+    ssd->stat.should_write_num+=end_lpn-start_lpn+1;
+
     if (end_lpn >= spp->tt_pgs) {
         ftl_err("start_lpn=%"PRIu64",tt_pgs=%d\n", start_lpn, ssd->sp.tt_pgs);
     }
 
- 
+
     while (should_gc_high(ssd)) {
         /* perform GC here until !should_gc(ssd) */
         r = do_gc(ssd, true);
@@ -2139,23 +1810,17 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             break;
     }
 
-     //printf("%d\n",__LINE__);
-
+    //printf("%d\n",__LINE__);
     for (lpn = start_lpn; lpn <= end_lpn; lpn++) {
-        // old_lun = NULL;
-         //printf("%d\n",__LINE__);
+        //printf("%d\n",__LINE__);
         int gtd_index = lpn/spp->ents_per_pg;
         int offset = lpn&0xff;
 
-
         if(seg_lru[gtd_index].pos_entry_number==INVALID_POS_ENTRY)
         {//不在写缓存中要加入到写缓存中
-            //printf("%d\n",__LINE__);
-            
             process_translation_page_write(ssd,req,gtd_index);
-            //printf("%d\n",__LINE__);
         }
-         //printf("%d\n",__LINE__);
+        //printf("%d\n",__LINE__);
         ppa = get_maptbl_ent(ssd, lpn);
         Table* table = &(write_cache->write_table[seg_lru[gtd_index].pos_entry_number]);
         // printf("%d\n",__LINE__);
@@ -2164,91 +1829,29 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
             printf("error:%d lpn:%lld ftlvppn:%lld ,actual_vppn: %lld \n",__LINE__,(long long)lpn,(long long)table->l2p[offset],(long long)ppa2pgidx(ssd,&ppa));
             exit(0);
         }
-
-
-
-        // // clock_gettime(CLOCK_MONOTONIC, &t1);
-        // //st->access_cnt++;
-        // cmt_entry = cmt_hit(ssd, lpn);
-
-        // // clock_gettime(CLOCK_MONOTONIC, &t2);
-        // // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-        // // fprintf(ssd->fpw, "cmt search: %lf\n", time);
-        // // fflush(ssd->fpw);
-
-        // if (cmt_entry) {
-        //     //st->cmt_hit_cnt++;
-        //     ppa = get_maptbl_ent(ssd, lpn);
-        // } else {
-        //     //st->cmt_miss_cnt++;
-        //     last_lpn = (lpn / spp->ents_per_pg + 1) * spp->ents_per_pg - 1;
-        //     last_lpn = (last_lpn < end_lpn) ? last_lpn : end_lpn;
-
-
-        //     // clock_gettime(CLOCK_MONOTONIC, &t1);
-
-        //     process_translation_page_write(ssd, req, lpn, last_lpn);
-
-        //     // clock_gettime(CLOCK_MONOTONIC, &t2);
-        //     // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-        //     // fprintf(ssd->fpw, "translation write process: %lf\n", time);
-        //     // fflush(ssd->fpw);
-
-        //     ppa = get_maptbl_ent(ssd, lpn);
-        // }
-
-        // // clock_gettime(CLOCK_MONOTONIC, &t1);
-
-        // cmt_entry = cmt_hit_no_move(ssd, lpn);
-
-        // // clock_gettime(CLOCK_MONOTONIC, &t2);
-        // // time = (t2.tv_sec - t1.tv_sec)*1000000000 + (t2.tv_nsec - t1.tv_nsec);
-        // // fprintf(ssd->fpw, "already rearrange cmt, search cost: %lf\n", time);
-        // // fflush(ssd->fpw);
-
-        // if (cmt_entry == NULL) {
-        //     ftl_err("after process translation page, there is still no entry in cmt");
-        // }
+        //printf("%d\n",__LINE__);
 
         if (mapped_ppa(&ppa)) {
             /* update old page information first */
             mark_page_invalid(ssd, &ppa);
             set_rmap_ent(ssd, INVALID_LPN, &ppa);
         }
-         //printf("%d\n",__LINE__);
+        //printf("%d\n",__LINE__);
         /* new write */
         ppa = get_new_page(ssd);
-        /* set serving write request start time (after cmt missing) */
-        // if (old_lun) {
-        //     new_lun = get_lun(ssd, &ppa);
-        //     new_lun->next_lun_avail_time = (old_lun->next_lun_avail_time > new_lun->next_lun_avail_time) ? 
-        //                                     old_lun->next_lun_avail_time : new_lun->next_lun_avail_time;
-        // }
-        // if (cmt_entry->prefetch) {
-        //     new_lun = get_lun(ssd, &ppa);
-        //     new_lun->next_lun_avail_time = (cmt_entry->next_avail_time > new_lun->next_lun_avail_time) ? 
-        //                                     cmt_entry->next_avail_time : new_lun->next_lun_avail_time;
-        // }
-
         /* update maptbl */
         set_maptbl_ent(ssd, lpn, &ppa);
-        // /* update cmt */
-        // cmt_entry->ppn = ppa2pgidx(ssd, &ppa);
-        // cmt_entry->dirty = DIRTY;
-
+        /* update cmt */
         table = &(write_cache->write_table[seg_lru[gtd_index].pos_entry_number]);
         //更新bitmap
         table->bitmap[offset>>5] |= (1<<(offset&31));
         table->l2p[offset] = ppa2pgidx(ssd,&ppa);
-         //printf("%d\n",__LINE__);
-        //check_table_right(ssd,__LINE__);
-
+        //printf("%d\n",__LINE__);
         //更新write_cache的LRU
         REMOVE_WRITE_CACHE_LRU(ftl_map,gtd_index);
         //printf("write_SegTable2-1 0\n");
         ADD_WRITE_CACHE_LRU(ftl_map,gtd_index);
-
-
+        //printf("%d\n",__LINE__);
         /* update rmap */
         set_rmap_ent(ssd, lpn, &ppa);
 
@@ -2256,7 +1859,7 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
 
         /* need to advance the write pointer here */
         ssd_advance_write_pointer(ssd);
-        // printf("%d\n",__LINE__);
+
         struct nand_cmd swr;
         swr.type = USER_IO;
         swr.cmd = NAND_WRITE;
@@ -2264,12 +1867,12 @@ static uint64_t ssd_write(struct ssd *ssd, NvmeRequest *req)
         /* get latency statistics */
         curlat = ssd_advance_status(ssd, &ppa, &swr);
         maxlat = (curlat > maxlat) ? curlat : maxlat;
-        //printf("%d lpn:%lld endlpn:%lld\n",__LINE__,(long long)lpn,(long long)end_lpn);
+        //printf("%d\n",__LINE__);
     }
 
     return maxlat;
 }
-// #pragma GCC pop_options
+
 static void *ftl_thread(void *arg)
 {
     FemuCtrl *n = (FemuCtrl *)arg;
@@ -2323,12 +1926,11 @@ static void *ftl_thread(void *arg)
 
             /* clean one line if needed (in the background) */
             if (should_gc(ssd)) {
-                //printf("%d\n",__LINE__);
                 do_gc(ssd, false);
-                //printf("%d\n",__LINE__);
             }
         }
     }
 
     return NULL;
 }
+
