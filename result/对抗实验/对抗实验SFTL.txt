@@ -1,0 +1,734 @@
+
+
+=================================
+SFTL:
+
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ment=1G -group_reporting -filename=/dev/nvme0n1 -name=Write_BandWidth_Test_increm
+Write_BandWidth_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [w(20)][100.0%][r=0KiB/s,w=499MiB/s][r=0,w=49.9k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1483: Sat Nov 15 03:36:58 2025
+  write: IOPS=36.5k, BW=460MiB/s (483MB/s)(20.0GiB/44489msec)
+    clat (usec): min=206, max=34030, avg=541.46, stdev=265.09
+     lat (usec): min=207, max=34030, avg=541.90, stdev=265.18
+    clat percentiles (usec):
+     |  1.00th=[  212],  5.00th=[  243], 10.00th=[  297], 20.00th=[  371],
+     | 30.00th=[  420], 40.00th=[  465], 50.00th=[  519], 60.00th=[  570],
+     | 70.00th=[  627], 80.00th=[  701], 90.00th=[  807], 95.00th=[  898],
+     | 99.00th=[ 1074], 99.50th=[ 1156], 99.90th=[ 1434], 99.95th=[ 2409],
+     | 99.99th=[ 2737]
+   bw (  KiB/s): min=20380, max=28911, per=5.08%, avg=23963.08, stdev=1381.06, samples=1759
+   iops        : min= 1504, max= 2657, avg=1855.82, stdev=226.01, samples=1759
+  lat (usec)   : 250=5.52%, 500=41.25%, 750=38.22%, 1000=12.90%
+  lat (msec)   : 2=2.02%, 4=0.08%, 10=0.01%, 20=0.01%, 50=0.01%
+  cpu          : usr=0.71%, sys=1.20%, ctx=1626362, majf=0, minf=167
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=460MiB/s (483MB/s), 460MiB/s-460MiB/s (483MB/s-483MB/s), io=20.0GiB (21.5GB), run=44489-44489msec
+
+Disk stats (read/write):
+  nvme0n1: ios=532/1625625, merge=0/0, ticks=32/859444, in_queue=825864, util=99.78%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 1778
+CMT miss count: 3
+CMT access count: 1781
+CMT hit ratio: 0.998316
+write cnt: 6806775
+should_write cnt: 5242880
+erase cnt: 2080
+read joule: 3141495.000000
+write joule: 113673142.499994
+erase joule: 274560.000000
+All joule: 117089197.499994
+write process count: 1564021
+write process read count: 647755
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ilename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -fi
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][100.0%][r=1267MiB/s,w=0KiB/s][r=324k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1554: Sat Nov 15 03:37:54 2025
+   read: IOPS=319k, BW=1245MiB/s (1306MB/s)(20.0GiB/16445msec)
+    clat (usec): min=5, max=7381, avg=61.36, stdev=26.30
+     lat (usec): min=5, max=7381, avg=61.56, stdev=26.32
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[   10], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   53], 50.00th=[   57], 60.00th=[   61],
+     | 70.00th=[   69], 80.00th=[   79], 90.00th=[   92], 95.00th=[  105],
+     | 99.00th=[  137], 99.50th=[  151], 99.90th=[  184], 99.95th=[  202],
+     | 99.99th=[  273]
+   bw (  KiB/s): min=54943, max=65891, per=5.02%, avg=63987.60, stdev=1683.78, samples=640
+   iops        : min=13735, max=16472, avg=15996.74, stdev=420.95, samples=640
+  lat (usec)   : 10=5.68%, 20=1.05%, 50=21.37%, 100=65.37%, 250=6.52%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%, 4=0.01%, 10=0.01%
+  cpu          : usr=3.17%, sys=14.74%, ctx=4891474, majf=0, minf=183
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1245MiB/s (1306MB/s), 1245MiB/s-1245MiB/s (1306MB/s-1306MB/s), io=20.0GiB (21.5GB), run=16445-16445msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5237462/0, merge=0/0, ticks=245776/0, in_queue=223428, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 4837978
+CMT miss count: 20351
+CMT access count: 4888291
+CMT hit ratio: 0.989707
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 17180247.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 17180247.000000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+g -filename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 15 (f=15): [_(1),r(11),_(1),r(1),_(3),r(3)][100.0%][r=964MiB/s,w=0KiB/s][r=247k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1583: Sat Nov 15 03:39:09 2025
+   read: IOPS=150k, BW=586MiB/s (614MB/s)(20.0GiB/34968msec)
+    clat (usec): min=5, max=1096, avg=131.73, stdev=77.55
+     lat (usec): min=5, max=1097, avg=131.92, stdev=77.55
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   10], 10.00th=[   49], 20.00th=[   88],
+     | 30.00th=[   90], 40.00th=[   95], 50.00th=[  113], 60.00th=[  131],
+     | 70.00th=[  157], 80.00th=[  190], 90.00th=[  239], 95.00th=[  281],
+     | 99.00th=[  371], 99.50th=[  404], 99.90th=[  478], 99.95th=[  510],
+     | 99.99th=[  586]
+   bw (  KiB/s): min=26997, max=49376, per=4.96%, avg=29726.78, stdev=2871.26, samples=1379
+   iops        : min= 6749, max=12344, avg=7431.52, stdev=717.81, samples=1379
+  lat (usec)   : 10=5.25%, 20=1.50%, 50=4.12%, 100=33.15%, 250=47.67%
+  lat (usec)   : 500=8.25%, 750=0.06%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.75%, sys=7.83%, ctx=4889577, majf=0, minf=174
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=586MiB/s (614MB/s), 586MiB/s-586MiB/s (614MB/s-614MB/s), io=20.0GiB (21.5GB), run=34968-34968msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5232539/0, merge=0/0, ticks=645560/0, in_queue=615200, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 749644
+CMT miss count: 4108685
+CMT access count: 4888291
+CMT hit ratio: 0.153355
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 32502319.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 32502319.500000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+fxx@fxx:~/fio_stride$ sudo ./fio_stride.sh 0 20 /dev/nvme0n1
+--- 警告：即将开始 ---
+设备:       /dev/nvme0n1
+作业数:     20 (每个 1GB)
+起始偏移:   0 (即 0 字节, LBA: 0)
+写入模式:   写入 4KB, 步长 16KB
+LBA 假设:   512 字节
+5 秒后开始执行...
+正在启动 20 个并行写入作业...
+等待所有 20 个作业执行完毕... (这可能需要很长时间)
+--- 所有作业均已完成 ---
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 0
+CMT miss count: 0
+CMT access count: 0
+CMT hit ratio: 0.000000
+write cnt: 3221802
+should_write cnt: 1310720
+erase cnt: 12576
+read joule: 6688787.000000
+write joule: 53804093.400001
+erase joule: 1660032.000000
+All joule: 62152912.400001
+write process count: 20480
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ilename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -fi
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][100.0%][r=1204MiB/s,w=0KiB/s][r=308k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=31718: Sat Nov 15 03:47:33 2025
+   read: IOPS=307k, BW=1198MiB/s (1256MB/s)(20.0GiB/17095msec)
+    clat (usec): min=5, max=982, avg=63.85, stdev=25.58
+     lat (usec): min=5, max=982, avg=64.05, stdev=25.59
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   13], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   53], 50.00th=[   58], 60.00th=[   63],
+     | 70.00th=[   72], 80.00th=[   82], 90.00th=[   96], 95.00th=[  112],
+     | 99.00th=[  143], 99.50th=[  157], 99.90th=[  190], 99.95th=[  206],
+     | 99.99th=[  251]
+   bw (  KiB/s): min=58907, max=62773, per=5.02%, avg=61548.94, stdev=524.16, samples=680
+   iops        : min=14726, max=15693, avg=15386.98, stdev=131.03, samples=680
+  lat (usec)   : 10=4.29%, 20=0.89%, 50=21.53%, 100=64.96%, 250=8.32%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  cpu          : usr=3.00%, sys=14.50%, ctx=4972434, majf=0, minf=216
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1198MiB/s (1256MB/s), 1198MiB/s-1198MiB/s (1256MB/s-1256MB/s), io=20.0GiB (21.5GB), run=17095-17095msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5191732/0, merge=0/0, ticks=260684/0, in_queue=239120, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 4919829
+CMT miss count: 20354
+CMT access count: 4970655
+CMT hit ratio: 0.989775
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 17468531.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 17468531.500000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+g -filename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [r(20)][97.2%][r=788MiB/s,w=0KiB/s][r=202k,w=0 IOPS][eta 00m:01s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=31745: Sat Nov 15 03:49:02 2025
+   read: IOPS=148k, BW=577MiB/s (605MB/s)(20.0GiB/35508msec)
+    clat (usec): min=6, max=6140, avg=133.95, stdev=76.53
+     lat (usec): min=6, max=6141, avg=134.13, stdev=76.53
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   14], 10.00th=[   52], 20.00th=[   88],
+     | 30.00th=[   90], 40.00th=[   96], 50.00th=[  115], 60.00th=[  133],
+     | 70.00th=[  159], 80.00th=[  190], 90.00th=[  239], 95.00th=[  281],
+     | 99.00th=[  371], 99.50th=[  404], 99.90th=[  482], 99.95th=[  515],
+     | 99.99th=[  586]
+   bw (  KiB/s): min=26896, max=57258, per=4.95%, avg=29260.48, stdev=2610.51, samples=1401
+   iops        : min= 6724, max=14314, avg=7314.92, stdev=652.63, samples=1401
+  lat (usec)   : 10=3.95%, 20=1.23%, 50=3.94%, 100=33.83%, 250=48.64%
+  lat (usec)   : 500=8.35%, 750=0.06%, 1000=0.01%
+  lat (msec)   : 2=0.01%, 4=0.01%, 10=0.01%
+  cpu          : usr=1.77%, sys=7.84%, ctx=4971555, majf=0, minf=155
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=577MiB/s (605MB/s), 577MiB/s-577MiB/s (605MB/s-605MB/s), io=20.0GiB (21.5GB), run=35508-35508msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5218704/0, merge=0/0, ticks=654972/0, in_queue=624352, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 751599
+CMT miss count: 4188584
+CMT access count: 4970655
+CMT hit ratio: 0.151207
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 32832240.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 32832240.000000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+fxx@fxx:~/fio_stride$ sudo ./fio_stride.sh 1 20 /dev/nvme0n1
+--- 警告：即将开始 ---
+设备:       /dev/nvme0n1
+作业数:     20 (每个 1GB)
+起始偏移:   1 (即 4096 字节, LBA: 8)
+写入模式:   写入 4KB, 步长 16KB
+LBA 假设:   512 字节
+5 秒后开始执行...
+正在启动 20 个并行写入作业...
+等待所有 20 个作业执行完毕... (这可能需要很长时间)
+--- 所有作业均已完成 ---
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 0
+CMT miss count: 0
+CMT access count: 0
+CMT hit ratio: 0.000000
+write cnt: 6730243
+should_write cnt: 1310720
+erase cnt: 26272
+read joule: 18968330.500000
+write joule: 112395058.099994
+erase joule: 3467904.000000
+All joule: 134831292.599994
+write process count: 20480
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ilename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -fi
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][100.0%][r=1180MiB/s,w=0KiB/s][r=302k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=29654: Sat Nov 15 04:04:18 2025
+   read: IOPS=300k, BW=1172MiB/s (1229MB/s)(20.0GiB/17474msec)
+    clat (usec): min=4, max=1755, avg=65.34, stdev=25.26
+     lat (usec): min=4, max=1755, avg=65.55, stdev=25.26
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   47], 10.00th=[   48], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   54], 50.00th=[   58], 60.00th=[   64],
+     | 70.00th=[   73], 80.00th=[   83], 90.00th=[   98], 95.00th=[  114],
+     | 99.00th=[  147], 99.50th=[  161], 99.90th=[  194], 99.95th=[  208],
+     | 99.99th=[  247]
+   bw (  KiB/s): min=58655, max=61311, per=5.02%, avg=60215.31, stdev=409.18, samples=680
+   iops        : min=14663, max=15327, avg=15053.62, stdev=102.32, samples=680
+  lat (usec)   : 10=2.94%, 20=0.66%, 50=21.32%, 100=66.04%, 250=9.04%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=3.10%, sys=14.28%, ctx=5055311, majf=0, minf=175
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1172MiB/s (1229MB/s), 1172MiB/s-1172MiB/s (1229MB/s-1229MB/s), io=20.0GiB (21.5GB), run=17474-17474msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5225709/0, merge=0/0, ticks=271312/0, in_queue=248312, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 5002314
+CMT miss count: 20354
+CMT access count: 5053688
+CMT hit ratio: 0.989834
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 17759147.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 17759147.000000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+g -filename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [r(20)][100.0%][r=923MiB/s,w=0KiB/s][r=236k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=29681: Sat Nov 15 04:05:32 2025
+   read: IOPS=146k, BW=569MiB/s (596MB/s)(20.0GiB/36010msec)
+    clat (usec): min=6, max=996, avg=135.79, stdev=75.02
+     lat (usec): min=6, max=996, avg=135.99, stdev=75.02
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   48], 10.00th=[   56], 20.00th=[   88],
+     | 30.00th=[   91], 40.00th=[   97], 50.00th=[  116], 60.00th=[  135],
+     | 70.00th=[  159], 80.00th=[  192], 90.00th=[  239], 95.00th=[  281],
+     | 99.00th=[  371], 99.50th=[  404], 99.90th=[  478], 99.95th=[  510],
+     | 99.99th=[  586]
+   bw (  KiB/s): min=26901, max=56064, per=4.96%, avg=28872.18, stdev=2625.87, samples=1422
+   iops        : min= 6725, max=14016, avg=7217.89, stdev=656.48, samples=1422
+  lat (usec)   : 10=2.74%, 20=0.86%, 50=4.06%, 100=34.48%, 250=49.37%
+  lat (usec)   : 500=8.42%, 750=0.06%, 1000=0.01%
+  cpu          : usr=1.84%, sys=7.70%, ctx=5054499, majf=0, minf=181
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=569MiB/s (596MB/s), 569MiB/s-569MiB/s (596MB/s-596MB/s), io=20.0GiB (21.5GB), run=36010-36010msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5216874/0, merge=0/0, ticks=665884/0, in_queue=636560, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 755735
+CMT miss count: 4266933
+CMT access count: 5053688
+CMT hit ratio: 0.149541
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 33158891.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 33158891.500000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+fxx@fxx:~/fio_stride$ sudo ./fio_stride.sh 2 20 /dev/nvme0n1
+--- 警告：即将开始 ---
+设备:       /dev/nvme0n1
+作业数:     20 (每个 1GB)
+起始偏移:   2 (即 8192 字节, LBA: 16)
+写入模式:   写入 4KB, 步长 16KB
+LBA 假设:   512 字节
+5 秒后开始执行...
+正在启动 20 个并行写入作业...
+等待所有 20 个作业执行完毕... (这可能需要很长时间)
+--- 所有作业均已完成 ---
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 0
+CMT miss count: 0
+CMT access count: 0
+CMT hit ratio: 0.000000
+write cnt: 4380125
+should_write cnt: 1310720
+erase cnt: 17120
+read joule: 10742917.500000
+write joule: 73148087.500001
+erase joule: 2259840.000000
+All joule: 86150845.000001
+write process count: 20480
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ilename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -fi
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][100.0%][r=1165MiB/s,w=0KiB/s][r=298k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=27563: Sat Nov 15 04:14:23 2025
+   read: IOPS=297k, BW=1159MiB/s (1215MB/s)(20.0GiB/17678msec)
+    clat (usec): min=5, max=1681, avg=66.18, stdev=24.25
+     lat (usec): min=5, max=1682, avg=66.38, stdev=24.26
+    clat percentiles (usec):
+     |  1.00th=[    9],  5.00th=[   47], 10.00th=[   48], 20.00th=[   50],
+     | 30.00th=[   52], 40.00th=[   55], 50.00th=[   59], 60.00th=[   64],
+     | 70.00th=[   74], 80.00th=[   84], 90.00th=[   98], 95.00th=[  114],
+     | 99.00th=[  147], 99.50th=[  161], 99.90th=[  194], 99.95th=[  208],
+     | 99.99th=[  249]
+   bw (  KiB/s): min=56925, max=60741, per=5.02%, avg=59564.72, stdev=492.16, samples=700
+   iops        : min=14231, max=15185, avg=14890.89, stdev=123.02, samples=700
+  lat (usec)   : 10=1.51%, 20=0.43%, 50=21.85%, 100=67.14%, 250=9.07%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=2.93%, sys=14.41%, ctx=5142633, majf=0, minf=220
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1159MiB/s (1215MB/s), 1159MiB/s-1159MiB/s (1215MB/s-1215MB/s), io=20.0GiB (21.5GB), run=17678-17678msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5236608/0, merge=0/0, ticks=276820/0, in_queue=253752, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 5089139
+CMT miss count: 20354
+CMT access count: 5141060
+CMT hit ratio: 0.989901
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 18064949.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 18064949.000000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+g -filename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [r(20)][97.4%][r=744MiB/s,w=0KiB/s][r=191k,w=0 IOPS][eta 00m:01s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=27590: Sat Nov 15 04:15:43 2025
+   read: IOPS=143k, BW=560MiB/s (587MB/s)(20.0GiB/36596msec)
+    clat (usec): min=6, max=1075, avg=138.00, stdev=73.60
+     lat (usec): min=6, max=1075, avg=138.21, stdev=73.60
+    clat percentiles (usec):
+     |  1.00th=[    9],  5.00th=[   49], 10.00th=[   65], 20.00th=[   88],
+     | 30.00th=[   91], 40.00th=[   98], 50.00th=[  117], 60.00th=[  137],
+     | 70.00th=[  161], 80.00th=[  194], 90.00th=[  241], 95.00th=[  281],
+     | 99.00th=[  371], 99.50th=[  400], 99.90th=[  478], 99.95th=[  506],
+     | 99.99th=[  578]
+   bw (  KiB/s): min=26736, max=52216, per=5.00%, avg=28634.53, stdev=3316.61, samples=1458
+   iops        : min= 6684, max=13054, avg=7158.39, stdev=829.15, samples=1458
+  lat (usec)   : 10=1.44%, 20=0.50%, 50=4.00%, 100=35.23%, 250=50.23%
+  lat (usec)   : 500=8.55%, 750=0.06%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.83%, sys=7.68%, ctx=5141693, majf=0, minf=213
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=560MiB/s (587MB/s), 560MiB/s-560MiB/s (587MB/s-587MB/s), io=20.0GiB (21.5GB), run=36596-36596msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5196922/0, merge=0/0, ticks=675452/0, in_queue=644780, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 760419
+CMT miss count: 4349074
+CMT access count: 5141060
+CMT hit ratio: 0.147911
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 33502374.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 33502374.500000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+fxx@fxx:~/fio_stride$ sudo ./fio_stride.sh 3 20 /dev/nvme0n1
+--- 警告：即将开始 ---
+设备:       /dev/nvme0n1
+作业数:     20 (每个 1GB)
+起始偏移:   3 (即 12288 字节, LBA: 24)
+写入模式:   写入 4KB, 步长 16KB
+LBA 假设:   512 字节
+5 秒后开始执行...
+正在启动 20 个并行写入作业...
+等待所有 20 个作业执行完毕... (这可能需要很长时间)
+--- 所有作业均已完成 ---
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 0
+CMT miss count: 0
+CMT access count: 0
+CMT hit ratio: 0.000000
+write cnt: 4537905
+should_write cnt: 1310720
+erase cnt: 17728
+read joule: 11295147.500000
+write joule: 75783013.500001
+erase joule: 2340096.000000
+All joule: 89418257.000001
+write process count: 20480
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ilename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -fi
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 18 (f=18): [R(13),_(1),E(1),R(5)][100.0%][r=1140MiB/s,w=0KiB/s][r=292k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=25482: Sat Nov 15 04:27:35 2025
+   read: IOPS=292k, BW=1141MiB/s (1197MB/s)(20.0GiB/17945msec)
+    clat (usec): min=43, max=1792, avg=67.10, stdev=22.99
+     lat (usec): min=44, max=1793, avg=67.30, stdev=23.00
+    clat percentiles (usec):
+     |  1.00th=[   46],  5.00th=[   47], 10.00th=[   48], 20.00th=[   50],
+     | 30.00th=[   52], 40.00th=[   55], 50.00th=[   59], 60.00th=[   65],
+     | 70.00th=[   74], 80.00th=[   84], 90.00th=[   98], 95.00th=[  114],
+     | 99.00th=[  147], 99.50th=[  161], 99.90th=[  194], 99.95th=[  210],
+     | 99.99th=[  249]
+   bw (  KiB/s): min=54669, max=59718, per=5.02%, avg=58633.06, stdev=694.55, samples=700
+   iops        : min=13667, max=14929, avg=14658.04, stdev=173.61, samples=700
+  lat (usec)   : 50=22.68%, 100=68.27%, 250=9.04%, 500=0.01%, 750=0.01%
+  lat (usec)   : 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=3.10%, sys=14.16%, ctx=5244118, majf=0, minf=216
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1141MiB/s (1197MB/s), 1141MiB/s-1141MiB/s (1197MB/s-1197MB/s), io=20.0GiB (21.5GB), run=17945-17945msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5234086/0, merge=0/0, ticks=282540/0, in_queue=259668, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 5190270
+CMT miss count: 20354
+CMT access count: 5242880
+CMT hit ratio: 0.989965
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 18421319.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 18421319.000000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+g -filename=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [r(20)][100.0%][r=810MiB/s,w=0KiB/s][r=207k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=25544: Sat Nov 15 04:29:14 2025
+   read: IOPS=141k, BW=550MiB/s (577MB/s)(20.0GiB/37212msec)
+    clat (usec): min=44, max=1121, avg=140.45, stdev=72.14
+     lat (usec): min=44, max=1121, avg=140.66, stdev=72.14
+    clat percentiles (usec):
+     |  1.00th=[   47],  5.00th=[   51], 10.00th=[   84], 20.00th=[   89],
+     | 30.00th=[   92], 40.00th=[  100], 50.00th=[  119], 60.00th=[  139],
+     | 70.00th=[  161], 80.00th=[  196], 90.00th=[  241], 95.00th=[  285],
+     | 99.00th=[  371], 99.50th=[  404], 99.90th=[  478], 99.95th=[  510],
+     | 99.99th=[  578]
+   bw (  KiB/s): min=26592, max=48689, per=4.98%, avg=28092.61, stdev=2875.58, samples=1480
+   iops        : min= 6648, max=12172, avg=7022.88, stdev=718.90, samples=1480
+  lat (usec)   : 50=4.16%, 100=36.06%, 250=51.01%, 500=8.70%, 750=0.06%
+  lat (usec)   : 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.77%, sys=7.54%, ctx=5243306, majf=0, minf=197
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=550MiB/s (577MB/s), 550MiB/s-550MiB/s (577MB/s-577MB/s), io=20.0GiB (21.5GB), run=37212-37212msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5231064/0, merge=0/0, ticks=690564/0, in_queue=660820, util=100.00%
+=9x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+CMT hit count: 766771
+CMT miss count: 4443853
+CMT access count: 5242880
+CMT hit ratio: 0.146250
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 33903565.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 33903565.500000
+write process count: 0
+write process read count: 0
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+=8x@fxx:~/fio_stride$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+fxx@fxx:~/fio_stride$ 
+
+
+
+
+
+

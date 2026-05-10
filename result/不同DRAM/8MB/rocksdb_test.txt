@@ -1,0 +1,1081 @@
+Seg_table
+
+fillseq:
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+-level0_file_num_compaction_trigger=4 --num=3000000 --report_interval_seconds=1--
+Set seed to 1763474430580847 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 14:00:30 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    3000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    11764.5 MB (estimated)
+FileSize:   5905.2 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+DB path: [/mnt/nvme/rocksdb_test]
+fillseq      :       8.558 micros/op 116843 ops/sec 25.675 seconds 3000000 operations;  458.2 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 15133
+cmt cnt: 0
+model cnt: 14787
+write cnt: 3193355
+should_write cnt: 3181049
+erase cnt: 0
+write cache hit:346
+max lpn: 7872543
+min lpn: 1
+all_count : 3242871
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 32692
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+overwrite:
+
+trigger=4 --report_interval_seconds=1ase=268435456 --level0_file_num_compaction_t
+Set seed to 1763474523863748 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 14:02:03 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    3921.5 MB (estimated)
+FileSize:   1968.4 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+overwrite    :      21.353 micros/op 46830 ops/sec 21.354 seconds 1000000 operations;  183.6 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 1733156
+cmt cnt: 156
+model cnt: 1732814
+write cnt: 2515599
+should_write cnt: 2505704
+erase cnt: 0
+write cache hit:186
+max lpn: 7204583
+min lpn: 0
+all_count : 5745706
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 49434
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+顺序读
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ks=readseq --use_existing_db=true \ --use_existing_keys=trueksdb_test --benchmark
+Set seed to 1763474632109046 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 14:03:52 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readseq      :       9.402 micros/op 106360 ops/sec 9.402 seconds 1000000 operations;  417.1 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 1860063
+cmt cnt: 0
+model cnt: 1860062
+write cnt: 146019
+should_write cnt: 145443
+erase cnt: 0
+write cache hit:1
+max lpn: 7520654
+min lpn: 0
+all_count : 5890833
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 1371
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+随即读
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ks=readrandom --use_existing_db=true \ --use_existing_keys=trueb_test --benchmark
+Set seed to 1763474703714781 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 14:05:03 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readrandom   :      31.717 micros/op 31529 ops/sec 31.717 seconds 1000000 operations;  123.6 MB/s (1000000 of 1000000 found)
+
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 738388
+cmt cnt: 54
+model cnt: 738329
+write cnt: 228611
+should_write cnt: 227699
+erase cnt: 0
+write cache hit:5
+max lpn: 8142557
+min lpn: 0
+all_count : 6118001
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 33212
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+====================================================
+
+tpftl
+
+fillseq:
+
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+-level0_file_num_compaction_trigger=4 --num=3000000 --report_interval_seconds=1--
+Set seed to 1763366433944274 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 08:00:33 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    3000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    11764.5 MB (estimated)
+FileSize:   5905.2 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+DB path: [/mnt/nvme/rocksdb_test]
+fillseq      :       9.518 micros/op 105067 ops/sec 28.553 seconds 3000000 operations;  412.0 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 0
+CMT miss count: 9
+CMT access count: 15133
+CMT hit ratio: 0.000000
+write cnt: 3193548
+should_write cnt: 3181041
+erase cnt: 0
+write cache hit:15124
+read joule: 53147.500000
+write joule: 53332251.600001
+erase joule: 0.000000
+All joule: 53385399.100001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+overwrite:
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+trigger=4 --report_interval_seconds=1ase=268435456 --level0_file_num_compaction_t
+Set seed to 1763366589738451 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 08:03:09 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    3921.5 MB (estimated)
+FileSize:   1968.4 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+overwrite    :      22.935 micros/op 43601 ops/sec 22.935 seconds 1000000 operations;  171.0 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 1703292
+CMT miss count: 18158
+CMT access count: 1730470
+CMT hit ratio: 0.984294
+write cnt: 2512926
+should_write cnt: 2503015
+erase cnt: 0
+write cache hit:9020
+read joule: 6120397.500000
+write joule: 41965864.200001
+erase joule: 0.000000
+All joule: 48086261.700001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+顺序读
+
+NVMe command result:00000000
+ks=readseq --use_existing_db=true \ --use_existing_keys=trueksdb_test --benchmark
+Set seed to 1763366713336690 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 08:05:13 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readseq      :      10.867 micros/op 92024 ops/sec 10.867 seconds 1000000 operations;  360.9 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 3502933
+CMT miss count: 79629
+CMT access count: 3592086
+CMT hit ratio: 0.975181
+write cnt: 2728134
+should_write cnt: 2717357
+erase cnt: 0
+write cache hit:9524
+read joule: 12851275.500000
+write joule: 45559837.800001
+erase joule: 0.000000
+All joule: 58411113.300001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+随即读
+
+ks=readrandom --use_existing_db=true \ --use_existing_keys=trueb_test --benchmark
+Set seed to 1763366856834183 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 08:07:36 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readrandom   :      47.581 micros/op 21016 ops/sec 47.581 seconds 1000000 operations;   82.4 MB/s (1000000 of 1000000 found)
+
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 3889622
+CMT miss count: 487224
+CMT access count: 4386388
+CMT hit ratio: 0.886748
+write cnt: 2848531
+should_write cnt: 2837273
+erase cnt: 0
+write cache hit:9542
+read joule: 17057950.000000
+write joule: 47570467.700001
+erase joule: 0.000000
+All joule: 64628417.700001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+====================================================
+
+learnedftl
+
+fillseq:
+
+3
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+-level0_file_num_compaction_trigger=4 --num=3000000 --report_interval_seconds=1--
+Set seed to 1763438421590458 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 04:00:21 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    3000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    11764.5 MB (estimated)
+FileSize:   5905.2 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+DB path: [/mnt/nvme/rocksdb_test]
+fillseq      :       9.472 micros/op 105577 ops/sec 28.415 seconds 3000000 operations;  414.0 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 15132
+cmt cnt: 0
+model cnt: 0
+write cnt: 3193436
+should_write cnt: 3180931
+erase cnt: 0
+write cache hit:15124model training num:0
+model training write:0
+read joule: 53130.000000
+write joule: 53330381.200001
+erase joule: 0.000000
+All joule: 53383511.200001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+overwrite:
+
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+trigger=4 --report_interval_seconds=1ase=268435456 --level0_file_num_compaction_t
+Set seed to 1763438519305522 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 04:01:59 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    3921.5 MB (estimated)
+FileSize:   1968.4 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+overwrite    :      23.663 micros/op 42259 ops/sec 23.663 seconds 1000000 operations;  165.7 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 1731794
+cmt cnt: 1705147
+model cnt: 0
+write cnt: 2513639
+should_write cnt: 2503743
+erase cnt: 0
+write cache hit:8407model training num:0
+model training write:0
+read joule: 6125248.500000
+write joule: 41977771.300001
+erase joule: 0.000000
+All joule: 48103019.800001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+顺序读
+
+NVMe command result:00000000
+ks=readseq --use_existing_db=true \ --use_existing_keys=trueksdb_test --benchmark
+Set seed to 1763438632674641 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 04:03:52 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readseq      :      12.089 micros/op 82717 ops/sec 12.089 seconds 1000000 operations;  324.4 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 1839717
+cmt cnt: 1781653
+model cnt: 0
+write cnt: 215125
+should_write cnt: 214270
+erase cnt: 0
+write cache hit:1131model training num:0
+model training write:0
+read joule: 6638313.500000
+write joule: 3592587.500000
+erase joule: 0.000000
+All joule: 10230901.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+随即读
+
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ks=readrandom --use_existing_db=true \ --use_existing_keys=trueb_test --benchmark
+Set seed to 1763438715224664 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Tue Nov 18 04:05:15 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readrandom   :      48.382 micros/op 20668 ops/sec 48.382 seconds 1000000 operations;   81.1 MB/s (1000000 of 1000000 found)
+
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+total cnt: 785423
+cmt cnt: 377948
+model cnt: 0
+write cnt: 120166
+should_write cnt: 119672
+erase cnt: 0
+write cache hit:27model training num:0
+model training write:0
+read joule: 4175129.000000
+write joule: 2006772.200000
+erase joule: 0.000000
+All joule: 6181901.200000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+====================================================
+
+dftl
+
+fillseq:
+
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+-level0_file_num_compaction_trigger=4 --num=3000000 --report_interval_seconds=1--
+Set seed to 1763264556800562 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Sun Nov 16 03:42:36 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    3000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    11764.5 MB (estimated)
+FileSize:   5905.2 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+DB path: [/mnt/nvme/rocksdb_test]
+fillseq      :       9.548 micros/op 104731 ops/sec 28.645 seconds 3000000 operations;  410.7 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 0
+CMT miss count: 9
+CMT access count: 15132
+CMT hit ratio: 0.000000
+write cnt: 3193625
+should_write cnt: 3181109
+erase cnt: 0
+read joule: 53172.000000
+write joule: 53333537.500001
+erase joule: 0.000000
+All joule: 53386709.500001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+
+overwrite:
+
+88881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+trigger=4 --report_interval_seconds=1ase=268435456 --level0_file_num_compaction_t
+Set seed to 1763264713186071 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Sun Nov 16 03:45:13 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    3921.5 MB (estimated)
+FileSize:   1968.4 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+overwrite    :      87.108 micros/op 11480 ops/sec 87.108 seconds 1000000 operations;   45.0 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 13317
+CMT miss count: 1710572
+CMT access count: 1732285
+CMT hit ratio: 0.007688
+write cnt: 2508408
+should_write cnt: 2498506
+erase cnt: 0
+read joule: 12050230.500000
+write joule: 41890413.600001
+erase joule: 0.000000
+All joule: 53940644.100001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+
+
+
+顺序读
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ks=readseq --use_existing_db=true \ --use_existing_keys=trueksdb_test --benchmark
+Set seed to 1763264847010114 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Sun Nov 16 03:47:27 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readseq      :      80.558 micros/op 12413 ops/sec 80.558 seconds 1000000 operations;   48.7 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 18168
+CMT miss count: 1962762
+CMT access count: 1981675
+CMT hit ratio: 0.009168
+write cnt: 240470
+should_write cnt: 239496
+erase cnt: 0
+read joule: 13805631.000000
+write joule: 4015849.000000
+erase joule: 0.000000
+All joule: 17821480.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+随即读
+
+
+NVMe command result:00000000
+ks=readrandom --use_existing_db=true \ --use_existing_keys=trueb_test --benchmark
+Set seed to 1763265122560549 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Sun Nov 16 03:52:03 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readrandom   :      65.605 micros/op 15242 ops/sec 65.605 seconds 1000000 operations;   59.8 MB/s (1000000 of 1000000 found)
+
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 18174
+CMT miss count: 2661618
+CMT access count: 2680562
+CMT hit ratio: 0.006780
+write cnt: 286044
+should_write cnt: 284881
+erase cnt: 0
+read joule: 18697766.500000
+write joule: 4776934.800000
+erase joule: 0.000000
+All joule: 23474701.300000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+====================================================
+
+sftl
+
+fillseq:
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+-level0_file_num_compaction_trigger=4 --num=3000000 --report_interval_seconds=1--
+Set seed to 1763361804029599 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 06:43:24 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    3000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    11764.5 MB (estimated)
+FileSize:   5905.2 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+DB path: [/mnt/nvme/rocksdb_test]
+fillseq      :       9.512 micros/op 105135 ops/sec 28.535 seconds 3000000 operations;  412.3 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 4
+CMT miss count: 5
+CMT access count: 15132
+CMT hit ratio: 0.000264
+write cnt: 3193539
+should_write cnt: 3181024
+erase cnt: 0
+read joule: 53063.500000
+write joule: 53332101.300001
+erase joule: 0.000000
+All joule: 53385164.800001
+write process count: 12515
+write process read count: 27
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+overwrite:
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+trigger=4 --report_interval_seconds=1ase=268435456 --level0_file_num_compaction_t
+Set seed to 1763361967960386 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 06:46:07 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     4096 bytes each (2048 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    3921.5 MB (estimated)
+FileSize:   1968.4 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: NoCompression
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+overwrite    :      22.635 micros/op 44178 ops/sec 22.636 seconds 1000000 operations;  173.2 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 1719763
+CMT miss count: 1599
+CMT access count: 1730230
+CMT hit ratio: 0.993951
+write cnt: 2512235
+should_write cnt: 2502334
+erase cnt: 0
+read joule: 6061475.000000
+write joule: 41954324.500001
+erase joule: 0.000000
+All joule: 48015799.500001
+write process count: 9901
+write process read count: 27
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+顺序读
+
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+dw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ks=readseq --use_existing_db=true \ --use_existing_keys=trueksdb_test --benchmark
+Set seed to 1763362057984294 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 06:47:38 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readseq      :       9.690 micros/op 103200 ops/sec 9.690 seconds 1000000 operations;  404.7 MB/s
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 1826964
+CMT miss count: 6930
+CMT access count: 1834408
+CMT hit ratio: 0.995942
+write cnt: 214891
+should_write cnt: 214034
+erase cnt: 0
+read joule: 6444693.500000
+write joule: 3588679.700000
+erase joule: 0.000000
+All joule: 10033373.200000
+write process count: 857
+write process read count: 9
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+随即读
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ks=readrandom --use_existing_db=true \ --use_existing_keys=trueb_test --benchmark
+Set seed to 1763362170102431 because --seed was 0
+Initializing RocksDB Options from the specified file
+Initializing RocksDB Options from command-line flags
+Integrated BlobDB: blob cache disabled
+RocksDB:    version 8.11.3
+Date:       Mon Nov 17 06:49:30 2025
+CPU:        4 * Intel(R) Core(TM) i5-10400 CPU @ 2.90GHz
+CPUCache:   16384 KB
+Keys:       16 bytes each (+ 0 bytes user-defined timestamp)
+Values:     100 bytes each (50 bytes after compression)
+Entries:    1000000
+Prefix:    0 bytes
+Keys per prefix:    0
+RawSize:    110.6 MB (estimated)
+FileSize:   62.9 MB (estimated)
+Write rate: 0 bytes/second
+Read rate: 0 ops/second
+Compression: Snappy
+Compression sampling rate: 0
+Memtablerep: SkipListFactory
+Perf Level: 1
+------------------------------------------------
+DB path: [/mnt/nvme/rocksdb_test]
+readrandom   :      33.390 micros/op 29948 ops/sec 33.390 seconds 1000000 operations;  117.4 MB/s (1000000 of 1000000 found)
+
+dw10=9x:~/libzbd/rocksdb$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cd
+888881118
+CMT hit count: 729019
+CMT miss count: 23221
+CMT access count: 752256
+CMT hit ratio: 0.969110
+write cnt: 126776
+should_write cnt: 126255
+erase cnt: 0
+read joule: 2714215.000000
+write joule: 2117159.200000
+erase joule: 0.000000
+All joule: 4831374.200000
+write process count: 521
+write process read count: 10
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+

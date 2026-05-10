@@ -1,0 +1,67 @@
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+随机写20线程20G：
+sudo fio -direct=1 -iodepth=32 -rw=randwrite -ioengine=psync --bssplit=4k/70:64k/15:32k/15 -size=1G -numjobs=20 --offset=0G --offset_increment=1G -group_reporting -filename=/dev/nvme0n1 -name=Write_BandWidth_Test
+
+
+
+
+---------------------------------------
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+顺序写 6线程 4G
+sudo fio -direct=1 -iodepth=32 -rw=write -ioengine=libaio --bssplit=4k/70:64k/15:32k/15 -size=4G --numjobs=6 --offset=0G -group_reporting -filename=/dev/nvme0n1 -name=write_12_4G_Test
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+
+随即写 6线程 4G
+
+sudo fio -direct=1 -iodepth=32 -rw=randwrite -ioengine=libaio --bssplit=4k/70:64k/15:32k/15 -size=4G --numjobs=6 --offset=0G -group_reporting -filename=/dev/nvme0n1 -name=Randwrite_12_4G_Test
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+
+
+顺序读：
+
+sudo fio -direct=1 -iodepth=32 -rw=read -ioengine=libaio -bs=4k -size=1G --numjobs=20 --offset=0G --offset_increment=1G -group_reporting -filename=/dev/nvme0n1 -name=Read_28_1G_Test
+----------------------------------------------------------------------------------------
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+随即读 1_7G_4k
+sudo fio -direct=1 -iodepth=32 -rw=randread -ioengine=libaio -bs=4k -size=1G --numjobs=20 --offset=0G --offset_increment=1G -group_reporting -filename=/dev/nvme0n1 -name=Read_28_1G_Test
+
+
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8

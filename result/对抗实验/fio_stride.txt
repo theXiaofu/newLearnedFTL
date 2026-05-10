@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+# multi_thread_stride_custom_offset.sh
+# 
+# 警告: 此脚本会立即、永久地销毁数据。
+# 它不进行任何安全检查，并假定 LBA 大小为 512 字节。
+#
+
+# --- 1. 检查输入参数 ---
+if [ "$#" -ne 3 ]; then
+    echo "用法: sudo $0 <Offset_in_4KB_Units> <Total_Size_in_GB> <Device>"
+    echo "示例 (从 512KB 偏移开始, 写入 20GB, 20个线程):"
+    echo "  sudo $0 2 20 /dev/nvme0n1"
+    echo "示例 (从 0KB 偏移开始, 写入 4GB, 4个线程):"
+    echo "  sudo $0 0 4 /dev/nvme0n1"
+    exit 1
+fi
+
+OFFSET_4KB_UNITS=$1
+TOTAL_SIZE_GB=$2
+DEVICE=$3
+NUM_JOBS=$TOTAL_SIZE_GB # 1 个作业 (线程) / GB
+
+# --- 2. 硬编码的写入模式 ---
+WRITE_BYTES=4096    # 写入 4KB
+STRIDE_BYTES=16384  # 步长 16KB (从开始到开始)
+FOUR_KB_BYTES=4096
+ONE_GB_BYTES=$((1024 * 1024 * 1024))
+
+# --- 3. 假定 LBA=512B, 并计算 LBA ---
+# 这是满足 "nvme write -s <LBA>" 的必要步骤
+LBA_SIZE=512        # 假定 LBA 大小为 512 字节
+
+# 将您的写入模式转换为 LBA (逻辑块)
+STRIDE_LBA=$(( $STRIDE_BYTES / $LBA_SIZE ))
+ONE_GB_LBA=$(( $ONE_GB_BYTES / $LBA_SIZE ))
+
+# 计算全局起始偏移量 (LBA)
+# 这是您传入的 <Offset_in_4KB_Units>
+GLOBAL_START_OFFSET_BYTES=$(( $OFFSET_4KB_UNITS * $FOUR_KB_BYTES ))
+GLOBAL_START_LBA=$(( $GLOBAL_START_OFFSET_BYTES / $LBA_SIZE ))
+
+# --- 4. 定义单个作业（线程）的工作内容 ---
+# 这是每个线程要执行的 "for 循环"
+run_single_job() {
+    local job_id=$1             # 作业ID (0, 1, 2...)
+    local device_path=$2        # 设备
+    local global_start_lba=$3   # 全局起始 LBA
+    
+    # 计算这个作业的 LBA 范围
+    # 作业 0 从 0*1GB 开始
+    # 作业 1 从 1*1GB 开始
+    local job_relative_start_lba=$(( $job_id * $ONE_GB_LBA ))
+    
+    # 作业的绝对起始地址 = 全局偏移 + 作业相对偏移
+    local job_start_lba=$(( $global_start_lba + $job_relative_start_lba ))
+    local job_end_lba=$(( $job_start_lba + $ONE_GB_LBA ))
+    local current_lba=$job_start_lba
+
+    #
+    # 这就是您要的 "for 循环" (实现为 while)
+    #
+    while [ $current_lba -lt $job_end_lba ]; do
+        
+        #
+        # 这就是您要的 "写入命令"
+        # 使用 -z $WRITE_BYTES, 满足您 "写入的大小不用除LBA" 的要求
+        #
+        head -c $WRITE_BYTES /dev/zero | nvme write $device_path -s $current_lba -z $WRITE_BYTES
+        
+        # 移动到下一个步长位置
+        current_lba=$(( $current_lba + $STRIDE_LBA ))
+    done
+}
+
+# --- 5. 导出函数和变量，以便后台作业可以使用 ---
+export -f run_single_job
+export WRITE_BYTES STRIDE_LBA ONE_GB_LBA LBA_SIZE
+
+echo "--- 警告：即将开始 ---"
+echo "设备:       $DEVICE"
+echo "作业数:     $NUM_JOBS (每个 1GB)"
+echo "起始偏移:   $OFFSET_4KB_UNITS (即 ${GLOBAL_START_OFFSET_BYTES} 字节, LBA: $GLOBAL_START_LBA)"
+echo "写入模式:   写入 4KB, 步长 16KB"
+echo "LBA 假设:   512 字节"
+echo "5 秒后开始执行..."
+sleep 5
+echo "正在启动 $NUM_JOBS 个并行写入作业..."
+
+# --- 6. 主循环：启动所有后台作业 ---
+for (( i=0; i<$NUM_JOBS; i++ )); do
+    # 
+    # `run_single_job $i $DEVICE $GLOBAL_START_LBA &`
+    # 启动后台作业，并传入作业ID、设备、和全局起始偏移
+    #
+    run_single_job $i $DEVICE $GLOBAL_START_LBA &
+done
+
+# --- 7. 等待所有作业完成 ---
+echo "等待所有 $NUM_JOBS 个作业执行完毕... (这可能需要很长时间)"
+wait
+echo "--- 所有作业均已完成 ---"

@@ -1,0 +1,962 @@
+segtableftl
+
+fileserver:
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+Resolving bug...
+0
+All operations completed successfully!
+nch -f myfileserver.f
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: File-server Version 3.0 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.129: bigfileset populated: 225000 files, avg. dir. width = 20, avg. dir. depth = 4.1, 0 leafdirs, 28142.208MB total size
+0.129: Removing bigfileset tree (if exists)
+0.131: Pre-allocating directories in bigfileset tree
+0.208: Pre-allocating files in bigfileset tree
+42.296: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+42.296: Population and pre-allocation of filesets completed
+42.297: Starting 1 filereader instances
+43.306: Running...
+103.311: Run took 60 seconds...
+103.313: Per-Operation Breakdown
+statfile1            55130ops      919ops/s   0.0mb/s     11.8ms/op [0.00ms - 891.36ms]
+deletefile1          55137ops      919ops/s   0.0mb/s     14.9ms/op [0.01ms - 1017.39ms]
+closefile3           55155ops      919ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.87ms]
+readfile1            55155ops      919ops/s 114.6mb/s      1.8ms/op [0.00ms - 253.53ms]
+openfile2            55156ops      919ops/s   0.0mb/s     11.2ms/op [0.00ms - 1018.04ms]
+closefile2           55168ops      919ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.87ms]
+appendfilerand1      55168ops      919ops/s   7.2mb/s      1.8ms/op [0.00ms - 254.67ms]
+openfile1            55168ops      919ops/s   0.0mb/s     11.7ms/op [0.00ms - 955.91ms]
+closefile1           55180ops      920ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.08ms]
+wrtfile1             55180ops      920ops/s 115.4mb/s      0.1ms/op [0.00ms - 15.91ms]
+createfile1          55180ops      920ops/s   0.0mb/s      0.9ms/op [0.01ms - 254.81ms]
+103.313: IO Summary: 606777 ops 10112.113 ops/s 919/1839 rd/wr 237.2mb/s  18.1ms/op
+103.313: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+total cnt: 1649579
+cmt cnt: 84259
+model cnt: 1565194
+write cnt: 14519998
+should_write cnt: 8372808
+erase cnt: 24640
+write cache hit:126
+max lpn: 8388607
+min lpn: 512
+all_count : 8191371
+seg_count : 0
+sort_time : 213768560
+GC_erase_time : 1468000000
+GC_read_time : 7318720000
+GC_write_time : 36450800000
+GC_insert_time : 30768066
+GC_time : 28198301209
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 9133386
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+
+webserver:
+
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f mywebserver.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: Web-server Version 3.1 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.005: logfiles populated: 1 files, avg. dir. width = 20, avg. dir. depth = 0.0, 0 leafdirs, 0.002MB total size
+0.006: Removing logfiles tree (if exists)
+0.008: Pre-allocating directories in logfiles tree
+0.008: Pre-allocating files in logfiles tree
+0.457: bigfileset populated: 825000 files, avg. dir. width = 20, avg. dir. depth = 4.5, 0 leafdirs, 12907.617MB total size
+0.457: Removing bigfileset tree (if exists)
+0.459: Pre-allocating directories in bigfileset tree
+0.762: Pre-allocating files in bigfileset tree
+51.220: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+51.220: Population and pre-allocation of filesets completed
+51.221: Starting 1 filereader instances
+52.228: Running...
+112.244: Run took 60 seconds...
+112.285: Per-Operation Breakdown
+appendlog            106595ops     1776ops/s  13.8mb/s     19.0ms/op [0.00ms - 20958.76ms]
+closefile10          106531ops     1775ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.93ms]
+readfile10           106531ops     1775ops/s  27.9mb/s      0.1ms/op [0.00ms - 61.37ms]
+openfile10           106534ops     1775ops/s   0.0mb/s      1.5ms/op [0.00ms - 132.84ms]
+closefile9           106534ops     1775ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.00ms]
+readfile9            106535ops     1775ops/s  27.7mb/s      0.1ms/op [0.00ms - 72.68ms]
+openfile9            106541ops     1775ops/s   0.0mb/s      1.5ms/op [0.00ms - 190.55ms]
+closefile8           106541ops     1775ops/s   0.0mb/s      0.0ms/op [0.00ms -  2.59ms]
+readfile8            106541ops     1775ops/s  27.8mb/s      0.1ms/op [0.00ms - 72.74ms]
+openfile8            106548ops     1775ops/s   0.0mb/s      1.5ms/op [0.00ms - 132.70ms]
+closefile7           106548ops     1775ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.46ms]
+readfile7            106548ops     1775ops/s  27.8mb/s      0.1ms/op [0.00ms - 61.82ms]
+openfile7            106557ops     1775ops/s   0.0mb/s      1.5ms/op [0.00ms - 132.51ms]
+closefile6           106557ops     1775ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.93ms]
+readfile6            106557ops     1775ops/s  27.8mb/s      0.1ms/op [0.00ms - 72.91ms]
+openfile6            106565ops     1776ops/s   0.0mb/s      1.5ms/op [0.00ms - 190.16ms]
+closefile5           106565ops     1776ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.28ms]
+readfile5            106567ops     1776ops/s  27.7mb/s      0.1ms/op [0.00ms - 72.80ms]
+openfile5            106573ops     1776ops/s   0.0mb/s      1.5ms/op [0.00ms - 190.37ms]
+closefile4           106573ops     1776ops/s   0.0mb/s      0.0ms/op [0.00ms -  8.35ms]
+readfile4            106573ops     1776ops/s  27.7mb/s      0.1ms/op [0.00ms - 72.78ms]
+openfile4            106579ops     1776ops/s   0.0mb/s      1.5ms/op [0.00ms - 189.31ms]
+closefile3           106579ops     1776ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.31ms]
+readfile3            106579ops     1776ops/s  27.7mb/s      0.1ms/op [0.00ms - 61.57ms]
+openfile3            106585ops     1776ops/s   0.0mb/s      1.5ms/op [0.00ms - 190.53ms]
+closefile2           106585ops     1776ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.64ms]
+readfile2            106585ops     1776ops/s  27.7mb/s      0.1ms/op [0.00ms - 72.74ms]
+openfile2            106590ops     1776ops/s   0.0mb/s      1.5ms/op [0.00ms - 190.38ms]
+closefile1           106590ops     1776ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.04ms]
+readfile1            106590ops     1776ops/s  27.9mb/s      0.2ms/op [0.00ms - 5222.10ms]
+openfile1            106594ops     1776ops/s   0.0mb/s      1.6ms/op [0.00ms - 1116.79ms]
+112.285: IO Summary: 3303470 ops 55043.439 ops/s 17755/1776 rd/wr 291.6mb/s   3.2ms/op
+112.286: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+total cnt: 6468425
+cmt cnt: 142659
+model cnt: 6324366
+write cnt: 7447367
+should_write cnt: 6777881
+erase cnt: 3040
+write cache hit:1400
+max lpn: 6512431
+min lpn: 512
+all_count : 6488822
+seg_count : 0
+sort_time : 24744960
+GC_erase_time : 188000000
+GC_read_time : 799520000
+GC_write_time : 3975800000
+GC_insert_time : 3280954
+GC_time : 72818011855
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 17329820
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+varmail:
+
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myvarmail.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.006: Varmail Version 3.0 personality successfully loaded
+0.006: Populating and pre-allocating filesets
+0.273: bigfileset populated: 475000 files, avg. dir. width = 1000000, avg. dir. depth = 0.9, 0 leafdirs, 7433.811MB total size
+0.273: Removing bigfileset tree (if exists)
+0.275: Pre-allocating directories in bigfileset tree
+0.275: Pre-allocating files in bigfileset tree
+17.721: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+17.721: Population and pre-allocation of filesets completed
+17.721: Starting 1 filereader instances
+18.728: Running...
+78.733: Run took 60 seconds...
+78.733: Per-Operation Breakdown
+closefile4           100836ops     1680ops/s   0.0mb/s      0.0ms/op [0.00ms -  8.63ms]
+readfile4            100836ops     1680ops/s  23.8mb/s      0.1ms/op [0.00ms - 14.06ms]
+openfile4            100836ops     1680ops/s   0.0mb/s      0.7ms/op [0.00ms - 17.42ms]
+closefile3           100838ops     1681ops/s   0.0mb/s      0.0ms/op [0.00ms - 10.57ms]
+fsyncfile3           100838ops     1681ops/s   0.0mb/s      1.7ms/op [0.00ms - 36.46ms]
+appendfilerand3      100840ops     1681ops/s  13.1mb/s      0.1ms/op [0.00ms - 14.46ms]
+readfile3            100840ops     1681ops/s  23.6mb/s      0.1ms/op [0.00ms - 15.36ms]
+openfile3            100840ops     1681ops/s   0.0mb/s      0.7ms/op [0.00ms - 19.95ms]
+closefile2           100841ops     1681ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.26ms]
+fsyncfile2           100841ops     1681ops/s   0.0mb/s      1.6ms/op [0.00ms - 165.52ms]
+appendfilerand2      100850ops     1681ops/s  13.1mb/s      0.0ms/op [0.00ms -  9.49ms]
+createfile2          100850ops     1681ops/s   0.0mb/s      0.6ms/op [0.03ms - 13.28ms]
+deletefile1          100849ops     1681ops/s   0.0mb/s      0.9ms/op [0.01ms - 16.76ms]
+78.733: IO Summary: 1310935 ops 21847.430 ops/s 3361/3361 rd/wr  73.6mb/s   1.6ms/op
+78.733: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+total cnt: 843075
+cmt cnt: 17477
+model cnt: 824476
+write cnt: 3144912
+should_write cnt: 3066210
+erase cnt: 128
+write cache hit:982
+max lpn: 4473659
+min lpn: 512
+all_count : 2981392
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 1976868
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+===============================
+
+
+
+
+
+tpftl:
+
+fileserver:
+
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myfileserver.f
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: File-server Version 3.0 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.127: bigfileset populated: 225000 files, avg. dir. width = 20, avg. dir. depth = 4.1, 0 leafdirs, 28142.208MB total size
+0.127: Removing bigfileset tree (if exists)
+0.128: Pre-allocating directories in bigfileset tree
+0.206: Pre-allocating files in bigfileset tree
+42.733: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+42.733: Population and pre-allocation of filesets completed
+42.735: Starting 1 filereader instances
+43.745: Running...
+103.750: Run took 60 seconds...
+103.752: Per-Operation Breakdown
+statfile1            49716ops      829ops/s   0.0mb/s      8.4ms/op [0.00ms - 18460.97ms]
+deletefile1          49730ops      829ops/s   0.0mb/s     12.0ms/op [0.01ms - 20809.62ms]
+closefile3           49745ops      829ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.21ms]
+readfile1            49745ops      829ops/s 103.5mb/s      2.9ms/op [0.00ms - 16112.63ms]
+openfile2            49745ops      829ops/s   0.0mb/s     10.5ms/op [0.00ms - 18626.87ms]
+closefile2           49753ops      829ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.20ms]
+appendfilerand1      49753ops      829ops/s   6.5mb/s      3.4ms/op [0.00ms - 16112.53ms]
+openfile1            49753ops      829ops/s   0.0mb/s      9.1ms/op [0.00ms - 19984.99ms]
+closefile1           49766ops      829ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.08ms]
+wrtfile1             49766ops      829ops/s 103.8mb/s      0.1ms/op [0.00ms -  6.17ms]
+createfile1          49766ops      829ops/s   0.0mb/s      0.7ms/op [0.01ms - 1015.24ms]
+103.752: IO Summary: 547238 ops 9119.938 ops/s 829/1659 rd/wr 213.8mb/s  15.7ms/op
+103.752: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 1193393
+CMT miss count: 294181
+CMT access count: 1487885
+CMT hit ratio: 0.802073
+write cnt: 22128807
+should_write cnt: 8156780
+erase cnt: 54464
+write cache hit:311
+read joule: 55027994.000000
+write joule: 369551076.900037
+erase joule: 7189248.000000
+All joule: 431768318.900037
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+webserver:
+
+All operations completed successfully!
+filebench -f mywebserver.f ha3/workloads$ sudo 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: Web-server Version 3.1 personality successfully loaded
+0.006: Populating and pre-allocating filesets
+0.006: logfiles populated: 1 files, avg. dir. width = 20, avg. dir. depth = 0.0, 0 leafdirs, 0.002MB total size
+0.006: Removing logfiles tree (if exists)
+0.008: Pre-allocating directories in logfiles tree
+0.008: Pre-allocating files in logfiles tree
+0.467: bigfileset populated: 825000 files, avg. dir. width = 20, avg. dir. depth = 4.5, 0 leafdirs, 12907.617MB total size
+0.467: Removing bigfileset tree (if exists)
+0.468: Pre-allocating directories in bigfileset tree
+0.778: Pre-allocating files in bigfileset tree
+51.898: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+51.898: Population and pre-allocation of filesets completed
+51.899: Starting 1 filereader instances
+52.909: Running...
+112.923: Run took 60 seconds...
+113.714: Per-Operation Breakdown
+appendlog            61199ops     1008ops/s   7.9mb/s      0.5ms/op [0.00ms - 202.73ms]
+closefile10          61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.68ms]
+readfile10           61199ops     1008ops/s  15.8mb/s      0.7ms/op [0.00ms - 33.43ms]
+openfile10           61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 35.31ms]
+closefile9           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.42ms]
+readfile9            61199ops     1008ops/s  15.8mb/s      0.7ms/op [0.00ms - 16.55ms]
+openfile9            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 35.05ms]
+closefile8           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.57ms]
+readfile8            61199ops     1008ops/s  15.8mb/s      0.7ms/op [0.00ms - 17.36ms]
+openfile8            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 35.37ms]
+closefile7           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.07ms]
+readfile7            61199ops     1008ops/s  15.8mb/s      0.7ms/op [0.00ms - 33.51ms]
+openfile7            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 35.09ms]
+closefile6           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.86ms]
+readfile6            61199ops     1008ops/s  15.8mb/s      0.7ms/op [0.00ms - 17.17ms]
+openfile6            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 35.20ms]
+closefile5           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.59ms]
+readfile5            61199ops     1008ops/s  15.8mb/s      0.7ms/op [0.00ms - 33.53ms]
+openfile5            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 46.82ms]
+closefile4           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  8.79ms]
+readfile4            61199ops     1008ops/s  15.8mb/s      0.7ms/op [0.00ms - 33.41ms]
+openfile4            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 48.06ms]
+closefile3           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.46ms]
+readfile3            61199ops     1008ops/s  15.7mb/s      0.7ms/op [0.00ms - 34.39ms]
+openfile3            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 35.27ms]
+closefile2           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.67ms]
+readfile2            61199ops     1008ops/s  15.7mb/s      0.7ms/op [0.00ms - 33.43ms]
+openfile2            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 35.25ms]
+closefile1           61199ops     1008ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.81ms]
+readfile1            61199ops     1008ops/s  15.7mb/s      0.7ms/op [0.00ms - 33.65ms]
+openfile1            61199ops     1008ops/s   0.0mb/s      1.6ms/op [0.00ms - 64.41ms]
+113.714: IO Summary: 1897169 ops 31235.810 ops/s 10076/1008 rd/wr 165.6mb/s   2.1ms/op
+113.714: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 1948701
+CMT miss count: 1846296
+CMT access count: 3802963
+CMT hit ratio: 0.512417
+write cnt: 7664921
+should_write cnt: 6490436
+erase cnt: 5248
+write cache hit:7966
+read joule: 23798792.500000
+write joule: 128004180.699991
+erase joule: 692736.000000
+All joule: 152495709.199991
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+varmail:
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+Resolving bug...
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myvarmail.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: Varmail Version 3.0 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.276: bigfileset populated: 475000 files, avg. dir. width = 1000000, avg. dir. depth = 0.9, 0 leafdirs, 7433.811MB total size
+0.276: Removing bigfileset tree (if exists)
+0.278: Pre-allocating directories in bigfileset tree
+0.278: Pre-allocating files in bigfileset tree
+17.304: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+17.304: Population and pre-allocation of filesets completed
+17.305: Starting 1 filereader instances
+18.313: Running...
+78.320: Run took 60 seconds...
+78.320: Per-Operation Breakdown
+closefile4           80183ops     1336ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.83ms]
+readfile4            80183ops     1336ops/s  21.0mb/s      0.2ms/op [0.00ms - 17.43ms]
+openfile4            80183ops     1336ops/s   0.0mb/s      2.2ms/op [0.00ms - 23.45ms]
+closefile3           80185ops     1336ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.77ms]
+fsyncfile3           80185ops     1336ops/s   0.0mb/s      1.7ms/op [0.21ms - 33.57ms]
+appendfilerand3      80191ops     1336ops/s  10.4mb/s      0.0ms/op [0.00ms - 14.98ms]
+readfile3            80191ops     1336ops/s  20.8mb/s      0.2ms/op [0.00ms - 15.68ms]
+openfile3            80191ops     1336ops/s   0.0mb/s      2.1ms/op [0.00ms - 23.20ms]
+closefile2           80192ops     1336ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.00ms]
+fsyncfile2           80192ops     1336ops/s   0.0mb/s      1.6ms/op [0.21ms - 153.41ms]
+appendfilerand2      80194ops     1336ops/s  10.4mb/s      0.0ms/op [0.00ms -  8.66ms]
+createfile2          80195ops     1336ops/s   0.0mb/s      1.6ms/op [0.03ms - 23.41ms]
+deletefile1          80196ops     1336ops/s   0.0mb/s      2.3ms/op [0.03ms - 150.35ms]
+78.320: IO Summary: 1042461 ops 17372.380 ops/s 2673/2673 rd/wr  62.6mb/s   3.0ms/op
+78.320: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 491765
+CMT miss count: 313853
+CMT access count: 817589
+CMT hit ratio: 0.601482
+write cnt: 2816828
+should_write cnt: 2736984
+erase cnt: 0
+write cache hit:11971
+read joule: 4203381.000000
+write joule: 47041027.600001
+erase joule: 0.000000
+All joule: 51244408.600001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+=========================================
+LearnedFTL:
+
+fileserver:
+
+NVMe command result:00000000
+Resolving bug...
+0
+All operations completed successfully!
+erver.f:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myfiles
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: File-server Version 3.0 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.126: bigfileset populated: 225000 files, avg. dir. width = 20, avg. dir. depth = 4.1, 0 leafdirs, 28142.208MB total size
+0.126: Removing bigfileset tree (if exists)
+0.128: Pre-allocating directories in bigfileset tree
+0.208: Pre-allocating files in bigfileset tree
+42.859: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+42.860: Population and pre-allocation of filesets completed
+42.862: Starting 1 filereader instances
+43.875: Running...
+103.880: Run took 60 seconds...
+103.882: Per-Operation Breakdown
+statfile1            54007ops      900ops/s   0.0mb/s     12.0ms/op [0.00ms - 826.21ms]
+deletefile1          54019ops      900ops/s   0.0mb/s     15.0ms/op [0.01ms - 826.88ms]
+closefile3           54031ops      900ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.41ms]
+readfile1            54031ops      900ops/s 112.0mb/s      1.9ms/op [0.00ms - 317.57ms]
+openfile2            54033ops      900ops/s   0.0mb/s     11.8ms/op [0.00ms - 825.45ms]
+closefile2           54043ops      901ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.97ms]
+appendfilerand1      54043ops      901ops/s   7.1mb/s      1.8ms/op [0.00ms - 317.29ms]
+openfile1            54044ops      901ops/s   0.0mb/s     11.7ms/op [0.00ms - 827.40ms]
+closefile1           54056ops      901ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.41ms]
+wrtfile1             54056ops      901ops/s 112.7mb/s      0.1ms/op [0.00ms - 12.03ms]
+createfile1          54056ops      901ops/s   0.0mb/s      1.0ms/op [0.01ms - 253.67ms]
+103.882: IO Summary: 594419 ops 9906.181 ops/s 900/1802 rd/wr 231.8mb/s  18.5ms/op
+103.883: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+total cnt: 1607794
+cmt cnt: 1235578
+model cnt: 33981
+write cnt: 13513993
+should_write cnt: 8346434
+erase cnt: 20704
+write cache hit:668model training num:609
+model training write:4824131
+read joule: 24783640.000000
+write joule: 225683683.099974
+erase joule: 2732928.000000
+All joule: 253200251.099974
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+
+webserver:
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+Resolving bug...
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f mywebserver.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.006: Web-server Version 3.1 personality successfully loaded
+0.006: Populating and pre-allocating filesets
+0.006: logfiles populated: 1 files, avg. dir. width = 20, avg. dir. depth = 0.0, 0 leafdirs, 0.002MB total size
+0.006: Removing logfiles tree (if exists)
+0.007: Pre-allocating directories in logfiles tree
+0.007: Pre-allocating files in logfiles tree
+0.457: bigfileset populated: 825000 files, avg. dir. width = 20, avg. dir. depth = 4.5, 0 leafdirs, 12907.617MB total size
+0.457: Removing bigfileset tree (if exists)
+0.459: Pre-allocating directories in bigfileset tree
+0.762: Pre-allocating files in bigfileset tree
+51.469: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+51.469: Population and pre-allocation of filesets completed
+51.470: Starting 1 filereader instances
+52.479: Running...
+112.503: Run took 60 seconds...
+112.545: Per-Operation Breakdown
+appendlog            60901ops     1015ops/s   7.9mb/s      0.5ms/op [0.00ms - 202.31ms]
+closefile10          60900ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.87ms]
+readfile10           60900ops     1015ops/s  15.8mb/s      0.7ms/op [0.00ms - 34.19ms]
+openfile10           60900ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 49.61ms]
+closefile9           60900ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.23ms]
+readfile9            60900ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.60ms]
+openfile9            60900ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 41.77ms]
+closefile8           60900ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.36ms]
+readfile8            60900ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 33.92ms]
+openfile8            60900ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 46.11ms]
+closefile7           60900ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.36ms]
+readfile7            60900ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.80ms]
+openfile7            60900ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 39.45ms]
+closefile6           60900ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.60ms]
+readfile6            60900ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.05ms]
+openfile6            60900ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 41.68ms]
+closefile5           60900ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.99ms]
+readfile5            60900ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.62ms]
+openfile5            60900ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 49.69ms]
+closefile4           60900ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.99ms]
+readfile4            60901ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.06ms]
+openfile4            60901ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 47.39ms]
+closefile3           60901ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.56ms]
+readfile3            60901ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.37ms]
+openfile3            60901ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 46.45ms]
+closefile2           60901ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.62ms]
+readfile2            60901ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.83ms]
+openfile2            60901ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 49.67ms]
+closefile1           60901ops     1015ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.04ms]
+readfile1            60901ops     1015ops/s  15.9mb/s      0.7ms/op [0.00ms - 34.72ms]
+openfile1            60901ops     1015ops/s   0.0mb/s      1.6ms/op [0.00ms - 50.05ms]
+112.560: IO Summary: 1887912 ops 31460.536 ops/s 10149/1015 rd/wr 166.7mb/s   2.1ms/op
+112.561: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+total cnt: 3783835
+cmt cnt: 1823435
+model cnt: 1
+write cnt: 6660001
+should_write cnt: 6390765
+erase cnt: 1120
+write cache hit:8176model training num:35
+model training write:244224
+read joule: 20935481.000000
+write joule: 111222016.699994
+erase joule: 147840.000000
+All joule: 132305337.699994
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+varmail:
+
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myvarmail.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: Varmail Version 3.0 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.279: bigfileset populated: 475000 files, avg. dir. width = 1000000, avg. dir. depth = 0.9, 0 leafdirs, 7433.811MB total size
+0.279: Removing bigfileset tree (if exists)
+0.280: Pre-allocating directories in bigfileset tree
+0.280: Pre-allocating files in bigfileset tree
+17.155: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+17.155: Population and pre-allocation of filesets completed
+17.156: Starting 1 filereader instances
+18.163: Running...
+78.173: Run took 60 seconds...
+78.174: Per-Operation Breakdown
+closefile4           80574ops     1343ops/s   0.0mb/s      0.0ms/op [0.00ms -  4.54ms]
+readfile4            80574ops     1343ops/s  21.1mb/s      0.2ms/op [0.00ms - 24.41ms]
+openfile4            80575ops     1343ops/s   0.0mb/s      2.2ms/op [0.00ms - 79.59ms]
+closefile3           80577ops     1343ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.37ms]
+fsyncfile3           80577ops     1343ops/s   0.0mb/s      1.7ms/op [0.21ms - 78.62ms]
+appendfilerand3      80578ops     1343ops/s  10.5mb/s      0.0ms/op [0.00ms - 15.50ms]
+readfile3            80578ops     1343ops/s  21.0mb/s      0.2ms/op [0.00ms - 16.26ms]
+openfile3            80578ops     1343ops/s   0.0mb/s      2.1ms/op [0.00ms - 80.92ms]
+closefile2           80579ops     1343ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.74ms]
+fsyncfile2           80579ops     1343ops/s   0.0mb/s      1.7ms/op [0.21ms - 568.07ms]
+appendfilerand2      80584ops     1343ops/s  10.5mb/s      0.0ms/op [0.00ms - 19.39ms]
+createfile2          80584ops     1343ops/s   0.0mb/s      1.6ms/op [0.01ms - 80.78ms]
+deletefile1          80585ops     1343ops/s   0.0mb/s      2.2ms/op [0.03ms - 80.95ms]
+78.182: IO Summary: 1047522 ops 17455.708 ops/s 2685/2686 rd/wr  63.1mb/s   3.0ms/op
+78.182: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+total cnt: 824426
+cmt cnt: 485249
+model cnt: 0
+write cnt: 2818846
+should_write cnt: 2730596
+erase cnt: 256
+write cache hit:12245model training num:0
+model training write:0
+read joule: 4302557.000000
+write joule: 47074728.200001
+erase joule: 33792.000000
+All joule: 51411077.200001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+========================
+dftl:
+
+fileserver:
+
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myfileserver.f
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.006: File-server Version 3.0 personality successfully loaded
+0.006: Populating and pre-allocating filesets
+0.125: bigfileset populated: 225000 files, avg. dir. width = 20, avg. dir. depth = 4.1, 0 leafdirs, 28142.208MB total size
+0.125: Removing bigfileset tree (if exists)
+0.127: Pre-allocating directories in bigfileset tree
+0.202: Pre-allocating files in bigfileset tree
+42.605: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+42.606: Population and pre-allocation of filesets completed
+42.607: Starting 1 filereader instances
+43.621: Running...
+103.626: Run took 60 seconds...
+103.628: Per-Operation Breakdown
+statfile1            50182ops      836ops/s   0.0mb/s     12.5ms/op [0.00ms - 5053.44ms]
+deletefile1          50194ops      837ops/s   0.0mb/s     16.0ms/op [0.01ms - 5061.07ms]
+closefile3           50205ops      837ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.19ms]
+readfile1            50205ops      837ops/s 104.8mb/s      3.1ms/op [0.00ms - 3552.51ms]
+openfile2            50208ops      837ops/s   0.0mb/s     11.9ms/op [0.00ms - 4703.07ms]
+closefile2           50217ops      837ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.16ms]
+appendfilerand1      50217ops      837ops/s   6.6mb/s      2.1ms/op [0.00ms - 3551.93ms]
+openfile1            50219ops      837ops/s   0.0mb/s     12.0ms/op [0.00ms - 5053.96ms]
+closefile1           50232ops      837ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.10ms]
+wrtfile1             50232ops      837ops/s 104.6mb/s      0.0ms/op [0.00ms -  7.31ms]
+createfile1          50232ops      837ops/s   0.0mb/s      1.1ms/op [0.01ms - 1141.73ms]
+103.628: IO Summary: 552343 ops 9205.047 ops/s 837/1674 rd/wr 215.9mb/s  19.6ms/op
+103.628: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 119
+CMT miss count: 1499307
+CMT access count: 1499494
+CMT hit ratio: 0.000079
+write cnt: 9767310
+should_write cnt: 8146582
+erase cnt: 6201
+read joule: 16058266.000000
+write joule: 163114093.699985
+erase joule: 818532.000000
+All joule: 179990874.999985
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+webserver:
+
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f mywebserver.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: Web-server Version 3.1 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.006: logfiles populated: 1 files, avg. dir. width = 20, avg. dir. depth = 0.0, 0 leafdirs, 0.002MB total size
+0.006: Removing logfiles tree (if exists)
+0.007: Pre-allocating directories in logfiles tree
+0.007: Pre-allocating files in logfiles tree
+0.457: bigfileset populated: 825000 files, avg. dir. width = 20, avg. dir. depth = 4.5, 0 leafdirs, 12907.617MB total size
+0.457: Removing bigfileset tree (if exists)
+0.459: Pre-allocating directories in bigfileset tree
+0.769: Pre-allocating files in bigfileset tree
+51.100: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+51.100: Population and pre-allocation of filesets completed
+51.101: Starting 1 filereader instances
+52.153: Running...
+112.161: Run took 60 seconds...
+112.205: Per-Operation Breakdown
+appendlog            56947ops      949ops/s   7.4mb/s     12.0ms/op [0.00ms - 25306.37ms]
+closefile10          56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.97ms]
+readfile10           56922ops      949ops/s  14.9mb/s      1.6ms/op [0.00ms - 37.93ms]
+openfile10           56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 46.42ms]
+closefile9           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.37ms]
+readfile9            56922ops      949ops/s  14.8mb/s      1.5ms/op [0.00ms - 15.84ms]
+openfile9            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 29.76ms]
+closefile8           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.74ms]
+readfile8            56922ops      949ops/s  14.9mb/s      1.6ms/op [0.00ms - 37.87ms]
+openfile8            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 27.41ms]
+closefile7           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.72ms]
+readfile7            56922ops      949ops/s  14.9mb/s      1.6ms/op [0.00ms - 15.91ms]
+openfile7            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 29.71ms]
+closefile6           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  2.54ms]
+readfile6            56922ops      949ops/s  14.7mb/s      1.6ms/op [0.00ms - 15.66ms]
+openfile6            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 49.77ms]
+closefile5           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.66ms]
+readfile5            56922ops      949ops/s  14.8mb/s      1.6ms/op [0.00ms - 15.74ms]
+openfile5            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 33.79ms]
+closefile4           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  0.98ms]
+readfile4            56922ops      949ops/s  14.8mb/s      1.6ms/op [0.00ms - 24.62ms]
+openfile4            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 39.62ms]
+closefile3           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.51ms]
+readfile3            56922ops      949ops/s  14.8mb/s      1.6ms/op [0.00ms - 33.76ms]
+openfile3            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 37.94ms]
+closefile2           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  2.53ms]
+readfile2            56922ops      949ops/s  14.9mb/s      1.6ms/op [0.00ms - 37.93ms]
+openfile2            56922ops      949ops/s   0.0mb/s      2.2ms/op [0.00ms - 21.39ms]
+closefile1           56922ops      949ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.17ms]
+readfile1            56922ops      949ops/s  14.9mb/s      1.5ms/op [0.00ms - 15.45ms]
+openfile1            56922ops      949ops/s   0.0mb/s      2.3ms/op [0.00ms - 180.48ms]
+112.205: IO Summary: 1764607 ops 29407.873 ops/s 9486/949 rd/wr 155.9mb/s   4.5ms/op
+112.205: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 139
+CMT miss count: 3511807
+CMT access count: 3519337
+CMT hit ratio: 0.000039
+write cnt: 7448557
+should_write cnt: 6435794
+erase cnt: 4640
+read joule: 28070311.500000
+write joule: 124390901.899992
+erase joule: 612480.000000
+All joule: 153073693.399992
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+varmail:
+
+Resolving bug...
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myvarmail.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.006: Varmail Version 3.0 personality successfully loaded
+0.006: Populating and pre-allocating filesets
+0.278: bigfileset populated: 475000 files, avg. dir. width = 1000000, avg. dir. depth = 0.9, 0 leafdirs, 7433.811MB total size
+0.279: Removing bigfileset tree (if exists)
+0.280: Pre-allocating directories in bigfileset tree
+0.281: Pre-allocating files in bigfileset tree
+17.403: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+17.403: Population and pre-allocation of filesets completed
+17.404: Starting 1 filereader instances
+18.411: Running...
+78.415: Run took 60 seconds...
+78.415: Per-Operation Breakdown
+closefile4           79696ops     1328ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.29ms]
+readfile4            79696ops     1328ops/s  20.7mb/s      0.3ms/op [0.00ms - 14.98ms]
+openfile4            79696ops     1328ops/s   0.0mb/s      2.1ms/op [0.00ms - 50.44ms]
+closefile3           79698ops     1328ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.11ms]
+fsyncfile3           79698ops     1328ops/s   0.0mb/s      1.7ms/op [0.21ms - 39.66ms]
+appendfilerand3      79704ops     1328ops/s  10.4mb/s      0.0ms/op [0.00ms - 11.79ms]
+readfile3            79704ops     1328ops/s  20.8mb/s      0.4ms/op [0.00ms - 17.47ms]
+openfile3            79704ops     1328ops/s   0.0mb/s      2.1ms/op [0.00ms - 50.32ms]
+closefile2           79708ops     1328ops/s   0.0mb/s      0.0ms/op [0.00ms - 13.11ms]
+fsyncfile2           79708ops     1328ops/s   0.0mb/s      1.6ms/op [0.21ms - 153.15ms]
+appendfilerand2      79708ops     1328ops/s  10.4mb/s      0.0ms/op [0.00ms -  7.94ms]
+createfile2          79708ops     1328ops/s   0.0mb/s      1.6ms/op [0.03ms - 51.48ms]
+deletefile1          79711ops     1328ops/s   0.0mb/s      2.2ms/op [0.03ms - 149.22ms]
+78.416: IO Summary: 1036139 ops 17267.819 ops/s 2656/2657 rd/wr  62.3mb/s   3.0ms/op
+78.416: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 66955
+CMT miss count: 733918
+CMT access count: 812500
+CMT hit ratio: 0.082406
+write cnt: 2806421
+should_write cnt: 2726937
+erase cnt: 0
+read joule: 5654656.000000
+write joule: 46867230.700001
+erase joule: 0.000000
+All joule: 52521886.700001
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+===========================
+sFTL:
+
+fileserver:
+
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myfileserver.f
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: File-server Version 3.0 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.125: bigfileset populated: 225000 files, avg. dir. width = 20, avg. dir. depth = 4.1, 0 leafdirs, 28142.208MB total size
+0.125: Removing bigfileset tree (if exists)
+0.127: Pre-allocating directories in bigfileset tree
+0.204: Pre-allocating files in bigfileset tree
+42.766: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+42.766: Population and pre-allocation of filesets completed
+42.768: Starting 1 filereader instances
+43.781: Running...
+103.787: Run took 60 seconds...
+103.790: Per-Operation Breakdown
+statfile1            50169ops      836ops/s   0.0mb/s     11.6ms/op [0.00ms - 9452.94ms]
+deletefile1          50185ops      836ops/s   0.0mb/s     15.1ms/op [0.01ms - 10722.99ms]
+closefile3           50201ops      837ops/s   0.0mb/s      0.0ms/op [0.00ms -  7.10ms]
+readfile1            50201ops      837ops/s 105.0mb/s      2.0ms/op [0.00ms - 3743.93ms]
+openfile2            50201ops      837ops/s   0.0mb/s     13.3ms/op [0.00ms - 10723.15ms]
+closefile2           50208ops      837ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.14ms]
+appendfilerand1      50208ops      837ops/s   6.5mb/s      1.7ms/op [0.00ms - 4567.48ms]
+openfile1            50209ops      837ops/s   0.0mb/s     12.5ms/op [0.00ms - 9707.48ms]
+closefile1           50219ops      837ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.26ms]
+wrtfile1             50219ops      837ops/s 104.8mb/s      0.1ms/op [0.00ms -  8.77ms]
+createfile1          50219ops      837ops/s   0.0mb/s      0.7ms/op [0.01ms - 1712.82ms]
+103.790: IO Summary: 552239 ops 9203.012 ops/s 837/1674 rd/wr 216.4mb/s  19.0ms/op
+103.790: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 1405077
+CMT miss count: 102382
+CMT access count: 1507509
+CMT hit ratio: 0.932052
+write cnt: 22227323
+should_write cnt: 8156800
+erase cnt: 54848
+read joule: 54769767.500000
+write joule: 371196294.100039
+erase joule: 7239936.000000
+All joule: 433205997.600039
+write process count: 31990
+write process read count: 100
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+webserver:
+
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+Resolving bug...
+0
+All operations completed successfully!
+-f mywebserver.f ch-1.5-alpha3/workloads$ sudo filebench 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: Web-server Version 3.1 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.006: logfiles populated: 1 files, avg. dir. width = 20, avg. dir. depth = 0.0, 0 leafdirs, 0.002MB total size
+0.006: Removing logfiles tree (if exists)
+0.007: Pre-allocating directories in logfiles tree
+0.007: Pre-allocating files in logfiles tree
+0.457: bigfileset populated: 825000 files, avg. dir. width = 20, avg. dir. depth = 4.5, 0 leafdirs, 12907.617MB total size
+0.457: Removing bigfileset tree (if exists)
+0.458: Pre-allocating directories in bigfileset tree
+0.760: Pre-allocating files in bigfileset tree
+51.766: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+51.766: Population and pre-allocation of filesets completed
+51.768: Starting 1 filereader instances
+52.776: Running...
+112.782: Run took 60 seconds...
+112.825: Per-Operation Breakdown
+appendlog            62058ops     1034ops/s   8.1mb/s     32.1ms/op [0.00ms - 28967.60ms]
+closefile10          62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.88ms]
+readfile10           62058ops     1034ops/s  16.2mb/s      0.3ms/op [0.00ms - 43.25ms]
+openfile10           62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 176.84ms]
+closefile9           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.22ms]
+readfile9            62058ops     1034ops/s  16.1mb/s      0.3ms/op [0.00ms - 91.81ms]
+openfile9            62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 120.72ms]
+closefile8           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.85ms]
+readfile8            62058ops     1034ops/s  16.3mb/s      0.3ms/op [0.00ms - 91.77ms]
+openfile8            62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 132.90ms]
+closefile7           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.61ms]
+readfile7            62058ops     1034ops/s  16.2mb/s      0.3ms/op [0.00ms - 91.77ms]
+openfile7            62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 93.81ms]
+closefile6           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  6.32ms]
+readfile6            62058ops     1034ops/s  16.2mb/s      0.3ms/op [0.00ms - 85.34ms]
+openfile6            62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 176.69ms]
+closefile5           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  5.14ms]
+readfile5            62058ops     1034ops/s  16.3mb/s      0.3ms/op [0.00ms - 91.75ms]
+openfile5            62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 176.37ms]
+closefile4           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.04ms]
+readfile4            62058ops     1034ops/s  16.2mb/s      0.3ms/op [0.00ms - 91.88ms]
+openfile4            62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 92.96ms]
+closefile3           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  2.54ms]
+readfile3            62058ops     1034ops/s  16.1mb/s      0.3ms/op [0.00ms - 133.30ms]
+openfile3            62058ops     1034ops/s   0.0mb/s      1.4ms/op [0.00ms - 176.99ms]
+closefile2           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  1.25ms]
+readfile2            62058ops     1034ops/s  16.2mb/s      0.3ms/op [0.00ms - 133.97ms]
+openfile2            62058ops     1034ops/s   0.0mb/s      1.5ms/op [0.00ms - 181.60ms]
+closefile1           62058ops     1034ops/s   0.0mb/s      0.0ms/op [0.00ms -  3.11ms]
+readfile1            62058ops     1034ops/s  16.2mb/s      0.3ms/op [0.00ms - 134.54ms]
+openfile1            62058ops     1034ops/s   0.0mb/s      1.5ms/op [0.00ms - 182.75ms]
+112.825: IO Summary: 1923798 ops 32060.828 ops/s 10342/1034 rd/wr 170.0mb/s   4.5ms/op
+112.825: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 2575200
+CMT miss count: 1267939
+CMT access count: 3852808
+CMT hit ratio: 0.668396
+write cnt: 7565651
+should_write cnt: 6469873
+erase cnt: 4928
+read joule: 21673687.000000
+write joule: 126346371.699992
+erase joule: 650496.000000
+All joule: 148670554.699992
+write process count: 25380
+write process read count: 56
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+varmail:
+
+0
+All operations completed successfully!
+fxx@fxx:~/filebench-1.5-alpha3/workloads$ sudo filebench -f myvarmail.f 
+Filebench Version 1.5-alpha3
+0.000: Allocated 173MB of shared memory
+0.005: Varmail Version 3.0 personality successfully loaded
+0.005: Populating and pre-allocating filesets
+0.273: bigfileset populated: 475000 files, avg. dir. width = 1000000, avg. dir. depth = 0.9, 0 leafdirs, 7433.811MB total size
+0.273: Removing bigfileset tree (if exists)
+0.274: Pre-allocating directories in bigfileset tree
+0.274: Pre-allocating files in bigfileset tree
+17.558: Waiting for pre-allocation to finish (in case of a parallel pre-allocation)
+17.558: Population and pre-allocation of filesets completed
+17.558: Starting 1 filereader instances
+18.565: Running...
+78.578: Run took 60 seconds...
+78.578: Per-Operation Breakdown
+closefile4           80984ops     1349ops/s   0.0mb/s      0.0ms/op [0.00ms -  8.95ms]
+readfile4            80984ops     1349ops/s  21.0mb/s      0.2ms/op [0.00ms - 20.09ms]
+openfile4            80984ops     1349ops/s   0.0mb/s      2.0ms/op [0.00ms - 27.50ms]
+closefile3           80989ops     1350ops/s   0.0mb/s      0.0ms/op [0.00ms - 12.12ms]
+fsyncfile3           80989ops     1350ops/s   0.0mb/s      1.9ms/op [0.21ms - 39.58ms]
+appendfilerand3      80989ops     1350ops/s  10.5mb/s      0.1ms/op [0.00ms - 13.27ms]
+readfile3            80989ops     1350ops/s  21.2mb/s      0.2ms/op [0.00ms - 20.00ms]
+openfile3            80989ops     1350ops/s   0.0mb/s      1.9ms/op [0.00ms - 27.41ms]
+closefile2           80991ops     1350ops/s   0.0mb/s      0.0ms/op [0.00ms -  8.36ms]
+fsyncfile2           80991ops     1350ops/s   0.0mb/s      1.9ms/op [0.21ms - 484.50ms]
+appendfilerand2      80993ops     1350ops/s  10.6mb/s      0.0ms/op [0.00ms - 456.99ms]
+createfile2          80994ops     1350ops/s   0.0mb/s      1.5ms/op [0.03ms - 22.24ms]
+deletefile1          80999ops     1350ops/s   0.0mb/s      2.1ms/op [0.03ms - 473.01ms]
+78.578: IO Summary: 1052865 ops 17544.046 ops/s 2699/2699 rd/wr  63.3mb/s   3.0ms/op
+78.578: Shutting down processes
+--opcode=239 --cdw10=95-alpha3/workloads$ sudo nvme admin-passthru /dev/nvme0n1 -
+888881118
+CMT hit count: 630311
+CMT miss count: 181750
+CMT access count: 824274
+CMT hit ratio: 0.764686
+write cnt: 2826819
+should_write cnt: 2746346
+erase cnt: 0
+read joule: 3548286.000000
+write joule: 47207877.300001
+erase joule: 0.000000
+All joule: 50756163.300001
+write process count: 80518
+write process read count: 62348
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+

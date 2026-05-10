@@ -1,0 +1,319 @@
+
+cd ./libzbd/rocksdb/
+
+sudo ./db_set.sh
+
+
+
+
+=======================
+
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=fillseq --use_direct_io_for_flush_and_compaction=true --use_direct_reads=true --disable_wal=true --cache_size=1 --compression_type=none --threads=1 --value_size=4096 --key_size=16 --block_size=4096 --cache_numshardbits=4 --open_files=1000 --max_background_compactions=1 --max_background_flushes=1 --write_buffer_size=67108864 --target_file_size_base=67108864 --max_bytes_for_level_base=268435456 --level0_file_num_compaction_trigger=4 --num=3000000 --report_interval_seconds=1
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=overwrite --use_direct_io_for_flush_and_compaction=true --use_direct_reads=true --disable_wal=true --cache_size=1 --compression_type=none --threads=1 --value_size=4096 --key_size=16 --use_existing_db=true \ --use_existing_keys=true --block_size=4096 --cache_numshardbits=4 --open_files=1000 --max_background_compactions=1 --max_background_flushes=1 --write_buffer_size=67108864 --target_file_size_base=67108864 --max_bytes_for_level_base=268435456 --level0_file_num_compaction_trigger=4 --report_interval_seconds=1
+
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+顺序读：
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=readseq --use_existing_db=true \ --use_existing_keys=true
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+随即读：
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=readrandom --use_existing_db=true \ --use_existing_keys=true
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+===========================
+
+
+
+=============================上边的命令是有用的=============
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=================没用=================
+删除文件：
+sudo rm -r /mnt/nvme
+创建文件
+sudo mkdir -p /mnt/nvme
+
+设置文件系统：
+sudo mkfs.ext4 /dev/nvme0n1
+# 清空系统缓存
+echo 3 | sudo tee /proc/sys/vm/drop_caches
+sync
+
+# 挂载NVMe
+sudo mount /dev/nvme0n1 /mnt/nvme
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+=============================
+论文中的写命令：
+
+================随即读====================
+
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=fillseq,overwrite,readrandom --use_direct_io_for_flush_and_compaction=true --use_direct_reads=true --disable_wal=true --cache_size=1 --compression_type=none --threads=1 --value_size=4096 --key_size=16 --block_size=4096 --cache_numshardbits=4 --open_files=1000 --max_background_compactions=1 --max_background_flushes=1 --write_buffer_size=67108864 --target_file_size_base=67108864 --max_bytes_for_level_base=268435456 --level0_file_num_compaction_trigger=4 --num=2500000 --report_interval_seconds=1
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+
+
+
+=================顺序读=======================
+
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=fillseq,overwrite,readseq --use_direct_io_for_flush_and_compaction=true --use_direct_reads=true --disable_wal=true --cache_size=1 --compression_type=none --threads=1 --value_size=4096 --key_size=16 --block_size=4096 --cache_numshardbits=4 --open_files=1000 --max_background_compactions=1 --max_background_flushes=1 --write_buffer_size=67108864 --target_file_size_base=67108864 --max_bytes_for_level_base=268435456 --level0_file_num_compaction_trigger=4 --num=2500000 --report_interval_seconds=1
+
+
+
+
+随即读：
+
+=======================================
+
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=overwrite,readseq --use_direct_io_for_flush_and_compaction=true --use_direct_reads=true --disable_wal=true --cache_size=1 --compression_type=none --threads=1 --value_size=4096 --key_size=16 --block_size=4096 --use_existing_db=1  --use_existing_keys=1 --cache_numshardbits=4 --open_files=1000 --max_background_compactions=1 --max_background_flushes=1 --write_buffer_size=67108864 --target_file_size_base=67108864 --max_bytes_for_level_base=268435456 --level0_file_num_compaction_trigger=4 --num=2500000 --report_interval_seconds=1
+
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+
+
+
+
+=====================================没用==================
+
+==========================
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+# 清空缓存
+echo 3 | sudo tee /proc/sys/vm/drop_caches
+sync
+
+# 执行随机读测试
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=readrandom --use_direct_io_for_flush_and_compaction=true --use_direct_reads=true --disable_wal=true --cache_size=1 --compression_type=none --threads=1 --value_size=4096 --key_size=16 --block_size=4096 --cache_numshardbits=4 --open_files=1000 --max_background_compactions=1 --max_background_flushes=1 --write_buffer_size=67108864 --target_file_size_base=67108864 --max_bytes_for_level_base=268435456 --level0_file_num_compaction_trigger=4 --num=3000000 --reads=1000000 --report_interval_seconds=1
+
+
+
+
+./db_bench \--db=/mnt/ssd/rocksdb_test \
+  --benchmarks=readseq \
+  --use_direct_io_for_flush_and_compaction=true \
+  --use_direct_reads=true \
+  --disable_wal=true \
+  --cache_size=1 \
+  --compression_type=none \
+  --threads=1 \
+  --value_size=4096 \
+  --key_size=16 \
+  --block_size=4096 \
+  --cache_numshardbits=4 \
+  --open_files=1000 \
+  --max_background_compactions=1 \
+  --max_background_flushes=1 \
+  --write_buffer_size=67108864 \
+  --target_file_size_base=67108864 \
+  --max_bytes_for_level_base=268435456 \
+  --level0_file_num_compaction_trigger=4 \
+  --num=6553600 \
+  --reads=1000000 \
+  --report_interval_seconds=1
+
+
+
+===================
+
+sudo ./db_bench --db=/mnt/nvme/rocksdb_test --benchmarks=readrandom --use_direct_io_for_flush_and_compaction=true --use_direct_reads=true --disable_wal=true --cache_size=1 --write_buffer_size=1 --max_write_buffer_number=1 --min_write_buffer_number_to_merge=1 --compression_type=none --threads=1 --value_size=4096 --key_size=16 --block_size=4096 --cache_numshardbits=4 --open_files=1000 --max_background_compactions=1 --max_background_flushes=1 --target_file_size_base=67108864 --max_bytes_for_level_base=268435456 --level0_file_num_compaction_trigger=4 --num=3000000 --reads=3000000 --report_interval_seconds=1  
+
+
+========
+
+
+
+
+
+
+顺序写：
+sudo ./db_bench --benchmarks=fillseq --db=/mnt/nvme/rocksdb_test --wal_dir=/mnt/nvme/rocksdb_test_wal --num=25000000  --key_size=16 --value_size=1024 --write_buffer_size=0 --block_cache=false --compression_type=none --use_existing_db=0 --use_existing_keys=0 --threads=1
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+==============================================================
+重启后执行
+cd ./libzbd/rocksdb/
+删除文件：
+sudo rm -r /mnt/nvme
+创建文件
+sudo mkdir -p /mnt/nvme
+
+设置文件系统：
+sudo mkfs.ext4 /dev/nvme0n1
+挂载文件
+sudo mount /dev/nvme0n1 /mnt/nvme
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+对应的命令：
+sudo ./db_bench --db=/mnt/nvme --benchmarks="fillseq,stats,overwrite,stats,readseq,stats" --num=3000000 --value_size=1024 --compression_type=none --disable_auto_compactions=true --use_direct_io_for_flush_and_compaction
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+================================================
+
+重启后执行
+cd ./libzbd/rocksdb/
+删除文件：
+sudo rm -r /mnt/nvme
+创建文件
+sudo mkdir -p /mnt/nvme
+
+设置文件系统：
+sudo mkfs.ext4 /dev/nvme0n1
+挂载文件
+sudo mount /dev/nvme0n1 /mnt/nvme
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="fillseq,stats" --num=3000000 --value_size=1024 --use_direct_io_for_flush_and_compaction
+
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="overwrite,stats" --use_existing_db=1  --use_existing_keys=1 --value_size=1024 --use_direct_io_for_flush_and_compaction
+
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数:
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="readrandom,stats" --use_existing_db=1 --use_existing_keys=1 --compression_type=none --disable_auto_compactions=true --use_direct_io_for_flush_and_compaction
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数:
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="readseq,stats" --use_existing_db=1 --num=1000000 --compression_type=none --disable_auto_compactions=true --use_direct_io_for_flush_and_compaction 
+
+========================
+sudo ./db_bench --db=/mnt/nvme --benchmarks="fillseq,stats,overwrite,stats,overwrite" --num=2000000 --value_size=1024 --compression_type=none --disable_auto_compactions=true --use_direct_io_for_flush_and_compaction
+
+
+
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="fillseq,stats" --num=6000000 --value_size=1024 --compression_type=none --disable_auto_compactions=true --use_direct_io_for_flush_and_compaction
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="readrandom,stats" --use_existing_db=1 --num=1000000 --compression_type=none --disable_auto_compactions=true --use_direct_io_for_flush_and_compaction
+
+
+====================================================
+顺序写：
+sudo ./db_bench --db=/mnt/nvme --benchmarks=fillseq --num=8000000 --value_size=1024  --use_direct_io_for_flush_and_compaction
+
+
+
+
+
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="readrandom,stats" --use_existing_db=true \ --use_existing_keys=true 
+查看容量
+df -h
+
+随机读：
+
+sudo ./db_bench --db=/mnt/nvme--benchmarks=readrandom --num=3000000 --use_existing_keys=1 \ --use_existing_db=1 --allow_concurrent_memtable_write=true
+
+顺序读：
+sudo ./db_bench --db=/mnt/nvme --benchmarks=readseq --num=8000000 
+
+
+
+
+==========================f2fs==============
+cd ./libzbd/rocksdb/
+删除文件：
+sudo rm -r /mnt/nvme
+创建文件
+sudo mkdir -p /mnt/nvme
+
+设置文件系统：
+sudo mkfs.f2fs /dev/nvme0n1
+挂载文件
+sudo mount /dev/nvme0n1 /mnt/nvme
+
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+论文中的命令：
+sudo ./db_bench --db=/mnt/nvme --benchmarks="fillseq,stats,overwrite,stats" --num=1000000 --value_size=3072 --compression_type=none --disable_auto_compactions=true
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+
+清除参数:
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+
+sudo ./db_bench --db=/mnt/nvme --benchmarks="readrandom,stats" --use_existing_db=1 --num=300000 --compression_type=none --disable_auto_compactions=true
+

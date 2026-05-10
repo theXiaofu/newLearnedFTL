@@ -1,0 +1,16 @@
+
+cd ./filebench-1.5-alpha3/workloads
+
+
+
+./setup_nvme_filebench.sh
+测试：
+sudo filebench -f 测试workload.f
+# myfileserver.f mywebserver.f myvarmail.f
+
+
+查看参数：
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+清除参数
+sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+

@@ -1,0 +1,2496 @@
+segtableftl:
+
+随即写预处理：
+
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [w(20)][98.1%][r=0KiB/s,w=403MiB/s][r=0,w=40.2k IOPS][eta 00m:01s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1428: Tue Jun 10 02:24:54 2025
+  write: IOPS=30.8k, BW=388MiB/s (407MB/s)(20.0GiB/52817msec)
+    clat (usec): min=206, max=20373, avg=643.12, stdev=457.38
+     lat (usec): min=206, max=20373, avg=643.53, stdev=457.48
+    clat percentiles (usec):
+     |  1.00th=[  210],  5.00th=[  212], 10.00th=[  215], 20.00th=[  269],
+     | 30.00th=[  383], 40.00th=[  437], 50.00th=[  562], 60.00th=[  644],
+     | 70.00th=[  791], 80.00th=[  955], 90.00th=[ 1188], 95.00th=[ 1385],
+     | 99.00th=[ 1795], 99.50th=[ 1991], 99.90th=[ 4752], 99.95th=[ 5800],
+     | 99.99th=[11338]
+   bw (  KiB/s): min=15719, max=25482, per=5.08%, avg=20153.32, stdev=1481.82, samples=2082
+   iops        : min=  971, max= 2234, avg=1559.11, stdev=168.47, samples=2082
+  lat (usec)   : 250=18.53%, 500=26.82%, 750=21.28%, 1000=16.39%
+  lat (msec)   : 2=16.50%, 4=0.34%, 10=0.12%, 20=0.01%, 50=0.01%
+  cpu          : usr=0.54%, sys=1.00%, ctx=1626311, majf=0, minf=169
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=388MiB/s (407MB/s), 388MiB/s-388MiB/s (407MB/s-407MB/s), io=20.0GiB (21.5GB), run=52817-52817msec
+
+Disk stats (read/write):
+  nvme0n1: ios=522/1625363, merge=0/0, ticks=40/1025648, in_queue=984560, util=99.72%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 1908
+cmt cnt: 810
+model cnt: 1095
+write cnt: 6745254
+should_write cnt: 5242880
+erase cnt: 6784
+write cache hit:0
+all_count : 4888291
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 44667
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+
+
+
+
+
+
+顺序写：
+
+...
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(2),W(1),_(3)][100.0%][r=0KiB/s,w=106MiB/s][r=0,w=6293 IOPS][eta 00m:00s]     
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1503: Tue Jun 10 02:26:36 2025
+  write: IOPS=20.5k, BW=344MiB/s (360MB/s)(24.0GiB/71501msec)
+    clat (usec): min=206, max=66467, avg=280.48, stdev=439.79
+     lat (usec): min=206, max=66467, avg=280.92, stdev=439.82
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  210], 20.00th=[  212],
+     | 30.00th=[  215], 40.00th=[  215], 50.00th=[  219], 60.00th=[  225],
+     | 70.00th=[  255], 80.00th=[  383], 90.00th=[  408], 95.00th=[  420],
+     | 99.00th=[  594], 99.50th=[  611], 99.90th=[ 2245], 99.95th=[ 6194],
+     | 99.99th=[19268]
+   bw (  KiB/s): min=47238, max=75759, per=17.32%, avg=60975.78, stdev=6007.24, samples=822
+   iops        : min= 2824, max= 4269, avg=3542.83, stdev=332.78, samples=822
+  lat (usec)   : 250=68.83%, 500=28.57%, 750=2.39%, 1000=0.05%
+  lat (msec)   : 2=0.01%, 4=0.11%, 10=0.01%, 20=0.04%, 50=0.01%
+  lat (msec)   : 100=0.01%
+  cpu          : usr=1.08%, sys=2.25%, ctx=1462340, majf=0, minf=55
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=344MiB/s (360MB/s), 344MiB/s-344MiB/s (360MB/s-360MB/s), io=24.0GiB (25.8GB), run=71501-71501msec
+
+Disk stats (read/write):
+  nvme0n1: ios=244/1461777, merge=0/0, ticks=0/395448, in_queue=323140, util=98.69%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 913
+cmt cnt: 57
+model cnt: 856
+write cnt: 6512946
+should_write cnt: 6291456
+erase cnt: 14304
+write cache hit:0
+all_count : 4959294
+seg_count : 0
+sort_time : 10363259
+GC_erase_time : 848000000
+GC_read_time : 289240000
+GC_write_time : 1205000000
+GC_insert_time : 1225132
+GC_time : 1323735730
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 3756
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+
+
+
+随即写：
+
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(4),w(1),_(1)][100.0%][r=0KiB/s,w=155MiB/s][r=0,w=15.5k IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1539: Tue Jun 10 02:31:51 2025
+  write: IOPS=18.1k, BW=228MiB/s (239MB/s)(24.0GiB/107894msec)
+    clat (usec): min=206, max=76920, avg=329.43, stdev=549.78
+     lat (usec): min=206, max=76921, avg=329.84, stdev=549.81
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  212], 20.00th=[  212],
+     | 30.00th=[  215], 40.00th=[  219], 50.00th=[  225], 60.00th=[  314],
+     | 70.00th=[  392], 80.00th=[  412], 90.00th=[  545], 95.00th=[  603],
+     | 99.00th=[  791], 99.50th=[  824], 99.90th=[ 4228], 99.95th=[ 4817],
+     | 99.99th=[14091]
+   bw (  KiB/s): min=  400, max=52769, per=16.72%, avg=38998.91, stdev=6187.76, samples=1290
+   iops        : min=   28, max= 3517, avg=3020.71, stdev=374.63, samples=1290
+  lat (usec)   : 250=55.85%, 500=33.24%, 750=9.22%, 1000=1.41%
+  lat (msec)   : 2=0.03%, 4=0.12%, 10=0.11%, 20=0.02%, 50=0.01%
+  lat (msec)   : 100=0.01%
+  cpu          : usr=0.94%, sys=1.94%, ctx=1950051, majf=0, minf=48
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=228MiB/s (239MB/s), 228MiB/s-228MiB/s (239MB/s-239MB/s), io=24.0GiB (25.8GB), run=107894-107894msec
+
+Disk stats (read/write):
+  nvme0n1: ios=244/1949975, merge=0/0, ticks=0/621288, in_queue=518216, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 916
+cmt cnt: 290
+model cnt: 625
+write cnt: 8190648
+should_write cnt: 6291456
+erase cnt: 36512
+write cache hit:0
+all_count : 4959294
+seg_count : 0
+sort_time : 11789338
+GC_erase_time : 1822000000
+GC_read_time : 517200000
+GC_write_time : 1901400000
+GC_insert_time : 13686402
+GC_time : 5316969162
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 13833
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+顺序读：
+
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][94.4%][r=1257MiB/s,w=0KiB/s][r=322k,w=0 IOPS][eta 00m:01s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1573: Tue Jun 10 02:34:10 2025
+   read: IOPS=312k, BW=1217MiB/s (1276MB/s)(20.0GiB/16827msec)
+    clat (usec): min=6, max=927, avg=61.00, stdev=23.18
+     lat (usec): min=6, max=927, avg=61.21, stdev=23.18
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   11], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   50], 40.00th=[   53], 50.00th=[   56], 60.00th=[   60],
+     | 70.00th=[   67], 80.00th=[   77], 90.00th=[   91], 95.00th=[  103],
+     | 99.00th=[  133], 99.50th=[  145], 99.90th=[  176], 99.95th=[  188],
+     | 99.99th=[  231]
+   bw (  KiB/s): min=59630, max=76368, per=5.17%, avg=64391.18, stdev=1614.40, samples=644
+   iops        : min=14907, max=19092, avg=16097.63, stdev=403.60, samples=644
+  lat (usec)   : 10=4.67%, 20=0.72%, 50=23.85%, 100=64.93%, 250=5.82%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  cpu          : usr=2.86%, sys=14.88%, ctx=4961191, majf=0, minf=236
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1217MiB/s (1276MB/s), 1217MiB/s-1217MiB/s (1276MB/s-1276MB/s), io=20.0GiB (21.5GB), run=16827-16827msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5233581/0, merge=0/0, ticks=251272/0, in_queue=228844, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 2103229
+model cnt: 2764108
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:72315
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 114151830
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+
+
+随机读：
+
+fio-3.1
+Starting 20 processes
+Jobs: 4 (f=4): [r(1),_(16),r(3)][100.0%][r=895MiB/s,w=0KiB/s][r=229k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1601: Tue Jun 10 02:35:50 2025
+   read: IOPS=234k, BW=914MiB/s (958MB/s)(20.0GiB/22419msec)
+    clat (usec): min=5, max=1064, avg=81.63, stdev=44.98
+     lat (usec): min=6, max=1064, avg=81.84, stdev=44.98
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   12], 10.00th=[   47], 20.00th=[   50],
+     | 30.00th=[   52], 40.00th=[   58], 50.00th=[   70], 60.00th=[   88],
+     | 70.00th=[   95], 80.00th=[  112], 90.00th=[  141], 95.00th=[  167],
+     | 99.00th=[  233], 99.50th=[  258], 99.90th=[  318], 99.95th=[  343],
+     | 99.99th=[  404]
+   bw (  KiB/s): min=40768, max=76368, per=5.14%, avg=48106.13, stdev=4083.81, samples=864
+   iops        : min=10192, max=19092, avg=12026.35, stdev=1020.95, samples=864
+  lat (usec)   : 10=4.19%, 20=1.21%, 50=18.06%, 100=50.75%, 250=25.19%
+  lat (usec)   : 500=0.60%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=2.56%, sys=12.15%, ctx=4960767, majf=0, minf=197
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=914MiB/s (958MB/s), 914MiB/s-914MiB/s (958MB/s-958MB/s), io=20.0GiB (21.5GB), run=22419-22419msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5242090/0, merge=0/0, ticks=371868/0, in_queue=347496, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 880182
+model cnt: 2764108
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:72315
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 653557939
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+====================learnedFTL:================
+随即写预处理：
+fio-3.1
+Starting 20 processes
+Jobs: 14 (f=14): [w(1),_(1),w(1),_(1),w(3),_(1),w(3),_(1),w(5),_(1),w(1),_(1)][100.0%][r=0KiB/s,w=372MiB/s][r=0,w=36.0k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1421: Tue Jun 10 02:55:40 2025
+  write: IOPS=22.5k, BW=284MiB/s (297MB/s)(20.0GiB/72219msec)
+    clat (usec): min=206, max=158238, avg=882.22, stdev=1679.52
+     lat (usec): min=206, max=158239, avg=882.65, stdev=1679.55
+    clat percentiles (usec):
+     |  1.00th=[  210],  5.00th=[  229], 10.00th=[  351], 20.00th=[  506],
+     | 30.00th=[  635], 40.00th=[  734], 50.00th=[  824], 60.00th=[  922],
+     | 70.00th=[ 1020], 80.00th=[ 1156], 90.00th=[ 1352], 95.00th=[ 1582],
+     | 99.00th=[ 2114], 99.50th=[ 2278], 99.90th=[ 2704], 99.95th=[ 3982],
+     | 99.99th=[79168]
+   bw (  KiB/s): min= 5362, max=24080, per=5.05%, avg=14673.37, stdev=4437.98, samples=2863
+   iops        : min=  576, max= 2056, avg=1135.56, stdev=214.44, samples=2863
+  lat (usec)   : 250=5.83%, 500=13.75%, 750=21.96%, 1000=26.41%
+  lat (msec)   : 2=30.63%, 4=1.36%, 10=0.01%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.02%, 250=0.01%
+  cpu          : usr=0.44%, sys=0.76%, ctx=1626301, majf=0, minf=172
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=284MiB/s (297MB/s), 284MiB/s-284MiB/s (297MB/s-297MB/s), io=20.0GiB (21.5GB), run=72219-72219msec
+
+Disk stats (read/write):
+  nvme0n1: ios=448/1625485, merge=0/0, ticks=28/1414296, in_queue=1360724, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 1784
+cmt cnt: 1773
+model cnt: 0
+write cnt: 7023837
+should_write cnt: 5242880
+erase cnt: 7424
+write cache hit:0read joule: 6168393.000000
+write joule: 117298077.899993
+erase joule: 979968.000000
+All joule: 124446438.899993
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+顺序写：
+
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(2),W(1),_(3)][100.0%][r=0KiB/s,w=115MiB/s][r=0,w=6858 IOPS][eta 00m:00s]          
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1497: Tue Jun 10 02:57:38 2025
+  write: IOPS=20.1k, BW=338MiB/s (355MB/s)(24.0GiB/72610msec)
+    clat (usec): min=206, max=75511, avg=285.91, stdev=842.03
+     lat (usec): min=206, max=75513, avg=286.36, stdev=842.04
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  208], 10.00th=[  210], 20.00th=[  212],
+     | 30.00th=[  215], 40.00th=[  217], 50.00th=[  219], 60.00th=[  225],
+     | 70.00th=[  262], 80.00th=[  388], 90.00th=[  412], 95.00th=[  429],
+     | 99.00th=[  603], 99.50th=[  611], 99.90th=[ 2212], 99.95th=[ 2409],
+     | 99.99th=[69731]
+   bw (  KiB/s): min=43448, max=75855, per=17.27%, avg=59866.37, stdev=6712.01, samples=838
+   iops        : min= 2582, max= 4334, avg=3478.35, stdev=377.96, samples=838
+  lat (usec)   : 250=67.66%, 500=29.28%, 750=2.85%, 1000=0.09%
+  lat (msec)   : 2=0.01%, 4=0.11%, 10=0.01%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.01%
+  cpu          : usr=1.05%, sys=2.21%, ctx=1462339, majf=0, minf=49
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=338MiB/s (355MB/s), 338MiB/s-338MiB/s (355MB/s-355MB/s), io=24.0GiB (25.8GB), run=72610-72610msec
+
+Disk stats (read/write):
+  nvme0n1: ios=243/1461264, merge=0/0, ticks=8/401736, in_queue=329172, util=98.92%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 913
+cmt cnt: 130
+model cnt: 783
+write cnt: 6583137
+should_write cnt: 6291456
+erase cnt: 13856
+write cache hit:0read joule: 1024079.000000
+write joule: 109938387.899995
+erase joule: 1828992.000000
+All joule: 112791458.899995
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+----------随即写
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(4),w(1),_(1)][100.0%][r=0KiB/s,w=117MiB/s][r=0,w=11.8k IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1569: Tue Jun 10 03:07:06 2025
+  write: IOPS=14.7k, BW=185MiB/s (194MB/s)(24.0GiB/132988msec)
+    clat (usec): min=206, max=79364, avg=406.51, stdev=1458.85
+     lat (usec): min=206, max=79365, avg=406.92, stdev=1458.87
+    clat percentiles (usec):
+     |  1.00th=[  210],  5.00th=[  212], 10.00th=[  212], 20.00th=[  217],
+     | 30.00th=[  233], 40.00th=[  281], 50.00th=[  334], 60.00th=[  388],
+     | 70.00th=[  433], 80.00th=[  510], 90.00th=[  611], 95.00th=[  701],
+     | 99.00th=[  947], 99.50th=[ 1074], 99.90th=[ 3851], 99.95th=[ 4686],
+     | 99.99th=[78119]
+   bw (  KiB/s): min= 6359, max=47528, per=16.77%, avg=31729.52, stdev=7687.90, samples=1589
+   iops        : min=  430, max= 3185, avg=2456.77, stdev=452.95, samples=1589
+  lat (usec)   : 250=33.53%, 500=45.51%, 750=17.40%, 1000=2.83%
+  lat (msec)   : 2=0.56%, 4=0.07%, 10=0.05%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.04%
+  cpu          : usr=0.87%, sys=1.58%, ctx=1950046, majf=0, minf=60
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=185MiB/s (194MB/s), 185MiB/s-185MiB/s (194MB/s-194MB/s), io=24.0GiB (25.8GB), run=132988-132988msec
+
+Disk stats (read/write):
+  nvme0n1: ios=163/1949573, merge=0/0, ticks=4/770584, in_queue=654052, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 656
+cmt cnt: 249
+model cnt: 404
+write cnt: 9172294
+should_write cnt: 6291456
+erase cnt: 39808
+write cache hit:0read joule: 10085239.500000
+write joule: 153177309.799987
+erase joule: 5254656.000000
+All joule: 168517205.299987
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+顺序读：
+
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][95.8%][r=863MiB/s,w=0KiB/s][r=221k,w=0 IOPS][eta 00m:01s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1611: Tue Jun 10 03:10:10 2025
+   read: IOPS=220k, BW=861MiB/s (902MB/s)(20.0GiB/23799msec)
+    clat (usec): min=5, max=1895, avg=88.85, stdev=56.59
+     lat (usec): min=5, max=1897, avg=89.04, stdev=56.59
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[   12], 10.00th=[   47], 20.00th=[   50],
+     | 30.00th=[   53], 40.00th=[   61], 50.00th=[   76], 60.00th=[   89],
+     | 70.00th=[   96], 80.00th=[  120], 90.00th=[  161], 95.00th=[  202],
+     | 99.00th=[  293], 99.50th=[  326], 99.90th=[  404], 99.95th=[  441],
+     | 99.99th=[  515]
+   bw (  KiB/s): min=39694, max=48828, per=5.05%, avg=44499.18, stdev=1559.60, samples=940
+   iops        : min= 9923, max=12207, avg=11124.50, stdev=389.89, samples=940
+  lat (usec)   : 10=4.50%, 20=0.74%, 50=16.20%, 100=51.36%, 250=25.06%
+  lat (usec)   : 500=2.13%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=2.29%, sys=10.50%, ctx=4971198, majf=0, minf=216
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=861MiB/s (902MB/s), 861MiB/s-861MiB/s (902MB/s-902MB/s), io=20.0GiB (21.5GB), run=23799-23799msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5237328/0, merge=0/0, ticks=409352/0, in_queue=385276, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 2980886
+model cnt: 140003
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:32256read joule: 23679050.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 23679050.500000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+--随即读
+fio-3.1
+Starting 20 processes
+Jobs: 2 (f=2): [r(1),_(17),r(1),_(1)][100.0%][r=421MiB/s,w=0KiB/s][r=108k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1639: Tue Jun 10 03:13:48 2025
+   read: IOPS=137k, BW=533MiB/s (559MB/s)(20.0GiB/38405msec)
+    clat (usec): min=5, max=1019, avg=141.61, stdev=77.47
+     lat (usec): min=5, max=1019, avg=141.79, stdev=77.47
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   12], 10.00th=[   88], 20.00th=[   90],
+     | 30.00th=[   93], 40.00th=[  102], 50.00th=[  121], 60.00th=[  143],
+     | 70.00th=[  165], 80.00th=[  200], 90.00th=[  247], 95.00th=[  293],
+     | 99.00th=[  383], 99.50th=[  412], 99.90th=[  482], 99.95th=[  519],
+     | 99.99th=[  586]
+   bw (  KiB/s): min=25202, max=49285, per=5.12%, avg=27958.33, stdev=1469.22, samples=1489
+   iops        : min= 6300, max=12321, avg=6989.42, stdev=367.29, samples=1489
+  lat (usec)   : 10=4.38%, 20=1.02%, 50=1.68%, 100=31.93%, 250=51.28%
+  lat (usec)   : 500=9.64%, 750=0.07%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.63%, sys=7.11%, ctx=4960494, majf=0, minf=193
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=533MiB/s (559MB/s), 533MiB/s-533MiB/s (559MB/s-559MB/s), io=20.0GiB (21.5GB), run=38405-38405msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5242685/0, merge=0/0, ticks=701600/0, in_queue=669996, util=99.28%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 101528
+model cnt: 153341
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:32256read joule: 33710120.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 33710120.500000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+==================
+
+tpftl:
+
+随即写预处理：
+fio-3.1
+Starting 20 processes
+Jobs: 1 (f=1): [_(14),w(1),_(5)][100.0%][r=0KiB/s,w=220MiB/s][r=0,w=22.1k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1437: Tue Jun 10 03:39:52 2025
+  write: IOPS=13.4k, BW=169MiB/s (177MB/s)(20.0GiB/121087msec)
+    clat (usec): min=207, max=30431, avg=1482.84, stdev=750.39
+     lat (usec): min=207, max=30431, avg=1483.32, stdev=750.42
+    clat percentiles (usec):
+     |  1.00th=[  277],  5.00th=[  474], 10.00th=[  611], 20.00th=[  816],
+     | 30.00th=[ 1020], 40.00th=[ 1237], 50.00th=[ 1434], 60.00th=[ 1614],
+     | 70.00th=[ 1811], 80.00th=[ 2008], 90.00th=[ 2311], 95.00th=[ 2737],
+     | 99.00th=[ 3916], 99.50th=[ 4178], 99.90th=[ 4621], 99.95th=[ 4752],
+     | 99.99th=[ 6259]
+   bw (  KiB/s): min= 3002, max=27692, per=5.05%, avg=8738.34, stdev=5711.23, samples=4820
+   iops        : min=  338, max= 1738, avg=676.44, stdev=321.34, samples=4820
+  lat (usec)   : 250=0.74%, 500=5.10%, 750=10.83%, 1000=12.58%
+  lat (msec)   : 2=50.12%, 4=19.81%, 10=0.82%, 20=0.01%, 50=0.01%
+  cpu          : usr=0.30%, sys=0.48%, ctx=1626397, majf=0, minf=203
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=169MiB/s (177MB/s), 169MiB/s-169MiB/s (177MB/s-177MB/s), io=20.0GiB (21.5GB), run=121087-121087msec
+
+Disk stats (read/write):
+  nvme0n1: ios=569/1625662, merge=0/0, ticks=100/2386948, in_queue=2289200, util=99.92%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 1778
+CMT miss count: 9
+CMT access count: 1787
+CMT hit ratio: 0.994964
+write cnt: 6806629
+should_write cnt: 5242880
+erase cnt: 2080
+write cache hit:0
+read joule: 5408266.500000
+write joule: 113670704.299994
+erase joule: 274560.000000
+All joule: 119353530.799994
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+顺序写：
+
+...
+fio-3.1
+Starting 6 processes
+Jobs: 4 (f=4): [_(1),W(2),_(1),W(2)][100.0%][r=0KiB/s,w=44.3MiB/s][r=0,w=2610 IOPS][eta 00m:00s]
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1529: Tue Jun 10 03:45:59 2025
+  write: IOPS=10.4k, BW=175MiB/s (184MB/s)(24.0GiB/140147msec)
+    clat (usec): min=206, max=423234, avg=572.29, stdev=6071.66
+     lat (usec): min=206, max=423234, avg=572.74, stdev=6071.66
+    clat percentiles (usec):
+     |  1.00th=[   208],  5.00th=[   208], 10.00th=[   210], 20.00th=[   210],
+     | 30.00th=[   212], 40.00th=[   215], 50.00th=[   217], 60.00th=[   219],
+     | 70.00th=[   227], 80.00th=[   255], 90.00th=[   363], 95.00th=[   396],
+     | 99.00th=[   494], 99.50th=[ 22938], 99.90th=[ 58983], 99.95th=[154141],
+     | 99.99th=[254804]
+   bw (  KiB/s): min=  585, max=75206, per=16.71%, avg=30004.44, stdev=17473.74, samples=1677
+   iops        : min=   40, max= 4078, avg=1743.28, stdev=1012.39, samples=1677
+  lat (usec)   : 250=77.00%, 500=22.02%, 750=0.32%, 1000=0.03%
+  lat (msec)   : 2=0.01%, 4=0.04%, 10=0.01%, 20=0.06%, 50=0.36%
+  lat (msec)   : 100=0.08%, 250=0.06%, 500=0.01%
+  cpu          : usr=0.58%, sys=1.20%, ctx=1462355, majf=0, minf=63
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=175MiB/s (184MB/s), 175MiB/s-175MiB/s (184MB/s-184MB/s), io=24.0GiB (25.8GB), run=140147-140147msec
+
+Disk stats (read/write):
+  nvme0n1: ios=123/1460949, merge=0/0, ticks=288/819056, in_queue=689564, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 901
+CMT miss count: 12
+CMT access count: 913
+CMT hit ratio: 0.986857
+write cnt: 16465983
+should_write cnt: 6291456
+erase cnt: 64288
+write cache hit:0
+read joule: 35614089.000000
+write joule: 274981916.099972
+erase joule: 8486016.000000
+All joule: 319082021.099972
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+随即写：
+
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(4),w(1),_(1)][100.0%][r=0KiB/s,w=48.2MiB/s][r=0,w=4835 IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1565: Tue Jun 10 03:57:24 2025
+  write: IOPS=3488, BW=43.0MiB/s (46.1MB/s)(24.0GiB/558909msec)
+    clat (usec): min=206, max=401539, avg=1716.20, stdev=11822.65
+     lat (usec): min=207, max=401539, avg=1716.66, stdev=11822.65
+    clat percentiles (usec):
+     |  1.00th=[   212],  5.00th=[   249], 10.00th=[   338], 20.00th=[   465],
+     | 30.00th=[   570], 40.00th=[   652], 50.00th=[   709], 60.00th=[   766],
+     | 70.00th=[   832], 80.00th=[   922], 90.00th=[  1090], 95.00th=[  1336],
+     | 99.00th=[  2442], 99.50th=[ 84411], 99.90th=[170918], 99.95th=[219153],
+     | 99.99th=[308282]
+   bw (  KiB/s): min=  688, max=17875, per=16.68%, avg=7512.00, stdev=2371.66, samples=6698
+   iops        : min=   78, max= 1621, avg=581.81, stdev=166.45, samples=6698
+  lat (usec)   : 250=5.01%, 500=18.27%, 750=33.37%, 1000=28.75%
+  lat (msec)   : 2=13.24%, 4=0.42%, 10=0.01%, 20=0.02%, 50=0.17%
+  lat (msec)   : 100=0.34%, 250=0.38%, 500=0.03%
+  cpu          : usr=0.26%, sys=0.45%, ctx=1950108, majf=0, minf=43
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=43.0MiB/s (46.1MB/s), 43.0MiB/s-43.0MiB/s (46.1MB/s-46.1MB/s), io=24.0GiB (25.8GB), run=558909-558909msec
+
+Disk stats (read/write):
+  nvme0n1: ios=243/1949986, merge=0/0, ticks=0/3319108, in_queue=2827132, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 892
+CMT miss count: 24
+CMT access count: 916
+CMT hit ratio: 0.973799
+write cnt: 49666473
+should_write cnt: 6291456
+erase cnt: 194016
+write cache hit:0
+read joule: 151815849.500000
+write joule: 829430099.100358
+erase joule: 25610112.000000
+All joule: 1006856060.600358
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+顺序读：
+
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][100.0%][r=866MiB/s,w=0KiB/s][r=222k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1616: Tue Jun 10 04:01:08 2025
+   read: IOPS=207k, BW=807MiB/s (846MB/s)(20.0GiB/25384msec)
+    clat (usec): min=5, max=1217, avg=95.42, stdev=62.50
+     lat (usec): min=5, max=1217, avg=95.61, stdev=62.50
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   31], 10.00th=[   48], 20.00th=[   51],
+     | 30.00th=[   56], 40.00th=[   68], 50.00th=[   86], 60.00th=[   90],
+     | 70.00th=[  103], 80.00th=[  128], 90.00th=[  176], 95.00th=[  225],
+     | 99.00th=[  322], 99.50th=[  363], 99.90th=[  445], 99.95th=[  482],
+     | 99.99th=[  570]
+   bw (  KiB/s): min=25627, max=45931, per=5.03%, avg=41515.61, stdev=3710.41, samples=1000
+   iops        : min= 6406, max=11482, avg=10378.64, stdev=927.60, samples=1000
+  lat (usec)   : 10=4.12%, 20=0.81%, 50=13.47%, 100=50.39%, 250=28.00%
+  lat (usec)   : 500=3.18%, 750=0.04%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=2.06%, sys=10.14%, ctx=4987003, majf=0, minf=235
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=807MiB/s (846MB/s), 807MiB/s-807MiB/s (846MB/s-846MB/s), io=20.0GiB (21.5GB), run=25384-25384msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5206773/0, merge=0/0, ticks=437208/0, in_queue=411704, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 2972545
+CMT miss count: 1954493
+CMT access count: 4959294
+CMT hit ratio: 0.599389
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:32256
+read joule: 24605469.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 24605469.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+随机读：
+
+
+fio-3.1
+Starting 20 processes
+Jobs: 3 (f=3): [r(1),_(17),r(2)][100.0%][r=180MiB/s,w=0KiB/s][r=45.0k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1644: Tue Jun 10 04:04:27 2025
+   read: IOPS=134k, BW=524MiB/s (549MB/s)(20.0GiB/39121msec)
+    clat (usec): min=5, max=1150, avg=143.79, stdev=79.46
+     lat (usec): min=6, max=1150, avg=143.97, stdev=79.46
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   13], 10.00th=[   87], 20.00th=[   89],
+     | 30.00th=[   92], 40.00th=[  103], 50.00th=[  122], 60.00th=[  145],
+     | 70.00th=[  169], 80.00th=[  202], 90.00th=[  253], 95.00th=[  302],
+     | 99.00th=[  388], 99.50th=[  424], 99.90th=[  490], 99.95th=[  519],
+     | 99.99th=[  594]
+   bw (  KiB/s): min=25226, max=50594, per=5.13%, avg=27525.52, stdev=1951.08, samples=1510
+   iops        : min= 6306, max=12648, avg=6881.22, stdev=487.79, samples=1510
+  lat (usec)   : 10=4.11%, 20=1.28%, 50=1.38%, 100=31.57%, 250=51.18%
+  lat (usec)   : 500=10.40%, 750=0.08%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.64%, sys=7.29%, ctx=4964137, majf=0, minf=154
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=524MiB/s (549MB/s), 524MiB/s-524MiB/s (549MB/s-549MB/s), io=20.0GiB (21.5GB), run=39121-39121msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5236517/0, merge=0/0, ticks=710504/0, in_queue=677496, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 193276
+CMT miss count: 4733762
+CMT access count: 4959294
+CMT hit ratio: 0.038972
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:32256
+read joule: 34888266.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 34888266.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+===================================================
+Dftl:
+随即写预处理：
+
+fio-3.1
+Starting 20 processes
+Jobs: 1 (f=1): [_(14),w(1),_(5)][100.0%][r=0KiB/s,w=221MiB/s][r=0,w=22.1k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1405: Tue Jun 10 04:23:19 2025
+  write: IOPS=9296, BW=117MiB/s (123MB/s)(20.0GiB/174919msec)
+    clat (usec): min=207, max=22785, avg=2144.86, stdev=851.62
+     lat (usec): min=207, max=22786, avg=2145.36, stdev=851.65
+    clat percentiles (usec):
+     |  1.00th=[  363],  5.00th=[  660], 10.00th=[  898], 20.00th=[ 1319],
+     | 30.00th=[ 1680], 40.00th=[ 2040], 50.00th=[ 2311], 60.00th=[ 2540],
+     | 70.00th=[ 2671], 80.00th=[ 2835], 90.00th=[ 3032], 95.00th=[ 3228],
+     | 99.00th=[ 4146], 99.50th=[ 4555], 99.90th=[ 5145], 99.95th=[ 5342],
+     | 99.99th=[ 6063]
+   bw (  KiB/s): min= 2377, max=27676, per=5.04%, avg=6041.41, stdev=4036.46, samples=6974
+   iops        : min=  284, max= 1563, avg=467.51, stdev=224.60, samples=6974
+  lat (usec)   : 250=0.45%, 500=1.96%, 750=4.36%, 1000=5.67%
+  lat (msec)   : 2=26.15%, 4=60.18%, 10=1.21%, 20=0.01%, 50=0.01%
+  cpu          : usr=0.24%, sys=0.35%, ctx=1626315, majf=0, minf=224
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=117MiB/s (123MB/s), 117MiB/s-117MiB/s (123MB/s-123MB/s), io=20.0GiB (21.5GB), run=174919-174919msec
+
+Disk stats (read/write):
+  nvme0n1: ios=491/1625568, merge=0/0, ticks=76/3463660, in_queue=3318784, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 1527
+CMT miss count: 127
+CMT access count: 1654
+CMT hit ratio: 0.923216
+write cnt: 6806541
+should_write cnt: 5242880
+erase cnt: 2080
+read joule: 5407944.500000
+write joule: 113669234.699994
+erase joule: 274560.000000
+All joule: 119351739.199994
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+顺序写：
+fio-3.1
+Starting 6 processes
+Jobs: 4 (f=4): [_(1),W(2),_(1),W(2)][100.0%][r=0KiB/s,w=61.1MiB/s][r=0,w=3599 IOPS][eta 00m:00s]
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1493: Tue Jun 10 04:26:54 2025
+  write: IOPS=9875, BW=166MiB/s (174MB/s)(24.0GiB/148078msec)
+    clat (usec): min=206, max=845839, avg=605.31, stdev=6794.46
+     lat (usec): min=206, max=845840, avg=605.78, stdev=6794.47
+    clat percentiles (usec):
+     |  1.00th=[   208],  5.00th=[   208], 10.00th=[   210], 20.00th=[   210],
+     | 30.00th=[   212], 40.00th=[   215], 50.00th=[   217], 60.00th=[   219],
+     | 70.00th=[   227], 80.00th=[   255], 90.00th=[   363], 95.00th=[   396],
+     | 99.00th=[   603], 99.50th=[ 24773], 99.90th=[ 68682], 99.95th=[143655],
+     | 99.99th=[299893]
+   bw (  KiB/s): min=    8, max=75350, per=16.73%, avg=28434.50, stdev=16548.15, samples=1769
+   iops        : min=    2, max= 4064, avg=1652.11, stdev=959.25, samples=1769
+  lat (usec)   : 250=76.82%, 500=21.90%, 750=0.37%, 1000=0.06%
+  lat (msec)   : 2=0.09%, 4=0.12%, 10=0.09%, 20=0.04%, 50=0.29%
+  lat (msec)   : 100=0.16%, 250=0.05%, 500=0.02%, 750=0.01%, 1000=0.01%
+  cpu          : usr=0.53%, sys=1.16%, ctx=1462370, majf=0, minf=69
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=166MiB/s (174MB/s), 166MiB/s-166MiB/s (174MB/s-174MB/s), io=24.0GiB (25.8GB), run=148078-148078msec
+
+Disk stats (read/write):
+  nvme0n1: ios=86/1461360, merge=0/0, ticks=4/868216, in_queue=734164, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 656
+CMT miss count: 130
+CMT access count: 786
+CMT hit ratio: 0.834606
+write cnt: 15751517
+should_write cnt: 6291456
+erase cnt: 61504
+read joule: 33113430.000000
+write joule: 263050333.899968
+erase joule: 8118528.000000
+All joule: 304282291.899968
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+随机写：
+
+fio-3.1
+Starting 6 processes
+Jobs: 5 (f=5): [w(3),_(1),w(2)][99.9%][r=0KiB/s,w=57.5MiB/s][r=0,w=5690 IOPS][eta 00m:01s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1529: Tue Jun 10 04:40:28 2025
+  write: IOPS=2848, BW=35.9MiB/s (37.6MB/s)(24.0GiB/684589msec)
+    clat (usec): min=206, max=560163, avg=2102.44, stdev=15534.42
+     lat (usec): min=206, max=560164, avg=2102.87, stdev=15534.43
+    clat percentiles (usec):
+     |  1.00th=[   210],  5.00th=[   221], 10.00th=[   273], 20.00th=[   420],
+     | 30.00th=[   545], 40.00th=[   693], 50.00th=[   881], 60.00th=[  1012],
+     | 70.00th=[  1106], 80.00th=[  1205], 90.00th=[  1319], 95.00th=[  1434],
+     | 99.00th=[  6652], 99.50th=[117965], 99.90th=[246416], 99.95th=[308282],
+     | 99.99th=[383779]
+   bw (  KiB/s): min=    8, max=13871, per=16.70%, avg=6139.23, stdev=2235.93, samples=8204
+   iops        : min=    2, max= 1338, avg=475.30, stdev=177.36, samples=8204
+  lat (usec)   : 250=7.37%, 500=19.30%, 750=16.31%, 1000=16.26%
+  lat (msec)   : 2=39.48%, 4=0.16%, 10=0.19%, 20=0.01%, 50=0.18%
+  lat (msec)   : 100=0.19%, 250=0.45%, 500=0.10%, 750=0.01%
+  cpu          : usr=0.21%, sys=0.43%, ctx=1950062, majf=0, minf=61
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=35.9MiB/s (37.6MB/s), 35.9MiB/s-35.9MiB/s (37.6MB/s-37.6MB/s), io=24.0GiB (25.8GB), run=684589-684589msec
+
+Disk stats (read/write):
+  nvme0n1: ios=229/1949747, merge=0/0, ticks=196/4069388, in_queue=3489188, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+[sudo] password for fxx: 
+888881118
+CMT hit count: 525
+CMT miss count: 391
+CMT access count: 916
+CMT hit ratio: 0.573144
+write cnt: 52010524
+should_write cnt: 6291456
+erase cnt: 203168
+read joule: 160021312.500000
+write joule: 868575750.800385
+erase joule: 26818176.000000
+All joule: 1055415239.300385
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+顺序读：
+
+fio-3.1
+Starting 20 processes
+Jobs: 4 (f=4): [R(1),_(16),R(3)][97.4%][r=356MiB/s,w=0KiB/s][r=91.2k,w=0 IOPS][eta 00m:01s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1655: Tue Jun 10 06:24:22 2025
+   read: IOPS=136k, BW=532MiB/s (558MB/s)(20.0GiB/38516msec)
+    clat (usec): min=5, max=1292, avg=142.08, stdev=76.72
+     lat (usec): min=5, max=1292, avg=142.26, stdev=76.72
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[   12], 10.00th=[   87], 20.00th=[   89],
+     | 30.00th=[   92], 40.00th=[  103], 50.00th=[  121], 60.00th=[  145],
+     | 70.00th=[  163], 80.00th=[  198], 90.00th=[  243], 95.00th=[  289],
+     | 99.00th=[  388], 99.50th=[  429], 99.90th=[  515], 99.95th=[  553],
+     | 99.99th=[  635]
+   bw (  KiB/s): min=24256, max=49539, per=5.13%, avg=27935.84, stdev=1273.81, samples=1488
+   iops        : min= 6064, max=12384, avg=6983.73, stdev=318.46, samples=1488
+  lat (usec)   : 10=4.63%, 20=0.77%, 50=0.22%, 100=33.01%, 250=52.30%
+  lat (usec)   : 500=8.95%, 750=0.12%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.47%, sys=7.07%, ctx=4961542, majf=0, minf=215
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=532MiB/s (558MB/s), 532MiB/s-532MiB/s (558MB/s-558MB/s), io=20.0GiB (21.5GB), run=38516-38516msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5240415/0, merge=0/0, ticks=704000/0, in_queue=673280, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 130
+CMT miss count: 4926908
+CMT access count: 4959294
+CMT hit ratio: 0.000026
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 35594258.000000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 35594258.000000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+随即读：
+fio-3.1
+Starting 20 processes
+Jobs: 3 (f=3): [r(1),_(17),r(2)][100.0%][r=155MiB/s,w=0KiB/s][r=39.7k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1787: Tue Jun 10 06:25:57 2025
+   read: IOPS=131k, BW=511MiB/s (536MB/s)(20.0GiB/40096msec)
+    clat (usec): min=5, max=1937, avg=147.04, stdev=80.62
+     lat (usec): min=6, max=1938, avg=147.25, stdev=80.62
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   12], 10.00th=[   87], 20.00th=[   89],
+     | 30.00th=[   92], 40.00th=[  106], 50.00th=[  125], 60.00th=[  149],
+     | 70.00th=[  174], 80.00th=[  206], 90.00th=[  262], 95.00th=[  306],
+     | 99.00th=[  396], 99.50th=[  429], 99.90th=[  502], 99.95th=[  529],
+     | 99.99th=[  603]
+   bw (  KiB/s): min=24928, max=44224, per=5.16%, avg=27007.19, stdev=1437.69, samples=1549
+   iops        : min= 6232, max=11056, avg=6751.46, stdev=359.41, samples=1549
+  lat (usec)   : 10=4.50%, 20=0.91%, 50=0.26%, 100=31.56%, 250=51.56%
+  lat (usec)   : 500=11.12%, 750=0.10%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.49%, sys=6.81%, ctx=4963686, majf=0, minf=195
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=511MiB/s (536MB/s), 511MiB/s-511MiB/s (536MB/s-536MB/s), io=20.0GiB (21.5GB), run=40096-40096msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5238506/0, merge=0/0, ticks=731100/0, in_queue=701476, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 7141
+CMT miss count: 4919897
+CMT access count: 4959294
+CMT hit ratio: 0.001440
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 35569719.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 35569719.500000
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+iftl:
+随即写预处理：
+fio-3.1
+Starting 20 processes
+Jobs: 19 (f=19): [w(3),_(1),w(16)][100.0%][r=0KiB/s,w=602MiB/s][r=0,w=59.9k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1445: Sun Jun  8 14:00:55 2025
+  write: IOPS=48.7k, BW=613MiB/s (643MB/s)(20.0GiB/33384msec)
+    clat (usec): min=206, max=21675, avg=404.99, stdev=207.84
+     lat (usec): min=206, max=21675, avg=405.41, stdev=207.89
+    clat percentiles (usec):
+     |  1.00th=[  210],  5.00th=[  215], 10.00th=[  229], 20.00th=[  277],
+     | 30.00th=[  330], 40.00th=[  367], 50.00th=[  392], 60.00th=[  412],
+     | 70.00th=[  445], 80.00th=[  519], 90.00th=[  586], 95.00th=[  635],
+     | 99.00th=[  791], 99.50th=[  816], 99.90th=[  955], 99.95th=[  996],
+     | 99.99th=[ 1237]
+   bw (  KiB/s): min=25894, max=37317, per=5.09%, avg=31994.45, stdev=1260.97, samples=1314
+   iops        : min= 1850, max= 3142, avg=2476.73, stdev=360.58, samples=1314
+  lat (usec)   : 250=14.73%, 500=63.06%, 750=20.39%, 1000=1.78%
+  lat (msec)   : 2=0.03%, 4=0.01%, 10=0.01%, 20=0.01%, 50=0.01%
+  cpu          : usr=0.87%, sys=1.39%, ctx=1626468, majf=0, minf=209
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=613MiB/s (643MB/s), 613MiB/s-613MiB/s (643MB/s-643MB/s), io=20.0GiB (21.5GB), run=33384-33384msec
+
+Disk stats (read/write):
+  nvme0n1: ios=525/1626065, merge=0/0, ticks=32/636216, in_queue=610464, util=100.00%
+
+顺序写：
+fio-3.1
+Starting 1 process
+Jobs: 1 (f=1): [W(1)][100.0%][r=0KiB/s,w=69.6MiB/s][r=0,w=4218 IOPS][eta 00m:00s]
+write_12_4G_Test: (groupid=0, jobs=1): err= 0: pid=1512: Sun Jun  8 14:02:31 2025
+  write: IOPS=4663, BW=78.4MiB/s (82.2MB/s)(4096MiB/52233msec)
+    clat (usec): min=206, max=44089, avg=213.05, stdev=175.98
+     lat (usec): min=206, max=44090, avg=213.41, stdev=175.99
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  208], 10.00th=[  208], 20.00th=[  208],
+     | 30.00th=[  208], 40.00th=[  208], 50.00th=[  210], 60.00th=[  210],
+     | 70.00th=[  210], 80.00th=[  210], 90.00th=[  215], 95.00th=[  241],
+     | 99.00th=[  253], 99.50th=[  255], 99.90th=[  269], 99.95th=[  273],
+     | 99.99th=[  289]
+   bw (  KiB/s): min=61792, max=85248, per=100.00%, avg=80413.83, stdev=3021.27, samples=104
+   iops        : min= 3734, max= 4760, avg=4670.42, stdev=115.93, samples=104
+  lat (usec)   : 250=97.12%, 500=2.87%, 750=0.01%
+  lat (msec)   : 50=0.01%
+  cpu          : usr=0.88%, sys=2.39%, ctx=243586, majf=0, minf=10
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,243585,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=78.4MiB/s (82.2MB/s), 78.4MiB/s-78.4MiB/s (82.2MB/s-82.2MB/s), io=4096MiB (4295MB), run=52233-5223c
+
+Disk stats (read/write):
+  nvme0n1: ios=43/243384, merge=0/0, ticks=0/50140, in_queue=36, util=0.07%
+
+
+
+随即写：
+fio-3.1
+Starting 12 processes
+Jobs: 7 (f=7): [w(3),_(1),w(2),_(2),w(2),_(2)][100.0%][r=0KiB/s,w=119MiB/s][r=0,w=11.8k IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=12): err= 0: pid=1524: Sun Jun  8 14:11:51 2025
+  write: IOPS=11.3k, BW=142MiB/s (149MB/s)(48.0GiB/345180msec)
+    clat (usec): min=206, max=48233, avg=1059.15, stdev=5982.19
+     lat (usec): min=206, max=48234, avg=1059.57, stdev=5982.19
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  210], 20.00th=[  212],
+     | 30.00th=[  215], 40.00th=[  219], 50.00th=[  227], 60.00th=[  249],
+     | 70.00th=[  302], 80.00th=[  367], 90.00th=[  404], 95.00th=[  465],
+     | 99.00th=[46924], 99.50th=[46924], 99.90th=[47449], 99.95th=[47449],
+     | 99.99th=[47449]
+   bw (  KiB/s): min= 9643, max=23126, per=8.36%, avg=12186.55, stdev=1139.55, samples=8268
+   iops        : min=  712, max= 1324, avg=943.66, stdev=116.74, samples=8268
+  lat (usec)   : 250=60.10%, 500=35.55%, 750=2.41%, 1000=0.19%
+  lat (msec)   : 2=0.05%, 4=0.01%, 10=0.01%, 20=0.01%, 50=1.69%
+  cpu          : usr=0.37%, sys=0.60%, ctx=3900202, majf=0, minf=115
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,3899726,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=142MiB/s (149MB/s), 142MiB/s-142MiB/s (149MB/s-149MB/s), io=48.0GiB (51.5GB), run=345180-345180msec
+
+Disk stats (read/write):
+  nvme0n1: ios=362/3899542, merge=0/0, ticks=120/4080828, in_queue=3781440, util=100.00%
+v/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -filename=/dev
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+
+顺序读：
+
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [R(20)][100.0%][r=1285MiB/s,w=0KiB/s][r=329k,w=0 IOPS][eta 00m]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1677: Mon Jun  9 10:28:00 205
+   read: IOPS=326k, BW=1274MiB/s (1336MB/s)(20.0GiB/16073msec)
+    clat (usec): min=5, max=884, avg=59.94, stdev=23.44
+     lat (usec): min=5, max=884, avg=60.16, stdev=23.44
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[    9], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   50], 40.00th=[   52], 50.00th=[   56], 60.00th=[   60],
+     | 70.00th=[   67], 80.00th=[   76], 90.00th=[   90], 95.00th=[  102],
+     | 99.00th=[  130], 99.50th=[  143], 99.90th=[  169], 99.95th=[  184],
+     | 99.99th=[  221]
+   bw (  KiB/s): min=63600, max=66840, per=5.02%, avg=65443.57, stdev=574.15, s4
+   iops        : min=15900, max=16710, avg=16360.73, stdev=143.51, samples=634
+  lat (usec)   : 10=6.00%, 20=0.75%, 50=23.87%, 100=63.96%, 250=5.41%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  cpu          : usr=3.23%, sys=14.56%, ctx=4890113, majf=0, minf=238
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1274MiB/s (1336MB/s), 1274MiB/s-1274MiB/s (1336MB/s-1336MB/s), io=2c
+
+Disk stats (read/write):
+  nvme0n1: ios=5198546/0, merge=0/0, ticks=243524/0, in_queue=222808, util=100.%
+
+随即读：
+
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [r(20)][94.4%][r=1220MiB/s,w=0KiB/s][r=312k,w=0 IOPS][eta 00m:01s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1654: Sun Jun  8 14:19:49 2025
+   read: IOPS=295k, BW=1154MiB/s (1210MB/s)(20.0GiB/17750msec)
+    clat (usec): min=5, max=1981, avg=64.44, stdev=26.32
+     lat (usec): min=5, max=1981, avg=64.64, stdev=26.33
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   12], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   54], 50.00th=[   58], 60.00th=[   64],
+     | 70.00th=[   73], 80.00th=[   83], 90.00th=[   98], 95.00th=[  114],
+     | 99.00th=[  147], 99.50th=[  161], 99.90th=[  196], 99.95th=[  210],
+     | 99.99th=[  253]
+   bw (  KiB/s): min=56912, max=74478, per=5.14%, avg=60780.32, stdev=1818.31, samples=684
+   iops        : min=14228, max=18619, avg=15194.80, stdev=454.55, samples=684
+  lat (usec)   : 10=4.29%, 20=1.08%, 50=20.56%, 100=65.06%, 250=8.99%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=3.54%, sys=14.13%, ctx=4962676, majf=0, minf=153
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1154MiB/s (1210MB/s), 1154MiB/s-1154MiB/s (1210MB/s-1210MB/s), io=20.0GiB (21.5GB), run=17750-17750msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5238886/0, merge=0/0, ticks=265924/0, in_queue=243128, util=100.00%
+
+
+===============================SFTL=============================
+随即写预处理：
+Write_BandWidth_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.02
+...
+fio-3.1
+Starting 20 processes
+Jobs: 19 (f=19): [w(3),_(1),w(16)][100.0%][r=0KiB/s,w=496MiB/s][r=0,w=49.5k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1444: Wed Nov 12 07:30:35 2025
+  write: IOPS=36.6k, BW=461MiB/s (483MB/s)(20.0GiB/44452msec)
+    clat (usec): min=207, max=22129, avg=541.26, stdev=251.61
+     lat (usec): min=207, max=22130, avg=541.65, stdev=251.70
+    clat percentiles (usec):
+     |  1.00th=[  212],  5.00th=[  243], 10.00th=[  297], 20.00th=[  371],
+     | 30.00th=[  420], 40.00th=[  465], 50.00th=[  519], 60.00th=[  570],
+     | 70.00th=[  627], 80.00th=[  701], 90.00th=[  807], 95.00th=[  889],
+     | 99.00th=[ 1057], 99.50th=[ 1139], 99.90th=[ 1418], 99.95th=[ 2409],
+     | 99.99th=[ 2737]
+   bw (  KiB/s): min=20327, max=29032, per=5.08%, avg=23979.10, stdev=1376.65, samples=1758
+   iops        : min= 1516, max= 2589, avg=1856.66, stdev=223.89, samples=1758
+  lat (usec)   : 250=5.51%, 500=41.06%, 750=38.54%, 1000=12.94%
+  lat (msec)   : 2=1.86%, 4=0.08%, 10=0.01%, 20=0.01%, 50=0.01%
+  cpu          : usr=0.66%, sys=1.21%, ctx=1626387, majf=0, minf=172
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=461MiB/s (483MB/s), 461MiB/s-461MiB/s (483MB/s-483MB/s), io=20.0GiB (21.5GB), run=4445c
+
+Disk stats (read/write):
+  nvme0n1: ios=526/1625858, merge=0/0, ticks=44/860160, in_queue=826688, util=99.48%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 1654
+CMT miss count: 3
+CMT access count: 1657
+CMT hit ratio: 0.998189
+write cnt: 6806690
+should_write cnt: 5242880
+erase cnt: 2080
+read joule: 3141117.000000
+write joule: 113671722.999994
+erase joule: 274560.000000
+All joule: 117087399.999994
+write process count: 1563936
+write process read count: 647654
+total seg size:4194344.000000
+total seg count:2170
+average seg size:1932.877419
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+===================顺序写===========================
+write_12_4G_Test: (g=0): rw=write, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioe2
+...
+fio-3.1
+Starting 6 processes
+Jobs: 5 (f=5): [W(3),_(1),W(2)][100.0%][r=0KiB/s,w=120MiB/s][r=0,w=7188 IOPS][eta 00m:00s]
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1517: Wed Nov 12 07:38:20 2025
+  write: IOPS=10.6k, BW=179MiB/s (188MB/s)(24.0GiB/137418msec)
+    clat (usec): min=206, max=385889, avg=560.98, stdev=5964.34
+     lat (usec): min=206, max=385889, avg=561.43, stdev=5964.34
+    clat percentiles (usec):
+     |  1.00th=[   208],  5.00th=[   208], 10.00th=[   210], 20.00th=[   210],
+     | 30.00th=[   212], 40.00th=[   215], 50.00th=[   217], 60.00th=[   219],
+     | 70.00th=[   227], 80.00th=[   255], 90.00th=[   363], 95.00th=[   396],
+     | 99.00th=[   486], 99.50th=[ 15401], 99.90th=[ 57410], 99.95th=[147850],
+     | 99.99th=[256902]
+   bw (  KiB/s): min= 1408, max=75400, per=16.73%, avg=30647.26, stdev=17398.88, samples=1641
+   iops        : min=   90, max= 4090, avg=1780.57, stdev=1008.13, samples=1641
+  lat (usec)   : 250=77.32%, 500=21.71%, 750=0.32%, 1000=0.03%
+  lat (msec)   : 2=0.01%, 4=0.04%, 10=0.01%, 20=0.06%, 50=0.35%
+  lat (msec)   : 100=0.08%, 250=0.06%, 500=0.01%
+  cpu          : usr=0.58%, sys=1.24%, ctx=1462372, majf=0, minf=58
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=179MiB/s (188MB/s), 179MiB/s-179MiB/s (188MB/s-188MB/s), io=24.0GiB (25.8GB), run=1374c
+
+Disk stats (read/write):
+  nvme0n1: ios=243/1462261, merge=0/0, ticks=20/804492, in_queue=673892, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 910
+CMT miss count: 3
+CMT access count: 913
+CMT hit ratio: 0.996714
+write cnt: 16118139
+should_write cnt: 6291456
+erase cnt: 62944
+read joule: 34395816.000000
+write joule: 269172921.299967
+erase joule: 8308608.000000
+All joule: 311877345.299967
+write process count: 4096
+write process read count: 223
+total seg size:2206608.000000
+total seg count:1061
+average seg size:2079.743638
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+================随即写==================
+
+fio-3.1
+Starting 6 processes
+Jobs: 3 (f=3): [_(2),w(1),_(1),w(2)][100.0%][r=0KiB/s,w=38.2MiB/s][r=0,w=3826 IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1571: Wed Nov 12 08:01:57 2025
+  write: IOPS=4481, BW=56.5MiB/s (59.2MB/s)(24.0GiB/435114msec)
+    clat (usec): min=206, max=395554, avg=1335.52, stdev=13084.11
+     lat (usec): min=206, max=395554, avg=1335.94, stdev=13084.12
+    clat percentiles (usec):
+     |  1.00th=[   208],  5.00th=[   210], 10.00th=[   210], 20.00th=[   212],
+     | 30.00th=[   215], 40.00th=[   217], 50.00th=[   219], 60.00th=[   229],
+     | 70.00th=[   258], 80.00th=[   343], 90.00th=[   420], 95.00th=[   433],
+     | 99.00th=[  1057], 99.50th=[ 84411], 99.90th=[210764], 99.95th=[267387],
+     | 99.99th=[329253]
+   bw (  KiB/s): min=  566, max=24647, per=16.75%, avg=9688.32, stdev=3827.99, samples=5214
+   iops        : min=   80, max= 1437, avg=750.37, stdev=273.62, samples=5214
+  lat (usec)   : 250=65.81%, 500=32.23%, 750=0.85%, 1000=0.09%
+  lat (msec)   : 2=0.09%, 4=0.01%, 10=0.01%, 20=0.01%, 50=0.19%
+  lat (msec)   : 100=0.29%, 250=0.36%, 500=0.06%
+  cpu          : usr=0.27%, sys=0.51%, ctx=1950089, majf=0, minf=59
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=56.5MiB/s (59.2MB/s), 56.5MiB/s-56.5MiB/s (59.2MB/s-59.2MB/s), io=24.0GiB (25.8GB), ruc
+
+Disk stats (read/write):
+  nvme0n1: ios=124/1949424, merge=0/0, ticks=212/2580836, in_queue=2202232, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+[sudo] password for fxx: 
+888881118
+CMT hit count: 778
+CMT miss count: 8
+CMT access count: 786
+CMT hit ratio: 0.989822
+write cnt: 52793644
+should_write cnt: 6291456
+erase cnt: 206240
+read joule: 160131440.000000
+write joule: 881653854.800394
+erase joule: 27223680.000000
+All joule: 1069008974.800394
+write process count: 1820207
+write process read count: 751142
+total seg size:139280.000000
+total seg count:67
+average seg size:2078.805970
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+===================顺序读==============
+
+Jobs: 5 (f=5): [R(1),_(14),R(1),_(1),R(3)][100.0%][r=1116MiB/s,w=0KiB/s][r=286k,w=0 IOPS][eta 00m:]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1647: Wed Nov 12 08:30:21 2025
+   read: IOPS=299k, BW=1166MiB/s (1223MB/s)(20.0GiB/17561msec)
+    clat (usec): min=5, max=1523, avg=63.59, stdev=25.73
+     lat (usec): min=5, max=1523, avg=63.78, stdev=25.74
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[   12], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   53], 50.00th=[   57], 60.00th=[   63],
+     | 70.00th=[   71], 80.00th=[   82], 90.00th=[   96], 95.00th=[  111],
+     | 99.00th=[  145], 99.50th=[  159], 99.90th=[  194], 99.95th=[  208],
+     | 99.99th=[  258]
+   bw (  KiB/s): min=54872, max=79880, per=5.18%, avg=61813.11, stdev=2024.08, samples=666
+   iops        : min=13718, max=19970, avg=15453.06, stdev=506.03, samples=666
+  lat (usec)   : 10=4.41%, 20=0.98%, 50=21.59%, 100=64.79%, 250=8.21%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=3.07%, sys=14.52%, ctx=4961465, majf=0, minf=195
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1166MiB/s (1223MB/s), 1166MiB/s-1166MiB/s (1223MB/s-1223MB/s), io=20.0GiB (21.5GB), ruc
+
+Disk stats (read/write):
+  nvme0n1: ios=5233043/0, merge=0/0, ticks=260780/0, in_queue=237692, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 4906687
+CMT miss count: 20351
+CMT access count: 4959294
+CMT hit ratio: 0.989392
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 17428757.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 17428757.500000
+write process count: 0
+write process read count: 0
+total seg size:4196112.000000
+total seg count:2125
+average seg size:1974.640941
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+=============随即读==========
+fio-3.1
+Starting 20 processes
+Jobs: 2 (f=2): [r(1),_(18),r(1)][100.0%][r=418MiB/s,w=0KiB/s][r=107k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1676: Wed Nov 12 08:37:57 2025
+   read: IOPS=146k, BW=570MiB/s (598MB/s)(20.0GiB/35931msec)
+    clat (usec): min=5, max=1138, avg=133.01, stdev=76.76
+     lat (usec): min=5, max=1138, avg=133.20, stdev=76.76
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   12], 10.00th=[   50], 20.00th=[   88],
+     | 30.00th=[   90], 40.00th=[   95], 50.00th=[  113], 60.00th=[  133],
+     | 70.00th=[  159], 80.00th=[  190], 90.00th=[  239], 95.00th=[  281],
+     | 99.00th=[  371], 99.50th=[  400], 99.90th=[  478], 99.95th=[  506],
+     | 99.99th=[  578]
+   bw (  KiB/s): min=26821, max=73608, per=5.08%, avg=29640.55, stdev=4098.57, samples=1403
+   iops        : min= 6705, max=18402, avg=7409.98, stdev=1024.67, samples=1403
+  lat (usec)   : 10=4.26%, 20=1.14%, 50=5.01%, 100=33.29%, 250=47.91%
+  lat (usec)   : 500=8.34%, 750=0.05%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=1.73%, sys=7.66%, ctx=4962320, majf=0, minf=216
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=570MiB/s (598MB/s), 570MiB/s-570MiB/s (598MB/s-598MB/s), io=20.0GiB (21.5GB), run=3593c
+
+Disk stats (read/write):
+  nvme0n1: ios=5241804/0, merge=0/0, ticks=653972/0, in_queue=624316, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+CMT hit count: 766688
+CMT miss count: 4160350
+CMT access count: 4959294
+CMT hit ratio: 0.154596
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+read joule: 32738303.500000
+write joule: 0.000000
+erase joule: 0.000000
+All joule: 32738303.500000
+write process count: 0
+write process read count: 0
+total seg size:4196224.000000
+total seg count:2018
+average seg size:2079.397423
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+=====================FMA========================
+
+
+随即写预处理：
+
+oup_reporting -filename=/dev/nvme0n1 -name=Write_BandWidth_Test_increment=1G -gro
+Write_BandWidth_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 10 (f=10): [w(1),_(1),w(1),_(2),w(1),_(2),w(5),_(1),w(1),_(1),w(1),_(3)][100.0%][r=0KiB/s,w=345MiB/s][r=0,w=34.4k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1424: Wed Nov 19 05:52:06 2025
+  write: IOPS=30.0k, BW=378MiB/s (396MB/s)(20.0GiB/54166msec)
+    clat (usec): min=206, max=157369, avg=660.36, stdev=1695.40
+     lat (usec): min=206, max=157370, avg=660.77, stdev=1695.43
+    clat percentiles (usec):
+     |  1.00th=[  210],  5.00th=[  212], 10.00th=[  217], 20.00th=[  269],
+     | 30.00th=[  383], 40.00th=[  437], 50.00th=[  562], 60.00th=[  644],
+     | 70.00th=[  791], 80.00th=[  955], 90.00th=[ 1188], 95.00th=[ 1385],
+     | 99.00th=[ 1778], 99.50th=[ 1958], 99.90th=[ 2409], 99.95th=[ 3785],
+     | 99.99th=[78119]
+   bw (  KiB/s): min=12219, max=24987, per=5.07%, avg=19623.48, stdev=2301.69, samples=2140
+   iops        : min=  903, max= 2271, avg=1518.96, stdev=217.21, samples=2140
+  lat (usec)   : 250=18.44%, 500=27.00%, 750=21.36%, 1000=16.33%
+  lat (msec)   : 2=16.52%, 4=0.32%, 10=0.01%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.01%, 250=0.01%
+  cpu          : usr=0.53%, sys=0.98%, ctx=1626347, majf=0, minf=207
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=378MiB/s (396MB/s), 378MiB/s-378MiB/s (396MB/s-396MB/s), io=20.0GiB (21.5GB), run=54166-54166msec
+
+Disk stats (read/write):
+  nvme0n1: ios=606/1625938, merge=0/0, ticks=60/1053420, in_queue=1009864, util=99.36%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 1908
+cmt cnt: 1905
+model cnt: 0
+write cnt: 6927110
+should_write cnt: 5242880
+erase cnt: 6912
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4888291
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 82482
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+顺序写
+
+NVMe command result:00000000
+ev/nvme0n1 -name=write_12_4G_Testobs=6 --offset=0G -group_reporting -filename=/de
+write_12_4G_Test: (g=0): rw=write, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(2),W(1),_(3)][98.6%][r=0KiB/s,w=133MiB/s][r=0,w=8040 IOPS][eta 00m:01s]           
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1499: Wed Nov 19 05:54:54 2025
+  write: IOPS=20.1k, BW=338MiB/s (354MB/s)(24.0GiB/72705msec)
+    clat (usec): min=206, max=75080, avg=288.17, stdev=1010.41
+     lat (usec): min=206, max=75081, avg=288.62, stdev=1010.43
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  210], 20.00th=[  212],
+     | 30.00th=[  215], 40.00th=[  217], 50.00th=[  219], 60.00th=[  225],
+     | 70.00th=[  255], 80.00th=[  383], 90.00th=[  408], 95.00th=[  424],
+     | 99.00th=[  594], 99.50th=[  611], 99.90th=[ 2040], 99.95th=[ 2376],
+     | 99.99th=[71828]
+   bw (  KiB/s): min=43759, max=76601, per=17.15%, avg=59373.57, stdev=7796.43, samples=845
+   iops        : min= 2630, max= 4208, avg=3449.67, stdev=437.99, samples=845
+  lat (usec)   : 250=68.41%, 500=28.66%, 750=2.73%, 1000=0.09%
+  lat (msec)   : 2=0.01%, 4=0.08%, 10=0.01%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.02%
+  cpu          : usr=1.01%, sys=2.25%, ctx=1462367, majf=0, minf=67
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=338MiB/s (354MB/s), 338MiB/s-338MiB/s (354MB/s-354MB/s), io=24.0GiB (25.8GB), run=72705-72705msec
+
+Disk stats (read/write):
+  nvme0n1: ios=203/1462018, merge=0/0, ticks=8/406424, in_queue=332808, util=98.99%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 913
+cmt cnt: 910
+model cnt: 0
+write cnt: 6804558
+should_write cnt: 6291456
+erase cnt: 14880
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 24936213
+GC_erase_time : 896000000
+GC_read_time : 709240000
+GC_write_time : 2969600000
+GC_insert_time : 2578513
+GC_time : 3888187384
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 26330
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+
+
+随即写
+
+e=/dev/nvme0n1 -name=Randwrite_12_4G_Test6 --offset=0G -group_reporting -filename
+Randwrite_12_4G_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 6 processes
+Jobs: 6 (f=6): [w(6)][100.0%][r=0KiB/s,w=124MiB/s][r=0,w=12.5k IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1558: Wed Nov 19 08:02:16 2025
+  write: IOPS=17.1k, BW=216MiB/s (226MB/s)(24.0GiB/113865msec)
+    clat (usec): min=207, max=79098, avg=347.94, stdev=1443.31
+     lat (usec): min=207, max=79099, avg=348.34, stdev=1443.33
+    clat percentiles (usec):
+     |  1.00th=[  210],  5.00th=[  210], 10.00th=[  212], 20.00th=[  215],
+     | 30.00th=[  217], 40.00th=[  219], 50.00th=[  227], 60.00th=[  314],
+     | 70.00th=[  392], 80.00th=[  412], 90.00th=[  545], 95.00th=[  603],
+     | 99.00th=[  783], 99.50th=[  807], 99.90th=[ 3687], 99.95th=[ 4621],
+     | 99.99th=[78119]
+   bw (  KiB/s): min= 6816, max=53709, per=16.75%, avg=37022.56, stdev=8156.30, samples=1361
+   iops        : min=  508, max= 3491, avg=2867.13, stdev=559.91, samples=1361
+  lat (usec)   : 250=55.08%, 500=34.03%, 750=9.31%, 1000=1.40%
+  lat (msec)   : 2=0.03%, 4=0.07%, 10=0.04%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.04%
+  cpu          : usr=1.00%, sys=1.92%, ctx=1950046, majf=0, minf=55
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=216MiB/s (226MB/s), 216MiB/s-216MiB/s (226MB/s-226MB/s), io=24.0GiB (25.8GB), run=113865-113865msec
+
+Disk stats (read/write):
+  nvme0n1: ios=83/1947831, merge=0/0, ticks=8/656244, in_queue=548404, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 786
+cmt cnt: 784
+model cnt: 0
+write cnt: 8907285
+should_write cnt: 6291456
+erase cnt: 38848
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 42354319
+GC_erase_time : 1980000000
+GC_read_time : 1213320000
+GC_write_time : 5023200000
+GC_insert_time : 12726322
+GC_time : 8124580159
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 30605
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+顺序读
+
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+v/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -filename=/dev
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 4 (f=4): [R(1),_(16),R(3)][100.0%][r=808MiB/s,w=0KiB/s][r=207k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1595: Wed Nov 19 06:04:47 2025
+   read: IOPS=308k, BW=1203MiB/s (1261MB/s)(20.0GiB/17028msec)
+    clat (usec): min=4, max=1605, avg=61.84, stdev=23.72
+     lat (usec): min=4, max=1605, avg=62.06, stdev=23.72
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[   12], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   53], 50.00th=[   57], 60.00th=[   61],
+     | 70.00th=[   69], 80.00th=[   78], 90.00th=[   92], 95.00th=[  105],
+     | 99.00th=[  135], 99.50th=[  149], 99.90th=[  180], 99.95th=[  194],
+     | 99.99th=[  237]
+   bw (  KiB/s): min=57414, max=80103, per=5.15%, avg=63478.20, stdev=1458.84, samples=645
+   iops        : min=14353, max=20025, avg=15869.33, stdev=364.72, samples=645
+  lat (usec)   : 10=4.54%, 20=0.85%, 50=21.74%, 100=66.48%, 250=6.38%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=3.22%, sys=14.72%, ctx=4961232, majf=0, minf=216
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1203MiB/s (1261MB/s), 1203MiB/s-1203MiB/s (1261MB/s-1261MB/s), io=20.0GiB (21.5GB), run=17028-17028msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5234796/0, merge=0/0, ticks=250848/0, in_queue=229656, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 4817358
+model cnt: 0
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:122368
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 246834283
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+随即读
+
+=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -filename=
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 4 (f=4): [r(1),_(16),r(3)][100.0%][r=890MiB/s,w=0KiB/s][r=228k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1636: Wed Nov 19 06:08:23 2025
+   read: IOPS=180k, BW=705MiB/s (739MB/s)(20.0GiB/29062msec)
+    clat (usec): min=5, max=1003, avg=107.98, stdev=63.83
+     lat (usec): min=6, max=1003, avg=108.17, stdev=63.83
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   13], 10.00th=[   48], 20.00th=[   52],
+     | 30.00th=[   72], 40.00th=[   90], 50.00th=[   94], 60.00th=[  106],
+     | 70.00th=[  125], 80.00th=[  153], 90.00th=[  194], 95.00th=[  235],
+     | 99.00th=[  314], 99.50th=[  347], 99.90th=[  416], 99.95th=[  441],
+     | 99.99th=[  519]
+   bw (  KiB/s): min=32232, max=76648, per=5.06%, avg=36478.56, stdev=4655.15, samples=1142
+   iops        : min= 8058, max=19162, avg=9119.45, stdev=1163.79, samples=1142
+  lat (usec)   : 10=4.03%, 20=1.37%, 50=11.07%, 100=39.90%, 250=40.03%
+  lat (usec)   : 500=3.59%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=2.21%, sys=9.54%, ctx=4960872, majf=0, minf=177
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=705MiB/s (739MB/s), 705MiB/s-705MiB/s (739MB/s-739MB/s), io=20.0GiB (21.5GB), run=29062-29062msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5235026/0, merge=0/0, ticks=511032/0, in_queue=481120, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 2022291
+model cnt: 0
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:122368
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 1484714632
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+=====================FMA+DLM========================
+
+
+随即写预处理：
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+oup_reporting -filename=/dev/nvme0n1 -name=Write_BandWidth_Test_increment=1G -gro
+Write_BandWidth_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 11 (f=11): [_(1),w(1),_(2),w(2),_(2),w(5),_(1),w(3),_(3)][100.0%][r=0KiB/s,w=387MiB/s][r=0,w=38.7k IOPS][eta 00m:00s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1431: Wed Nov 19 08:15:15 2025
+  write: IOPS=30.0k, BW=378MiB/s (397MB/s)(20.0GiB/54128msec)
+    clat (usec): min=206, max=157664, avg=660.71, stdev=1826.79
+     lat (usec): min=207, max=157665, avg=661.11, stdev=1826.81
+    clat percentiles (usec):
+     |  1.00th=[   210],  5.00th=[   212], 10.00th=[   217], 20.00th=[   269],
+     | 30.00th=[   383], 40.00th=[   437], 50.00th=[   562], 60.00th=[   644],
+     | 70.00th=[   791], 80.00th=[   955], 90.00th=[  1188], 95.00th=[  1385],
+     | 99.00th=[  1795], 99.50th=[  1958], 99.90th=[  2409], 99.95th=[  3752],
+     | 99.99th=[154141]
+   bw (  KiB/s): min=10048, max=25303, per=5.06%, avg=19610.07, stdev=2446.62, samples=2140
+   iops        : min=  910, max= 2245, avg=1517.22, stdev=230.68, samples=2140
+  lat (usec)   : 250=18.48%, 500=26.92%, 750=21.39%, 1000=16.28%
+  lat (msec)   : 2=16.55%, 4=0.36%, 10=0.01%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.01%, 250=0.01%
+  cpu          : usr=0.58%, sys=0.97%, ctx=1626287, majf=0, minf=207
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=378MiB/s (397MB/s), 378MiB/s-378MiB/s (397MB/s-397MB/s), io=20.0GiB (21.5GB), run=54128-54128msec
+
+Disk stats (read/write):
+  nvme0n1: ios=284/1624360, merge=0/0, ticks=20/1054192, in_queue=1011500, util=99.90%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 1527
+cmt cnt: 648
+model cnt: 876
+write cnt: 6927022
+should_write cnt: 5242880
+erase cnt: 6912
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4888291
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 39265
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+顺序写
+
+ev/nvme0n1 -name=write_12_4G_Testobs=6 --offset=0G -group_reporting -filename=/de
+write_12_4G_Test: (g=0): rw=write, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(2),W(1),_(3)][100.0%][r=0KiB/s,w=75.9MiB/s][r=0,w=4567 IOPS][eta 00m:00s]    
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1513: Wed Nov 19 08:20:52 2025
+  write: IOPS=20.2k, BW=340MiB/s (357MB/s)(24.0GiB/72267msec)
+    clat (usec): min=206, max=75011, avg=282.70, stdev=858.40
+     lat (usec): min=206, max=75011, avg=283.15, stdev=858.42
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  210], 20.00th=[  212],
+     | 30.00th=[  215], 40.00th=[  217], 50.00th=[  219], 60.00th=[  225],
+     | 70.00th=[  255], 80.00th=[  383], 90.00th=[  408], 95.00th=[  420],
+     | 99.00th=[  594], 99.50th=[  611], 99.90th=[ 2212], 99.95th=[ 2376],
+     | 99.99th=[69731]
+   bw (  KiB/s): min=46412, max=76713, per=17.37%, avg=60483.94, stdev=6478.81, samples=829
+   iops        : min= 2795, max= 4313, avg=3514.42, stdev=363.61, samples=829
+  lat (usec)   : 250=68.75%, 500=28.77%, 750=2.31%, 1000=0.05%
+  lat (msec)   : 2=0.01%, 4=0.11%, 10=0.01%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.01%
+  cpu          : usr=1.08%, sys=2.34%, ctx=1462355, majf=0, minf=61
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=340MiB/s (357MB/s), 340MiB/s-340MiB/s (357MB/s-357MB/s), io=24.0GiB (25.8GB), run=72267-72267msec
+
+Disk stats (read/write):
+  nvme0n1: ios=243/1461750, merge=0/0, ticks=16/397700, in_queue=324848, util=98.17%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 913
+cmt cnt: 57
+model cnt: 856
+write cnt: 6591414
+should_write cnt: 6291456
+erase cnt: 14080
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 13030903
+GC_erase_time : 844000000
+GC_read_time : 380960000
+GC_write_time : 1638400000
+GC_insert_time : 1413485
+GC_time : 2299949057
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 3870
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+随即写
+
+e=/dev/nvme0n1 -name=Randwrite_12_4G_Test6 --offset=0G -group_reporting -filename
+Randwrite_12_4G_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 6 processes
+Jobs: 6 (f=6): [w(6)][100.0%][r=0KiB/s,w=124MiB/s][r=0,w=12.5k IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1548: Wed Nov 19 08:27:18 2025
+  write: IOPS=17.1k, BW=216MiB/s (227MB/s)(24.0GiB/113748msec)
+    clat (usec): min=206, max=79016, avg=347.61, stdev=1440.61
+     lat (usec): min=206, max=79016, avg=348.03, stdev=1440.62
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  212], 20.00th=[  215],
+     | 30.00th=[  217], 40.00th=[  219], 50.00th=[  227], 60.00th=[  310],
+     | 70.00th=[  392], 80.00th=[  412], 90.00th=[  537], 95.00th=[  603],
+     | 99.00th=[  783], 99.50th=[  807], 99.90th=[ 3654], 99.95th=[ 4621],
+     | 99.99th=[78119]
+   bw (  KiB/s): min= 6320, max=52521, per=16.71%, avg=36968.16, stdev=8061.91, samples=1361
+   iops        : min=  466, max= 3482, avg=2863.75, stdev=548.82, samples=1361
+  lat (usec)   : 250=55.04%, 500=34.16%, 750=9.23%, 1000=1.39%
+  lat (msec)   : 2=0.03%, 4=0.08%, 10=0.03%, 20=0.01%, 50=0.01%
+  lat (msec)   : 100=0.04%
+  cpu          : usr=0.99%, sys=1.90%, ctx=1950051, majf=0, minf=48
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=216MiB/s (227MB/s), 216MiB/s-216MiB/s (227MB/s-227MB/s), io=24.0GiB (25.8GB), run=113748-113748msec
+
+Disk stats (read/write):
+  nvme0n1: ios=123/1949511, merge=0/0, ticks=0/656532, in_queue=548144, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 916
+cmt cnt: 368
+model cnt: 547
+write cnt: 8928191
+should_write cnt: 6291456
+erase cnt: 38912
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 43749446
+GC_erase_time : 1984000000
+GC_read_time : 1241360000
+GC_write_time : 5157000000
+GC_insert_time : 12535444
+GC_time : 7614365358
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 17254
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+顺序读
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+v/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -filename=/dev
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 1 (f=1): [R(1),_(19)][100.0%][r=698MiB/s,w=0KiB/s][r=179k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1598: Wed Nov 19 08:30:12 2025
+   read: IOPS=310k, BW=1210MiB/s (1269MB/s)(20.0GiB/16920msec)
+    clat (usec): min=5, max=1535, avg=61.40, stdev=23.43
+     lat (usec): min=5, max=1535, avg=61.59, stdev=23.44
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[   12], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   53], 50.00th=[   56], 60.00th=[   61],
+     | 70.00th=[   68], 80.00th=[   78], 90.00th=[   91], 95.00th=[  104],
+     | 99.00th=[  133], 99.50th=[  147], 99.90th=[  176], 99.95th=[  190],
+     | 99.99th=[  233]
+   bw (  KiB/s): min=58760, max=70265, per=5.16%, avg=63924.30, stdev=1419.76, samples=644
+   iops        : min=14690, max=17566, avg=15980.83, stdev=354.94, samples=644
+  lat (usec)   : 10=4.62%, 20=0.77%, 50=22.74%, 100=65.79%, 250=6.07%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=3.29%, sys=14.55%, ctx=4961438, majf=0, minf=195
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1210MiB/s (1269MB/s), 1210MiB/s-1210MiB/s (1269MB/s-1269MB/s), io=20.0GiB (21.5GB), run=16920-16920msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5242307/0, merge=0/0, ticks=251928/0, in_queue=230200, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 2030561
+model cnt: 2845707
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:63922
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 117837783
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+
+
+随即读
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -filename=
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 3 (f=3): [r(1),_(17),r(2)][100.0%][r=779MiB/s,w=0KiB/s][r=199k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1625: Wed Nov 19 08:32:11 2025
+   read: IOPS=237k, BW=924MiB/s (969MB/s)(20.0GiB/22161msec)
+    clat (usec): min=5, max=1204, avg=80.77, stdev=43.94
+     lat (usec): min=6, max=1204, avg=80.96, stdev=43.94
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   12], 10.00th=[   48], 20.00th=[   50],
+     | 30.00th=[   52], 40.00th=[   58], 50.00th=[   70], 60.00th=[   86],
+     | 70.00th=[   94], 80.00th=[  111], 90.00th=[  137], 95.00th=[  165],
+     | 99.00th=[  227], 99.50th=[  251], 99.90th=[  310], 99.95th=[  334],
+     | 99.99th=[  408]
+   bw (  KiB/s): min=41979, max=79113, per=5.11%, avg=48401.26, stdev=3559.03, samples=846
+   iops        : min=10494, max=19778, avg=12100.13, stdev=889.75, samples=846
+  lat (usec)   : 10=4.12%, 20=1.27%, 50=17.75%, 100=51.71%, 250=24.63%
+  lat (usec)   : 500=0.51%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=2.80%, sys=12.21%, ctx=4961128, majf=0, minf=193
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=924MiB/s (969MB/s), 924MiB/s-924MiB/s (969MB/s-969MB/s), io=20.0GiB (21.5GB), run=22161-22161msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5242435/0, merge=0/0, ticks=365064/0, in_queue=340052, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 877775
+model cnt: 2845707
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:63922
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 697231395
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+=====================FMA+GC========================
+
+
+随即写预处理：
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+oup_reporting -filename=/dev/nvme0n1 -name=Write_BandWidth_Test_increment=1G -gro
+Write_BandWidth_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 20 (f=20): [w(20)][98.1%][r=0KiB/s,w=399MiB/s][r=0,w=39.7k IOPS][eta 00m:01s]
+Write_BandWidth_Test: (groupid=0, jobs=20): err= 0: pid=1444: Wed Nov 19 09:01:57 2025
+  write: IOPS=30.8k, BW=387MiB/s (406MB/s)(20.0GiB/52877msec)
+    clat (usec): min=206, max=25768, avg=643.93, stdev=470.26
+     lat (usec): min=206, max=25768, avg=644.35, stdev=470.37
+    clat percentiles (usec):
+     |  1.00th=[  210],  5.00th=[  212], 10.00th=[  217], 20.00th=[  269],
+     | 30.00th=[  383], 40.00th=[  437], 50.00th=[  562], 60.00th=[  644],
+     | 70.00th=[  791], 80.00th=[  955], 90.00th=[ 1188], 95.00th=[ 1385],
+     | 99.00th=[ 1795], 99.50th=[ 1991], 99.90th=[ 4752], 99.95th=[ 5932],
+     | 99.99th=[13042]
+   bw (  KiB/s): min=15421, max=25279, per=5.07%, avg=20123.97, stdev=1477.29, samples=2089
+   iops        : min=  983, max= 2170, avg=1557.54, stdev=165.91, samples=2089
+  lat (usec)   : 250=18.46%, 500=26.93%, 750=21.30%, 1000=16.32%
+  lat (msec)   : 2=16.50%, 4=0.35%, 10=0.12%, 20=0.02%, 50=0.01%
+  cpu          : usr=0.60%, sys=0.98%, ctx=1626341, majf=0, minf=168
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1626071,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=387MiB/s (406MB/s), 387MiB/s-387MiB/s (406MB/s-406MB/s), io=20.0GiB (21.5GB), run=52877-52877msec
+
+Disk stats (read/write):
+  nvme0n1: ios=487/1624627, merge=0/0, ticks=28/1026748, in_queue=985324, util=99.71%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 1908
+cmt cnt: 810
+model cnt: 1095
+write cnt: 6746976
+should_write cnt: 5242880
+erase cnt: 6784
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4888291
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 40443
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+
+顺序写
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+ev/nvme0n1 -name=write_12_4G_Testobs=6 --offset=0G -group_reporting -filename=/de
+write_12_4G_Test: (g=0): rw=write, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 6 processes
+Jobs: 1 (f=1): [_(2),W(1),_(3)][98.6%][r=0KiB/s,w=110MiB/s][r=0,w=6589 IOPS][eta 00m:01s]      
+write_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1515: Wed Nov 19 09:16:47 2025
+  write: IOPS=20.4k, BW=343MiB/s (359MB/s)(24.0GiB/71714msec)
+    clat (usec): min=206, max=66389, avg=282.67, stdev=478.30
+     lat (usec): min=206, max=66389, avg=283.13, stdev=478.32
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  210], 20.00th=[  212],
+     | 30.00th=[  215], 40.00th=[  217], 50.00th=[  219], 60.00th=[  225],
+     | 70.00th=[  255], 80.00th=[  383], 90.00th=[  408], 95.00th=[  424],
+     | 99.00th=[  594], 99.50th=[  611], 99.90th=[ 2343], 99.95th=[12125],
+     | 99.99th=[20841]
+   bw (  KiB/s): min=45256, max=77593, per=17.24%, avg=60505.54, stdev=6516.63, samples=829
+   iops        : min= 2804, max= 4512, avg=3515.56, stdev=364.18, samples=829
+  lat (usec)   : 250=68.51%, 500=28.72%, 750=2.52%, 1000=0.07%
+  lat (msec)   : 2=0.01%, 4=0.10%, 10=0.01%, 20=0.04%, 50=0.01%
+  lat (msec)   : 100=0.01%
+  cpu          : usr=1.12%, sys=2.29%, ctx=1462366, majf=0, minf=63
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1462280,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=343MiB/s (359MB/s), 343MiB/s-343MiB/s (359MB/s-359MB/s), io=24.0GiB (25.8GB), run=71714-71714msec
+
+Disk stats (read/write):
+  nvme0n1: ios=242/1461988, merge=0/0, ticks=0/397372, in_queue=325700, util=98.83%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 913
+cmt cnt: 57
+model cnt: 856
+write cnt: 6512345
+should_write cnt: 6291456
+erase cnt: 14496
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 12585801
+GC_erase_time : 860000000
+GC_read_time : 350280000
+GC_write_time : 1455200000
+GC_insert_time : 1511341
+GC_time : 1417726480
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 3667
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+随即写
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+e=/dev/nvme0n1 -name=Randwrite_12_4G_Test6 --offset=0G -group_reporting -filename
+Randwrite_12_4G_Test: (g=0): rw=randwrite, bs=(R) 4096B-64.0KiB, (W) 4096B-64.0KiB, (T) 4096B-64.0KiB, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 6 processes
+Jobs: 2 (f=2): [_(4),w(2)][100.0%][r=0KiB/s,w=182MiB/s][r=0,w=18.2k IOPS][eta 00m:00s]
+Randwrite_12_4G_Test: (groupid=0, jobs=6): err= 0: pid=1590: Wed Nov 19 09:42:20 2025
+  write: IOPS=18.1k, BW=228MiB/s (239MB/s)(24.0GiB/107995msec)
+    clat (usec): min=206, max=76698, avg=329.87, stdev=520.46
+     lat (usec): min=206, max=76700, avg=330.26, stdev=520.49
+    clat percentiles (usec):
+     |  1.00th=[  208],  5.00th=[  210], 10.00th=[  212], 20.00th=[  215],
+     | 30.00th=[  217], 40.00th=[  219], 50.00th=[  227], 60.00th=[  314],
+     | 70.00th=[  392], 80.00th=[  412], 90.00th=[  545], 95.00th=[  603],
+     | 99.00th=[  791], 99.50th=[  832], 99.90th=[ 4293], 99.95th=[ 5014],
+     | 99.99th=[13042]
+   bw (  KiB/s): min=  632, max=51840, per=16.71%, avg=38939.00, stdev=5875.30, samples=1290
+   iops        : min=   36, max= 3527, avg=3015.05, stdev=346.67, samples=1290
+  lat (usec)   : 250=54.92%, 500=34.18%, 750=9.20%, 1000=1.40%
+  lat (msec)   : 2=0.04%, 4=0.12%, 10=0.11%, 20=0.02%, 50=0.01%
+  lat (msec)   : 100=0.01%
+  cpu          : usr=1.03%, sys=2.01%, ctx=1950046, majf=0, minf=43
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=0,1949989,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+  WRITE: bw=228MiB/s (239MB/s), 228MiB/s-228MiB/s (239MB/s-239MB/s), io=24.0GiB (25.8GB), run=107995-107995msec
+
+Disk stats (read/write):
+  nvme0n1: ios=204/1949513, merge=0/0, ticks=0/620876, in_queue=518768, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 916
+cmt cnt: 914
+model cnt: 0
+write cnt: 8177173
+should_write cnt: 6291456
+erase cnt: 36736
+write cache hit:0
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 12050054
+GC_erase_time : 1780000000
+GC_read_time : 498880000
+GC_write_time : 1811800000
+GC_insert_time : 14914420
+GC_time : 4379320777
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 32462
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=8
+888881118
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+
+
+
+顺序读
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+v/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -filename=/dev
+Read_28_1G_Test: (g=0): rw=read, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 3 (f=3): [R(1),_(16),R(1),_(1),R(1)][100.0%][r=696MiB/s,w=0KiB/s][r=178k,w=0 IOPS][eta 00m:00s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1625: Wed Nov 19 09:46:15 2025
+   read: IOPS=310k, BW=1210MiB/s (1269MB/s)(20.0GiB/16920msec)
+    clat (usec): min=5, max=1468, avg=61.46, stdev=23.50
+     lat (usec): min=5, max=1468, avg=61.65, stdev=23.50
+    clat percentiles (usec):
+     |  1.00th=[    7],  5.00th=[   12], 10.00th=[   47], 20.00th=[   49],
+     | 30.00th=[   51], 40.00th=[   53], 50.00th=[   56], 60.00th=[   61],
+     | 70.00th=[   68], 80.00th=[   78], 90.00th=[   92], 95.00th=[  104],
+     | 99.00th=[  135], 99.50th=[  147], 99.90th=[  178], 99.95th=[  192],
+     | 99.99th=[  229]
+   bw (  KiB/s): min=59759, max=70616, per=5.15%, avg=63871.99, stdev=1438.99, samples=644
+   iops        : min=14939, max=17654, avg=15967.76, stdev=359.77, samples=644
+  lat (usec)   : 10=4.58%, 20=0.81%, 50=22.89%, 100=65.55%, 250=6.15%
+  lat (usec)   : 500=0.01%, 750=0.01%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=3.12%, sys=14.72%, ctx=4961019, majf=0, minf=215
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=1210MiB/s (1269MB/s), 1210MiB/s-1210MiB/s (1269MB/s-1269MB/s), io=20.0GiB (21.5GB), run=16920-16920msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5241727/0, merge=0/0, ticks=251372/0, in_queue=233028, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 4817358
+model cnt: 0
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:122368
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 247153973
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+随即读
+
+
+[FEMU] Log: vSSD0,Reset statistics!
+NVMe command result:00000000
+=/dev/nvme0n1 -name=Read_28_1G_Testffset_increment=1G -group_reporting -filename=
+Read_28_1G_Test: (g=0): rw=randread, bs=(R) 4096B-4096B, (W) 4096B-4096B, (T) 4096B-4096B, ioengine=psync, iodepth=32
+...
+fio-3.1
+Starting 20 processes
+Jobs: 4 (f=4): [r(1),_(6),E(1),_(9),r(3)][96.7%][r=1075MiB/s,w=0KiB/s][r=275k,w=0 IOPS][eta 00m:01s]
+Read_28_1G_Test: (groupid=0, jobs=20): err= 0: pid=1652: Wed Nov 19 09:48:10 2025
+   read: IOPS=179k, BW=698MiB/s (732MB/s)(20.0GiB/29344msec)
+    clat (usec): min=5, max=1083, avg=109.01, stdev=64.55
+     lat (usec): min=5, max=1083, avg=109.20, stdev=64.55
+    clat percentiles (usec):
+     |  1.00th=[    8],  5.00th=[   13], 10.00th=[   48], 20.00th=[   53],
+     | 30.00th=[   75], 40.00th=[   90], 50.00th=[   94], 60.00th=[  108],
+     | 70.00th=[  127], 80.00th=[  155], 90.00th=[  196], 95.00th=[  237],
+     | 99.00th=[  318], 99.50th=[  351], 99.90th=[  424], 99.95th=[  449],
+     | 99.99th=[  523]
+   bw (  KiB/s): min=31895, max=63576, per=5.03%, avg=35925.89, stdev=4066.46, samples=1144
+   iops        : min= 7973, max=15894, avg=8981.31, stdev=1016.61, samples=1144
+  lat (usec)   : 10=4.13%, 20=1.27%, 50=10.78%, 100=39.67%, 250=40.38%
+  lat (usec)   : 500=3.76%, 750=0.02%, 1000=0.01%
+  lat (msec)   : 2=0.01%
+  cpu          : usr=2.18%, sys=9.41%, ctx=4960530, majf=0, minf=174
+  IO depths    : 1=100.0%, 2=0.0%, 4=0.0%, 8=0.0%, 16=0.0%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwt: total=5242880,0,0, short=0,0,0, dropped=0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: bw=698MiB/s (732MB/s), 698MiB/s-698MiB/s (732MB/s-732MB/s), io=20.0GiB (21.5GB), run=29344-29344msec
+
+Disk stats (read/write):
+  nvme0n1: ios=5233900/0, merge=0/0, ticks=522960/0, in_queue=496572, util=100.00%
+fxx@fxx:~$ sudo nvme admin-passthru /dev/nvme0n1 --opcode=239 --cdw10=9
+888881118
+total cnt: 4959294
+cmt cnt: 1961828
+model cnt: 0
+write cnt: 0
+should_write cnt: 0
+erase cnt: 0
+write cache hit:122368
+max lpn: 0
+min lpn: 18446744073709551615
+all_count : 4959294
+seg_count : 0
+sort_time : 0
+GC_erase_time : 0
+GC_read_time : 0
+GC_write_time : 0
+GC_insert_time : 0
+GC_time : 0
+write_time : 0
+insert_CMT_model_time : 0
+read_time : 0
+read_CMT_time : 1475823890
+[FEMU] Log: vSSD0,Statistics print!
+NVMe command result:00000000
+
+
+
+
+
+
+
+
+
+
